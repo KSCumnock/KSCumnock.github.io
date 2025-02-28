@@ -75,7 +75,7 @@
         .timeline {
             display: flex;
             align-items: center;
-            height: 40px;
+            height: 20px;
             background-color: #333;
             border-radius: 10px;
             position: relative;
@@ -115,6 +115,26 @@
             font-size: 0.8em;
             color: #333;
         }
+        /* Marker styles */
+.marker {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 1px;
+    background-color: rgba(255, 255, 255, 0.5); /* Light gray line */
+    z-index: 1;
+}
+
+/* Marker label styles */
+.marker-label {
+    position: absolute;
+    top: -20px; /* Position above the timeline */
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8em;
+    color: #555;
+    white-space: nowrap;
+}
         .notes {
             margin-top: 10px;
             font-size: 0.9em;
@@ -345,6 +365,25 @@
                                 const workdayStart = new Date(`${date}T07:00:00Z`);
                                 const workdayEnd = new Date(`${date}T19:00:00Z`);
                                 const totalDuration = workdayEnd - workdayStart;
+
+                                // Add hourly markers
+for (let hour = 7; hour <= 20; hour++) {
+    const markerTime = new Date(`${date}T${String(hour).padStart(2, '0')}:00:00Z`);
+    const markerPosition = ((markerTime - workdayStart) / totalDuration) * 100;
+
+    // Create marker element
+    const marker = document.createElement('div');
+    marker.className = 'marker';
+    marker.style.left = `${markerPosition}%`;
+
+    // Add label for the hour
+    const markerLabel = document.createElement('div');
+    markerLabel.className = 'marker-label';
+    markerLabel.textContent = `${hour}:00`;
+    marker.appendChild(markerLabel);
+
+    timeline.appendChild(marker);
+}
 
                                 // Add the "no clockings" segment before the first clock-in
                                 const firstClockIn = new Date(entries[0].timestamp);
