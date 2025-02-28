@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kerr & Smith Time Keeper Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .report-header {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .report-header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .report-header p {
+            font-size: 1.1em;
+            color: #555;
+        }
+        .date-picker {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .date-picker input {
+            padding: 5px;
+            font-size: 1em;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .employee-container {
+            margin-bottom: 40px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            page-break-inside: avoid;
+        }
+        .employee-header {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .employee-total-hours {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .day-container {
+            margin-bottom: 20px;
+        }
+        .day-header {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .timeline {
+            display: flex;
+            align-items: center;
+            height: 40px;
+            background-color: #333;
+            border-radius: 10px;
+            position: relative;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+     .timeline-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 0.7em;
+    color: #555;
+    padding: 0 5px;
+}
+.timeline-scale span {
+    flex: 1;
+    text-align: center;
+}
+        .progress-bar {
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            transition: width 0.5s ease-in-out;
+        }
+        .marker {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10px;
+            height: 10px;
+            background-color: #000;
+            border-radius: 50%;
+            z-index: 2;
+        }
+        .marker-label {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8em;
+            color: #333;
+        }
+        .notes {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .total-hours {
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 1.1em;
+            background-color: #e0f7fa;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        /* Colors for event types */
+        .working { background-color: #4CAF50; }
+        .break { background-color: #FFC107; }
+        .lunch { background-color: #FF9800; }
+
+        /* Grid card style for employee status */
+        .employee-status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+            padding-bottom: 40px;
+        }
+        .employee-status-card {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .employee-status-card:hover {
+            transform: translateY(-5px);
+        }
+        .employee-status-card h3 {
+            margin: 0 0 10px;
+            font-size: 1.2em;
+            color: #333;
+        }
+        .employee-status-card p {
+            margin: 5px 0;
+            font-size: 0.9em;
+            color: #555;
+        }
+        /* Card colors based on status */
+       /* Updated card colors based on status */
+.employee-status-card.clocked-out { 
+    background-color: #333; 
+}
+.employee-status-card.clocked-in { 
+    background-color: #4CAF50; 
+}
+.employee-status-card.on-break { 
+    background-color: #FFC107; 
+}
+.employee-status-card.on-lunch { 
+    background-color: #FF9800; 
+}
+
+.last-event { 
+    font-size: 0.2em; 
+    margin: 3px 0; 
+}
+
+/* Text color overrides for each card type */
+.employee-status-card.clocked-out h3,
+.employee-status-card.clocked-out p { 
+    color: white !important; 
+}
+
+.employee-status-card.clocked-in h3,
+.employee-status-card.clocked-in p { 
+    color: white !important; 
+}
+
+.employee-status-card.on-break h3,
+.employee-status-card.on-break p { 
+    color: black !important; 
+}
+
+.employee-status-card.on-lunch h3,
+.employee-status-card.on-lunch p { 
+    color: white !important; 
+}
+
+/* Add hover styles to improve interaction */
+.employee-status-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Add a subtle indicator for clocked-out status */
+.employee-status-card.clocked-out h3::after {
+    content: " ●";
+    color: #ff5252; /* Red dot indicator */
+}
+
+        /* Buttons */
+        .action-buttons {
+            margin-bottom: 20px;
+        }
+        .action-buttons button {
+            padding: 10px 20px;
+            font-size: 1em;
+            border: none;
+            border-radius: 5px;
+            background-color: #0674f9;
+            color: white;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .action-buttons button:hover {
+            background-color: #009dfc;
+        }
+
+        /* Print-specific styles */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                background-color: white;
+                font-size: 12px;
+            }
+            .report-header, .action-buttons, .employee-status-grid {
+                display: none; /* Hide unnecessary elements when printing */
+            }
+            .employee-container {
+                margin-bottom: 10px;
+                padding: 10px;
+                box-shadow: none;
+                border: 1px solid #ddd;
+                page-break-inside: avoid;
+            }
+            .employee-header {
+                font-size: 1.2em;
+            }
+            .employee-total-hours, .total-hours {
+                font-size: 1em;
+                padding: 5px;
+            }
+            .day-container {
+                margin-bottom: 10px;
+            }
+            .day-header {
+                font-size: 1em;
+            }
+            .timeline {
+                height: 20px;
+            }
+            .timeline-scale {
+                font-size: 0.8em;
+            }
+            .notes {
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-header">
+        <h1>Kerr & Smith Time Keeper</h1>
+        <p>Date Range: <span id="dateRange">Loading...</span></p>
+        <p>Total Employees: <span id="totalEmployees">Loading...</span></p>
+        <div class="date-picker">
+            <input type="date" id="startDate" />
+            <input type="date" id="endDate" />
+            <button onclick="updateDateRange()">Apply</button>
+            <button onclick="resetDateRange()">Reset</button>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <button onclick="toggleEmployeeStatus()">Live Employee Status</button>
+      <!--  <button onclick="printReport()">Print Report</button> -->
+    </div>
+
+    <!-- Employee Status Grid -->
+    <div id="employeeStatusGrid" class="employee-status-grid" style="display: none;"></div>
+
+    <!-- Employee Timeline -->
+    <div id="employeeTimeline"></div>
+
+    <script>
+        // Fetch employee data
+        const fetchEmployees = fetch('https://raw.githubusercontent.com/SCOSeanKly/TimeKeeperReports/main/TimeKeeperEmployees.json')
+            .then(response => response.json());
+
+        // Fetch clocking data
+        const fetchClockingData = fetch('https://raw.githubusercontent.com/SCOSeanKly/TimeKeeperReports/main/timekeeper_entries.json')
+            .then(response => response.json());
+
+        // Default to last working week (starting on Monday)
+        const today = new Date();
+        const lastMonday = new Date(today);
+        lastMonday.setDate(today.getDate() - ((today.getDay() + 6) % 7) - 0);
+        const lastSunday = new Date(lastMonday);
+        lastSunday.setDate(lastMonday.getDate() + 6);
+
+        // Set default date range in the date picker
+        document.getElementById('startDate').value = lastMonday.toISOString().split('T')[0];
+        document.getElementById('endDate').value = lastSunday.toISOString().split('T')[0];
+
+        // Function to update the date range
+        function updateDateRange() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            loadData(startDate, endDate);
+        }
+
+        // Function to reset the date range to default
+        function resetDateRange() {
+            document.getElementById('startDate').value = lastMonday.toISOString().split('T')[0];
+            document.getElementById('endDate').value = lastSunday.toISOString().split('T')[0];
+            loadData(lastMonday.toISOString().split('T')[0], lastSunday.toISOString().split('T')[0]);
+        }
+
+        // Function to load data for a specific date range
+        function loadData(startDate, endDate) {
+            Promise.all([fetchEmployees, fetchClockingData])
+                .then(([employees, clockingData]) => {
+                    const container = document.getElementById('employeeTimeline');
+                    const dateRange = document.getElementById('dateRange');
+                    const totalEmployees = document.getElementById('totalEmployees');
+
+                    // Filter clocking data for the selected date range
+                    const filteredClockingData = clockingData.filter(entry => {
+                        const entryDate = new Date(entry.timestamp).toISOString().split('T')[0];
+                        return entryDate >= startDate && entryDate <= endDate;
+                    });
+
+                    // Set report header information
+                    dateRange.textContent = `${startDate} to ${endDate}`;
+                    totalEmployees.textContent = employees.length;
+
+                    // Create a map of employees for quick lookup by ID
+                    const employeeMap = new Map();
+                    employees.forEach(employee => {
+                        employeeMap.set(employee.id, employee);
+                    });
+
+                    // Group clocking data by employee and by day
+                    const employeeClockingMap = new Map();
+                    filteredClockingData.forEach(entry => {
+                        if (!employeeClockingMap.has(entry.employeeId)) {
+                            employeeClockingMap.set(entry.employeeId, {});
+                        }
+                        const date = new Date(entry.timestamp).toISOString().split('T')[0];
+                        if (!employeeClockingMap.get(entry.employeeId)[date]) {
+                            employeeClockingMap.get(entry.employeeId)[date] = [];
+                        }
+                        employeeClockingMap.get(entry.employeeId)[date].push(entry);
+                    });
+
+                    // Clear existing content
+                    container.innerHTML = '';
+
+                    // Display timeline for each employee
+                    employeeClockingMap.forEach((days, employeeId) => {
+                        const employee = employeeMap.get(employeeId);
+                        if (employee) {
+                            // Create employee container
+                            const employeeDiv = document.createElement('div');
+                            employeeDiv.className = 'employee-container';
+                            employeeDiv.id = `employee-${employeeId}`;
+
+                            // Add employee header
+                            const header = document.createElement('div');
+                            header.className = 'employee-header';
+                            header.textContent = `${employee.name} (${employee.department})`;
+                            employeeDiv.appendChild(header);
+
+                            // Initialize total hours worked for the employee
+                            let employeeTotalHours = 0;
+
+                            // Add timeline for each day
+                            Object.entries(days).forEach(([date, entries]) => {
+                                const dayDiv = document.createElement('div');
+                                dayDiv.className = 'day-container';
+
+                                // Add day header
+                                const dayHeader = document.createElement('div');
+                                dayHeader.className = 'day-header';
+                                dayHeader.textContent = `Date: ${new Date(date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}`;
+                                dayDiv.appendChild(dayHeader);
+
+                                // Add timeline scale
+                              const timelineScale = document.createElement('div');
+timelineScale.className = 'timeline-scale';
+for (let hour = 7; hour <= 20; hour++) {
+    const timeLabel = document.createElement('span');
+    timeLabel.textContent = `${hour}:00`;
+    timelineScale.appendChild(timeLabel);
+}
+dayDiv.appendChild(timelineScale);
+
+                                // Add timeline
+                                const timeline = document.createElement('div');
+                                timeline.className = 'timeline';
+
+                                // Sort entries by timestamp
+                                entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+                                // Define the start and end of the workday (7:00 AM to 7:00 PM)
+                               const workdayStart = new Date(`${date}T07:30:00Z`);
+const workdayEnd = new Date(`${date}T20:00:00Z`);
+const totalDuration = workdayEnd - workdayStart;
+
+                                // Add the "no clockings" segment before the first clock-in
+                                const firstClockIn = new Date(entries[0].timestamp);
+                                const noClockingsBefore = firstClockIn - workdayStart;
+                                if (noClockingsBefore > 0) {
+                                    const noClockingsSegment = document.createElement('div');
+                                    noClockingsSegment.className = 'progress-bar';
+                                    noClockingsSegment.style.width = `${(noClockingsBefore / totalDuration) * 100}%`;
+                                    noClockingsSegment.style.left = '0%';
+                                    timeline.appendChild(noClockingsSegment);
+                                }
+
+                                // Create progress bar segments for clockings
+                                let previousTime = firstClockIn;
+                                let currentState = 'working';
+                                entries.forEach((entry, index) => {
+                                    const eventTime = new Date(entry.timestamp);
+                                    const segmentDuration = eventTime - previousTime;
+                                    const segmentWidth = (segmentDuration / totalDuration) * 100;
+
+                                    // Add the segment to the progress bar
+                                    const segment = document.createElement('div');
+                                    segment.className = `progress-bar ${currentState}`;
+                                    segment.style.width = `${segmentWidth}%`;
+                                    segment.style.left = `${((previousTime - workdayStart) / totalDuration) * 100}%`;
+                                    timeline.appendChild(segment);
+
+                                    // Update current state based on the event type
+                                    if (entry.type === 'Break Start') {
+                                        currentState = 'break';
+                                    } else if (entry.type === 'Break End') {
+                                        currentState = 'working';
+                                    } else if (entry.type === 'Lunch Start') {
+                                        currentState = 'lunch';
+                                    } else if (entry.type === 'Lunch End') {
+                                        currentState = 'working';
+                                    }
+
+                                    // Update previousTime
+                                    previousTime = eventTime;
+                                });
+
+                                // Add the "no clockings" segment after the last clock-out
+                                const lastClockOut = new Date(entries[entries.length - 1].timestamp);
+                                const noClockingsAfter = workdayEnd - lastClockOut;
+                                if (noClockingsAfter > 0) {
+                                    const noClockingsSegment = document.createElement('div');
+                                    noClockingsSegment.className = 'progress-bar';
+                                    noClockingsSegment.style.width = `${(noClockingsAfter / totalDuration) * 100}%`;
+                                    noClockingsSegment.style.left = `${((lastClockOut - workdayStart) / totalDuration) * 100}%`;
+                                    timeline.appendChild(noClockingsSegment);
+                                }
+
+                                dayDiv.appendChild(timeline);
+
+                                // Add notes (if any)
+                                const notes = document.createElement('div');
+                                notes.className = 'notes';
+                                notes.textContent = 'Notes: [Add notes here]';
+                                dayDiv.appendChild(notes);
+
+                                // Calculate total hours worked for the day
+                                const totalHours = calculateTotalHours(entries);
+                                const totalHoursDiv = document.createElement('div');
+                                totalHoursDiv.className = 'total-hours';
+                                totalHoursDiv.textContent = `Total Hours Worked: ${totalHours.toFixed(2)} hours`;
+                                dayDiv.appendChild(totalHoursDiv);
+
+                                // Add to employee's total hours
+                                employeeTotalHours += totalHours;
+
+                                employeeDiv.appendChild(dayDiv);
+                            });
+
+                            // Add total hours worked for the employee
+                            const employeeTotalHoursDiv = document.createElement('div');
+                            employeeTotalHoursDiv.className = 'employee-total-hours';
+                            employeeTotalHoursDiv.textContent = `Total Hours Worked (All Days): ${employeeTotalHours.toFixed(2)} hours`;
+                            employeeDiv.appendChild(employeeTotalHoursDiv);
+
+                            container.appendChild(employeeDiv);
+                        }
+                    });
+
+                    // Animate progress bars
+                    setTimeout(() => {
+                        document.querySelectorAll('.progress-bar').forEach(bar => {
+                            bar.style.width = bar.style.width;
+                        });
+                    }, 100);
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        // Function to calculate total hours worked
+        function calculateTotalHours(entries) {
+            let totalMilliseconds = 0;
+            let clockInTime = null;
+
+            entries.forEach(entry => {
+                if (entry.type === 'Clock In') {
+                    clockInTime = new Date(entry.timestamp);
+                } else if (entry.type === 'Clock Out' && clockInTime) {
+                    const clockOutTime = new Date(entry.timestamp);
+                    totalMilliseconds += clockOutTime - clockInTime;
+                    clockInTime = null;
+                }
+            });
+
+            return totalMilliseconds / (1000 * 60 * 60);
+        }
+
+        // Function to toggle employee status visibility
+        function toggleEmployeeStatus() {
+            const employeeStatusGrid = document.getElementById('employeeStatusGrid');
+            if (employeeStatusGrid.style.display === 'none') {
+                showEmployeeStatus();
+                employeeStatusGrid.style.display = 'grid';
+            } else {
+                employeeStatusGrid.style.display = 'none';
+            }
+        }
+
+// Function to show employee status
+function showEmployeeStatus() {
+    const employeeStatusGrid = document.getElementById('employeeStatusGrid');
+    employeeStatusGrid.innerHTML = ''; // Clear previous content
+
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split('T')[0];
+
+    // Fetch both employees and clocking data
+    Promise.all([
+        fetch('https://raw.githubusercontent.com/SCOSeanKly/TimeKeeperReports/main/TimeKeeperEmployees.json'),
+        fetch('https://raw.githubusercontent.com/SCOSeanKly/TimeKeeperReports/main/timekeeper_entries.json')
+    ])
+    .then(responses => Promise.all(responses.map(response => response.json())))
+    .then(([employees, clockingData]) => {
+        // Filter entries for today
+        const todayEntries = clockingData.filter(entry => {
+            const entryDate = new Date(entry.timestamp).toISOString().split('T')[0];
+            return entryDate === today;
+        });
+
+        // Group entries by employee
+        const employeeStatusMap = new Map();
+        todayEntries.forEach(entry => {
+            if (!employeeStatusMap.has(entry.employeeId)) {
+                employeeStatusMap.set(entry.employeeId, []);
+            }
+            employeeStatusMap.get(entry.employeeId).push(entry);
+        });
+
+        // Create a card for every employee - even those without entries today
+        employees.forEach(employee => {
+            // Check if employee has entries today
+            const entries = employeeStatusMap.get(employee.id) || [];
+            
+            // Determine status based on entries
+            let statusClass = 'clocked-out'; // Default status
+            let statusText = 'Not Clocked In';
+            let clockInTimeText = 'No clock-in today';
+            let lastEventTimeText = 'No events today'; // Added this line
+            
+            if (entries.length > 0) {
+                // Sort entries by timestamp
+                entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                
+                // Get the latest entry to determine current status
+                const latestEntry = entries[entries.length - 1];
+                
+                // Update clock-in time text
+                clockInTimeText = `Clocked In: ${new Date(entries[0].timestamp).toLocaleTimeString()}`;
+                
+                // Update last event time text - Add this line
+                lastEventTimeText = `Last Event: ${latestEntry.type} at ${new Date(latestEntry.timestamp).toLocaleTimeString()}`;
+                
+                // Determine the status class based on the latest entry type
+                if (latestEntry.type === 'Clock In') {
+                    statusClass = 'clocked-in';
+                    statusText = 'Working';
+                } else if (latestEntry.type === 'Break Start') {
+                    statusClass = 'on-break';
+                    statusText = 'On Break';
+                } else if (latestEntry.type === 'Lunch Start') {
+                    statusClass = 'on-lunch';
+                    statusText = 'On Lunch';
+                } else if (latestEntry.type === 'Break End' || latestEntry.type === 'Lunch End') {
+                    statusClass = 'clocked-in'; // After break/lunch end, employee is clocked in
+                    statusText = 'Working';
+                } else if (latestEntry.type === 'Clock Out') {
+                    statusClass = 'clocked-out';
+                    statusText = 'Clocked Out';
+                }
+            }
+            
+            // Create employee status card
+            const card = document.createElement('div');
+            card.className = `employee-status-card ${statusClass}`;
+            card.onclick = () => {
+                const employeeElement = document.getElementById(`employee-${employee.id}`);
+                if (employeeElement) {
+                    employeeElement.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    alert(`No timeline data available for ${employee.name} in the selected date range`);
+                }
+            };
+            
+            // Add employee name
+            const name = document.createElement('h3');
+            name.textContent = employee.name;
+            card.appendChild(name);
+            
+            // Add department
+            const department = document.createElement('p');
+            department.textContent = `Department: ${employee.department}`;
+            card.appendChild(department);
+            
+            // Add clock-in time
+            const clockInTime = document.createElement('p');
+            clockInTime.textContent = clockInTimeText;
+            card.appendChild(clockInTime);
+            
+            // Add last event time - Add this section
+           const lastEventTime = document.createElement('p');
+lastEventTime.className = 'last-event';
+lastEventTime.textContent = lastEventTimeText;
+card.appendChild(lastEventTime);
+            
+            // Add current status
+            const status = document.createElement('p');
+            status.textContent = `Status: ${statusText}`;
+            card.appendChild(status);
+            
+            employeeStatusGrid.appendChild(card);
+        });
+    })
+    .catch(error => {
+        console.error('Error fetching data:', error);
+        employeeStatusGrid.innerHTML = '<p>Error loading employee status data</p>';
+    });
+}
+
+        // Function to print the report
+        function printReport() {
+            window.print();
+        }
+
+        // Auto-refresh data every 5 minutes (300,000 milliseconds)
+        setInterval(() => {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            loadData(startDate, endDate);
+        }, 300000);
+
+        // Load data for the default date range
+        loadData(lastMonday.toISOString().split('T')[0], lastSunday.toISOString().split('T')[0]);
+    </script>
+</body>
+</html>
