@@ -34,7 +34,7 @@
             display: flex;
             gap: 10px;
         }
-        .date-picker input {
+        .date-picker input, .date-picker select {
             padding: 5px;
             font-size: 1em;
             border: 1px solid #ddd;
@@ -95,46 +95,25 @@
             top: 0;
             left: 0;
             width: 0;
-            transition: width 0.5s ease-in-out;
+            transition: width 0.8s ease-in-out;
         }
         .marker {
             position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 10px;
-            height: 10px;
-            background-color: #000;
-            border-radius: 50%;
-            z-index: 2;
+            top: 0;
+            height: 100%;
+            width: 1px;
+            background-color: rgba(255, 255, 255, 0.5); /* Light gray line */
+            z-index: 1;
         }
         .marker-label {
             position: absolute;
-            top: -20px;
+            top: -20px; /* Position above the timeline */
             left: 50%;
             transform: translateX(-50%);
             font-size: 0.8em;
-            color: #333;
+            color: #555;
+            white-space: nowrap;
         }
-        /* Marker styles */
-.marker {
-    position: absolute;
-    top: 0;
-    height: 100%;
-    width: 1px;
-    background-color: rgba(255, 255, 255, 0.5); /* Light gray line */
-    z-index: 1;
-}
-
-/* Marker label styles */
-.marker-label {
-    position: absolute;
-    top: -20px; /* Position above the timeline */
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.8em;
-    color: #555;
-    white-space: nowrap;
-}
         .notes {
             margin-top: 10px;
             font-size: 0.9em;
@@ -152,6 +131,74 @@
         .working { background-color: #4CAF50; }
         .break { background-color: #FFC107; }
         .lunch { background-color: #FF9800; }
+        .clocked-out { background-color: #333; }
+        
+        /* Break violation indicators */
+        .break-violation {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            background-color: rgba(255, 0, 0, 0.5);
+            z-index: 2;
+        }
+        
+        /* Tooltip for break violations */
+        .tooltip {
+            position: absolute;
+            top: -30px;
+            background-color: #333;
+            color: white;
+            padding: 5px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            white-space: nowrap;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 10;
+        }
+        
+        .break-violation:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Live hours worked styling */
+        .hours-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .live-hours {
+            display: flex;
+            align-items: center;
+            background-color: #f0f0f0;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .live-time-counter {
+            margin-right: 8px;
+        }
+
+        .live-indicator {
+            color: #f44336;
+            font-size: 1.2em;
+            animation: pulse 2s infinite;
+        }
+
+        .currently-working .live-indicator {
+            color: #4CAF50;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
 
         /* Grid card style for employee status */
         .employee-status-grid {
@@ -184,25 +231,25 @@
             color: #555;
         }
         /* Card colors based on status */
-      .employee-status-grid .employee-status-card.clocked-out h3,
-.employee-status-grid .employee-status-card.clocked-out p {
-    color: white !important;
-}
+        .employee-status-grid .employee-status-card.clocked-out h3,
+        .employee-status-grid .employee-status-card.clocked-out p {
+            color: white !important;
+        }
 
-.employee-status-grid .employee-status-card.clocked-in h3,
-.employee-status-grid .employee-status-card.clocked-in p {
-    color: white !important;
-}
+        .employee-status-grid .employee-status-card.clocked-in h3,
+        .employee-status-grid .employee-status-card.clocked-in p {
+            color: white !important;
+        }
 
-.employee-status-grid .employee-status-card.on-break h3,
-.employee-status-grid .employee-status-card.on-break p {
-    color: black !important;
-}
+        .employee-status-grid .employee-status-card.on-break h3,
+        .employee-status-grid .employee-status-card.on-break p {
+            color: black !important;
+        }
 
-.employee-status-grid .employee-status-card.on-lunch h3,
-.employee-status-grid .employee-status-card.on-lunch p {
-    color: white !important;
-}
+        .employee-status-grid .employee-status-card.on-lunch h3,
+        .employee-status-grid .employee-status-card.on-lunch p {
+            color: white !important;
+        }
 
         /* Buttons */
         .action-buttons {
@@ -222,6 +269,49 @@
         .action-buttons button:hover {
             background-color: #0773f9;
         }
+        
+        /* Department filter */
+        .filter-container {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .filter-container label {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .filter-container select {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        /* Legend for timeline colors */
+        .timeline-legend {
+            display: flex;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            border-radius: 3px;
+        }
+        .legend-label {
+            font-size: 0.9em;
+        }
+        .legend-color.working { background-color: #4CAF50; }
+        .legend-color.break { background-color: #FFC107; }
+        .legend-color.lunch { background-color: #FF9800; }
+        .legend-color.clocked-out { background-color: #333; }
+        .legend-color.violation { background-color: rgba(255, 0, 0, 0.5); }
     </style>
 </head>
 <body>
@@ -239,7 +329,40 @@
     <!-- Action Buttons -->
     <div class="action-buttons">
         <button onclick="toggleEmployeeStatus()">Show Employee Status</button>
-         <!-- <button onclick="printReport()">Print Report</button>  -->
+        <!-- <button onclick="printReport()">Print Report</button> -->
+    </div>
+    
+    <!-- Department Filter -->
+    <div class="filter-container">
+        <label for="departmentFilter">Filter by Department:</label>
+        <select id="departmentFilter" onchange="filterByDepartment()">
+            <option value="all">All Departments</option>
+            <!-- Department options will be added dynamically -->
+        </select>
+    </div>
+    
+    <!-- Timeline Legend -->
+    <div class="timeline-legend">
+        <div class="legend-item">
+            <div class="legend-color working"></div>
+            <span class="legend-label">Working</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color break"></div>
+            <span class="legend-label">Break</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color lunch"></div>
+            <span class="legend-label">Lunch</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color clocked-out"></div>
+            <span class="legend-label">Clocked Out</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color violation"></div>
+            <span class="legend-label">Break/Lunch Violation</span>
+        </div>
     </div>
 
     <!-- Employee Status Grid -->
@@ -268,11 +391,168 @@
         document.getElementById('startDate').value = lastMonday.toISOString().split('T')[0];
         document.getElementById('endDate').value = lastSunday.toISOString().split('T')[0];
 
+        // Function to calculate live hours worked for today
+        function calculateLiveHoursWorked(entries) {
+            const now = new Date();
+            let totalMilliseconds = 0;
+            let currentlyWorking = false;
+            let lastClockIn = null;
+            
+            // Filter entries to only include today's entries
+            const todayEntries = entries.filter(entry => {
+                const entryDate = new Date(entry.timestamp);
+                return entryDate.toDateString() === now.toDateString();
+            });
+            
+            // Sort entries by timestamp
+            todayEntries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            
+            // Process all entries to calculate time worked
+            for (let i = 0; i < todayEntries.length; i++) {
+                const entry = todayEntries[i];
+                const entryTime = new Date(entry.timestamp);
+                
+                if (entry.type === 'Clock In') {
+                    lastClockIn = entryTime;
+                    currentlyWorking = true;
+                } else if (entry.type === 'Clock Out' && lastClockIn) {
+                    totalMilliseconds += entryTime - lastClockIn;
+                    lastClockIn = null;
+                    currentlyWorking = false;
+                } else if ((entry.type === 'Break Start' || entry.type === 'Lunch Start') && lastClockIn) {
+                    totalMilliseconds += entryTime - lastClockIn;
+                    lastClockIn = null;
+                    currentlyWorking = false;
+                } else if ((entry.type === 'Break End' || entry.type === 'Lunch End')) {
+                    lastClockIn = entryTime;
+                    currentlyWorking = true;
+                }
+            }
+            
+            // If still clocked in, add time from last clock-in to now
+            if (currentlyWorking && lastClockIn) {
+                totalMilliseconds += now - lastClockIn;
+            }
+            
+            // Convert to hours and minutes
+            const totalSeconds = Math.floor(totalMilliseconds / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            
+            return {
+                hours,
+                minutes,
+                totalMilliseconds,
+                currentlyWorking,
+                formattedTime: `${hours}h ${minutes}m`
+            };
+        }
+
+        // Function to update live hours display
+        function updateLiveHoursDisplay() {
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            
+            // Only update during work hours (7am-7pm)
+            const hour = now.getHours();
+            if (hour < 7 || hour >= 19) {
+                // Outside work hours, schedule next update at 7am tomorrow
+                const tomorrow = new Date(now);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                tomorrow.setHours(7, 0, 0, 0);
+                const timeUntilTomorrow = tomorrow - now;
+                setTimeout(updateLiveHoursDisplay, timeUntilTomorrow);
+                return;
+            }
+            
+            Promise.all([
+                fetch('https://raw.githubusercontent.com/SCOSeanKly/TimeKeeperReports/main/TimeKeeperEmployees.json'),
+                fetch('https://raw.githubusercontent.com/SCOSeanKly/TimeKeeperReports/main/timekeeper_entries.json')
+            ])
+            .then(responses => Promise.all(responses.map(response => response.json())))
+            .then(([employees, clockingData]) => {
+                // Filter entries for today
+                const todayEntries = clockingData.filter(entry => {
+                    const entryDate = new Date(entry.timestamp).toISOString().split('T')[0];
+                    return entryDate === today;
+                });
+                
+                // Group entries by employee
+                const employeeEntriesMap = new Map();
+                todayEntries.forEach(entry => {
+                    if (!employeeEntriesMap.has(entry.employeeId)) {
+                        employeeEntriesMap.set(entry.employeeId, []);
+                    }
+                    employeeEntriesMap.get(entry.employeeId).push(entry);
+                });
+                
+                // Update live hours for each employee
+                employeeEntriesMap.forEach((entries, employeeId) => {
+                    const liveHoursElement = document.getElementById(`live-hours-${employeeId}`);
+                    if (liveHoursElement) {
+                        const liveHours = calculateLiveHoursWorked(entries);
+                        liveHoursElement.textContent = liveHours.formattedTime;
+                        
+                        // Add visual indicator if currently working
+                        const parentContainer = liveHoursElement.closest('.live-hours');
+                        if (liveHours.currentlyWorking) {
+                            parentContainer.classList.add('currently-working');
+                        } else {
+                            parentContainer.classList.remove('currently-working');
+                        }
+                    }
+                });
+                
+                // Schedule next update in 1 minute
+                setTimeout(updateLiveHoursDisplay, 60000);
+            })
+            .catch(error => {
+                console.error('Error updating live hours:', error);
+                // If error, try again in 5 minutes
+                setTimeout(updateLiveHoursDisplay, 300000);
+            });
+        }
+
         // Function to update the date range
         function updateDateRange() {
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
             loadData(startDate, endDate);
+        }
+
+        // Function to load departments and populate filter dropdown
+        function loadDepartments(employees) {
+            const departmentFilter = document.getElementById('departmentFilter');
+            
+            // Clear existing options except "All Departments"
+            while (departmentFilter.options.length > 1) {
+                departmentFilter.remove(1);
+            }
+            
+            // Get unique departments
+            const departments = [...new Set(employees.map(employee => employee.department))];
+            
+            // Add department options
+            departments.forEach(department => {
+                const option = document.createElement('option');
+                option.value = department;
+                option.textContent = department;
+                departmentFilter.appendChild(option);
+            });
+        }
+
+        // Function to filter employees by department
+        function filterByDepartment() {
+            const department = document.getElementById('departmentFilter').value;
+            const employeeContainers = document.querySelectorAll('.employee-container');
+            
+            employeeContainers.forEach(container => {
+                if (department === 'all' || container.dataset.department === department) {
+                    container.style.display = 'block';
+                } else {
+                    container.style.display = 'none';
+                }
+            });
         }
 
         // Function to load data for a specific date range
@@ -282,6 +562,9 @@
                     const container = document.getElementById('employeeTimeline');
                     const dateRange = document.getElementById('dateRange');
                     const totalEmployees = document.getElementById('totalEmployees');
+
+                    // Load departments for filter
+                    loadDepartments(employees);
 
                     // Filter clocking data for the selected date range
                     const filteredClockingData = clockingData.filter(entry => {
@@ -323,6 +606,7 @@
                             const employeeDiv = document.createElement('div');
                             employeeDiv.className = 'employee-container';
                             employeeDiv.id = `employee-${employeeId}`;
+                            employeeDiv.dataset.department = employee.department;
 
                             // Add employee header
                             const header = document.createElement('div');
@@ -367,73 +651,168 @@
                                 const totalDuration = workdayEnd - workdayStart;
 
                                 // Add hourly markers
-for (let hour = 7; hour <= 20; hour++) {
-    const markerTime = new Date(`${date}T${String(hour).padStart(2, '0')}:00:00Z`);
-    const markerPosition = ((markerTime - workdayStart) / totalDuration) * 100;
+                                for (let hour = 7; hour <= 19; hour++) {
+                                    const markerTime = new Date(`${date}T${String(hour).padStart(2, '0')}:00:00Z`);
+                                    const markerPosition = ((markerTime - workdayStart) / totalDuration) * 100;
 
-    // Create marker element
-    const marker = document.createElement('div');
-    marker.className = 'marker';
-    marker.style.left = `${markerPosition}%`;
+                                    // Create marker element
+                                    const marker = document.createElement('div');
+                                    marker.className = 'marker';
+                                    marker.style.left = `${markerPosition}%`;
 
-    // Add label for the hour
-    const markerLabel = document.createElement('div');
-    markerLabel.className = 'marker-label';
-    markerLabel.textContent = `${hour}:00`;
-    marker.appendChild(markerLabel);
+                                    // Add label for the hour
+                                    const markerLabel = document.createElement('div');
+                                    markerLabel.className = 'marker-label';
+                                    markerLabel.textContent = `${hour}:00`;
+                                    marker.appendChild(markerLabel);
 
-    timeline.appendChild(marker);
-}
+                                    timeline.appendChild(marker);
+                                }
 
                                 // Add the "no clockings" segment before the first clock-in
-                                const firstClockIn = new Date(entries[0].timestamp);
-                                const noClockingsBefore = firstClockIn - workdayStart;
+                                const firstEvent = new Date(entries[0].timestamp);
+                                const noClockingsBefore = firstEvent - workdayStart;
                                 if (noClockingsBefore > 0) {
                                     const noClockingsSegment = document.createElement('div');
-                                    noClockingsSegment.className = 'progress-bar';
+                                    noClockingsSegment.className = 'progress-bar clocked-out';
                                     noClockingsSegment.style.width = `${(noClockingsBefore / totalDuration) * 100}%`;
                                     noClockingsSegment.style.left = '0%';
                                     timeline.appendChild(noClockingsSegment);
                                 }
 
+                                // Track break and lunch periods for violation checking
+                                let breakStartTime = null;
+                                let lunchStartTime = null;
+                                
                                 // Create progress bar segments for clockings
-                                let previousTime = firstClockIn;
-                                let currentState = 'working';
-                                entries.forEach((entry, index) => {
+                                let previousTime = firstEvent;
+                                let currentState = 'clocked-out'; // Default state
+                                
+                                // If first event is Clock In, set state to working
+                                if (entries[0].type === 'Clock In') {
+                                    currentState = 'working';
+                                }
+
+                                // Process all entries
+                                for (let i = 0; i < entries.length; i++) {
+                                    const entry = entries[i];
                                     const eventTime = new Date(entry.timestamp);
                                     const segmentDuration = eventTime - previousTime;
-                                    const segmentWidth = (segmentDuration / totalDuration) * 100;
+                                    
+                                    // Skip creating a segment if there's no duration
+                                    if (segmentDuration <= 0) {
+                                        // Update state based on the event type
+                                        if (entry.type === 'Clock In') {
+                                            currentState = 'working';
+                                        } else if (entry.type === 'Break Start') {
+                                            currentState = 'break';
+                                            breakStartTime = eventTime;
+                                        } else if (entry.type === 'Break End') {
+                                            currentState = 'working';
+                                        } else if (entry.type === 'Lunch Start') {
+                                            currentState = 'lunch';
+                                            lunchStartTime = eventTime;
+                                        } else if (entry.type === 'Lunch End') {
+                                            currentState = 'working';
+                                        } else if (entry.type === 'Clock Out') {
+                                            currentState = 'clocked-out';
+                                        }
+                                        
+                                        previousTime = eventTime;
+                                        continue;
+                                    }
 
-                                    // Add the segment to the progress bar
+                                    // Create segment with current state
                                     const segment = document.createElement('div');
                                     segment.className = `progress-bar ${currentState}`;
-                                    segment.style.width = `${segmentWidth}%`;
+                                    segment.style.width = `${(segmentDuration / totalDuration) * 100}%`;
                                     segment.style.left = `${((previousTime - workdayStart) / totalDuration) * 100}%`;
                                     timeline.appendChild(segment);
+                                    
+                                    // Check for break violations (if applicable)
+                                    if (currentState === 'break' && entry.type === 'Break End') {
+                                        const breakDuration = eventTime - breakStartTime;
+                                        const breakMinutes = breakDuration / (1000 * 60);
+                                        
+                                        // If break is longer than 15 minutes, mark as violation
+                                        if (breakMinutes > 15) {
+                                            const violationStart = new Date(breakStartTime.getTime() + (15 * 60 * 1000));
+                                            const violationDuration = eventTime - violationStart;
+                                            const violationWidth = (violationDuration / totalDuration) * 100;
+                                            const violationLeft = ((violationStart - workdayStart) / totalDuration) * 100;
+                                            
+                                            const violationMarker = document.createElement('div');
+                                            violationMarker.className = 'break-violation';
+                                            violationMarker.style.width = `${violationWidth}%`;
+                                            violationMarker.style.left = `${violationLeft}%`;
+                                            
+                                            const tooltip = document.createElement('div');
+                                            tooltip.className = 'tooltip';
+                                            tooltip.textContent = `Break violation: ${Math.round(breakMinutes)} min (15 min limit)`;
+                                            violationMarker.appendChild(tooltip);
+                                            
+                                            timeline.appendChild(violationMarker);
+                                        }
+                                    }
+                                    
+                                    // Check for lunch violations (if applicable)
+                                    if (currentState === 'lunch' && entry.type === 'Lunch End') {
+                                        const lunchDuration = eventTime - lunchStartTime;
+                                        const lunchMinutes = lunchDuration / (1000 * 60);
+                                        
+                                        // If lunch is longer than 30 minutes, mark as violation
+                                        if (lunchMinutes > 30) {
+                                            const violationStart = new Date(lunchStartTime.getTime() + (30 * 60 * 1000));
+                                            const violationDuration = eventTime - violationStart;
+                                            const violationWidth = (violationDuration / totalDuration) * 100;
+                                            const violationLeft = ((violationStart - workdayStart) / totalDuration) * 100;
+                                            
+                                            const violationMarker = document.createElement('div');
+                                            violationMarker.className = 'break-violation';
+                                            violationMarker.style.width = `${violationWidth}%`;
+                                            violationMarker.style.left = `${violationLeft}%`;
+                                            
+                                            const tooltip = document.createElement('div');
+                                            tooltip.className = 'tooltip';
+                                            tooltip.textContent = `Lunch violation: ${Math.round(lunchMinutes)} min (30 min limit)`;
+                                            violationMarker.appendChild(tooltip);
+                                            
+                                            timeline.appendChild(violationMarker);
+                                        }
+                                    }
 
-                                    // Update current state based on the event type
-                                    if (entry.type === 'Break Start') {
+                                    // Update state for the next segment
+                                    if (entry.type === 'Clock In') {
+                                        currentState = 'working';
+                                    } else if (entry.type === 'Break Start') {
                                         currentState = 'break';
+                                        breakStartTime = eventTime;
                                     } else if (entry.type === 'Break End') {
                                         currentState = 'working';
                                     } else if (entry.type === 'Lunch Start') {
                                         currentState = 'lunch';
+                                        lunchStartTime = eventTime;
                                     } else if (entry.type === 'Lunch End') {
                                         currentState = 'working';
+                                    } else if (entry.type === 'Clock Out') {
+                                        currentState = 'clocked-out';
                                     }
-
-                                    // Update previousTime
+                                    
                                     previousTime = eventTime;
-                                });
+                                }
 
                                 // Add the "no clockings" segment after the last clock-out
-                                const lastClockOut = new Date(entries[entries.length - 1].timestamp);
-                                const noClockingsAfter = workdayEnd - lastClockOut;
+                                const lastEvent = new Date(entries[entries.length - 1].timestamp);
+                                const noClockingsAfter = workdayEnd - lastEvent;
                                 if (noClockingsAfter > 0) {
                                     const noClockingsSegment = document.createElement('div');
-                                    noClockingsSegment.className = 'progress-bar';
+                                    // Use clocked-out style for the remaining time if the last event was a Clock Out
+                                    // Otherwise, use the current state
+                                    const lastEventType = entries[entries.length - 1].type;
+                                    const finalState = lastEventType === 'Clock Out' ? 'clocked-out' : currentState;
+                                    noClockingsSegment.className = `progress-bar ${finalState}`;
                                     noClockingsSegment.style.width = `${(noClockingsAfter / totalDuration) * 100}%`;
-                                    noClockingsSegment.style.left = `${((lastClockOut - workdayStart) / totalDuration) * 100}%`;
+                                    noClockingsSegment.style.left = `${((lastEvent - workdayStart) / totalDuration) * 100}%`;
                                     timeline.appendChild(noClockingsSegment);
                                 }
 
@@ -445,12 +824,28 @@ for (let hour = 7; hour <= 20; hour++) {
                                 notes.textContent = 'Notes: [Add notes here]';
                                 dayDiv.appendChild(notes);
 
-                                // Calculate total hours worked for the day
-                                const totalHours = calculateTotalHours(entries);
-                                const totalHoursDiv = document.createElement('div');
-                                totalHoursDiv.className = 'total-hours';
-                                totalHoursDiv.textContent = `Total Hours Worked: ${totalHours.toFixed(2)} hours`;
-                                dayDiv.appendChild(totalHoursDiv);
+// Calculate total hours worked for the day
+const totalHours = calculateTotalHours(entries);
+const totalHoursDiv = document.createElement('div');
+totalHoursDiv.className = 'total-hours';
+
+// Check if the day is today
+const isToday = new Date(date).toDateString() === new Date().toDateString();
+if (isToday) {
+    // For today, only show the live hours counter with "Clocked in:" text
+    totalHoursDiv.innerHTML = `
+        <div class="hours-container">
+            <div class="live-hours">
+                <strong>Clocked in:</strong> <span id="live-hours-${employeeId}" class="live-time-counter">Calculating...</span>
+                <span class="live-indicator">●</span>
+            </div>
+        </div>
+    `;
+} else {
+    // Regular display for past days
+    totalHoursDiv.textContent = `Total Hours Worked: ${totalHours.toFixed(2)} hours`;
+}
+dayDiv.appendChild(totalHoursDiv);
 
                                 // Add to employee's total hours
                                 employeeTotalHours += totalHours;
@@ -468,12 +863,27 @@ for (let hour = 7; hour <= 20; hour++) {
                         }
                     });
 
-                    // Animate progress bars
+                    // Apply initial department filter
+                    filterByDepartment();
+
+                    // Start the live hours update for today
+                    if (document.querySelector('.live-time-counter')) {
+                        updateLiveHoursDisplay();
+                    }
+
+                    // Animate progress bars with a slight delay to ensure proper rendering
                     setTimeout(() => {
                         document.querySelectorAll('.progress-bar').forEach(bar => {
-                            bar.style.width = bar.style.width;
+                            const originalWidth = bar.style.width;
+                            bar.style.width = '0';
+                            
+                            // Force a reflow to ensure the animation works
+                            void bar.offsetWidth;
+                            
+                            // Set back to original width to trigger animation
+                            bar.style.width = originalWidth;
                         });
-                    }, 100);
+                    }, 300);
                 })
                 .catch(error => console.error('Error fetching data:', error));
         }
@@ -508,137 +918,137 @@ for (let hour = 7; hour <= 20; hour++) {
         }
 
         // Function to show employee status
-      function showEmployeeStatus() {
-    const employeeStatusGrid = document.getElementById('employeeStatusGrid');
-    employeeStatusGrid.innerHTML = ''; // Clear previous content
+        function showEmployeeStatus() {
+            const employeeStatusGrid = document.getElementById('employeeStatusGrid');
+            employeeStatusGrid.innerHTML = ''; // Clear previous content
 
-    // Get today's date in YYYY-MM-DD format
-    const today = new Date().toISOString().split('T')[0];
+            // Get today's date in YYYY-MM-DD format
+            const today = new Date().toISOString().split('T')[0];
 
-    // Fetch both employees and clocking data
-    Promise.all([
-        fetch('https://raw.githubusercontent.com/SCOSeanKly/TimeKeeperReports/main/TimeKeeperEmployees.json'),
-        fetch('https://raw.githubusercontent.com/SCOSeanKly/TimeKeeperReports/main/timekeeper_entries.json')
-    ])
-    .then(responses => Promise.all(responses.map(response => response.json())))
-    .then(([employees, clockingData]) => {
-        // Filter entries for today
-        const todayEntries = clockingData.filter(entry => {
-            const entryDate = new Date(entry.timestamp).toISOString().split('T')[0];
-            return entryDate === today;
-        });
+            // Fetch both employees and clocking data
+            Promise.all([
+                fetch('https://raw.githubusercontent.com/SCOSeanKly/TimeKeeperReports/main/TimeKeeperEmployees.json'),
+                fetch('https://raw.githubusercontent.com/SCOSeanKly/TimeKeeperReports/main/timekeeper_entries.json')
+            ])
+            .then(responses => Promise.all(responses.map(response => response.json())))
+            .then(([employees, clockingData]) => {
+                // Filter entries for today
+                const todayEntries = clockingData.filter(entry => {
+                    const entryDate = new Date(entry.timestamp).toISOString().split('T')[0];
+                    return entryDate === today;
+                });
 
-        // Group entries by employee
-        const employeeStatusMap = new Map();
-        todayEntries.forEach(entry => {
-            if (!employeeStatusMap.has(entry.employeeId)) {
-                employeeStatusMap.set(entry.employeeId, []);
-            }
-            employeeStatusMap.get(entry.employeeId).push(entry);
-        });
+                // Group entries by employee
+                const employeeStatusMap = new Map();
+                todayEntries.forEach(entry => {
+                    if (!employeeStatusMap.has(entry.employeeId)) {
+                        employeeStatusMap.set(entry.employeeId, []);
+                    }
+                    employeeStatusMap.get(entry.employeeId).push(entry);
+                });
 
-        // Create a card for every employee - even those without entries today
-        employees.forEach(employee => {
-            // Check if employee has entries today
-            const entries = employeeStatusMap.get(employee.id) || [];
-            
-            // Determine status based on entries
-            let statusClass = 'clocked-out'; // Default status
-            let statusText = 'Not Clocked In';
-            let clockInTimeText = 'No clock-in today';
-            
-            if (entries.length > 0) {
-                // Sort entries by timestamp
-                entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                // Create a card for every employee - even those without entries today
+                employees.forEach(employee => {
+                    // Check if employee has entries today
+                    const entries = employeeStatusMap.get(employee.id) || [];
+                    
+                    // Determine status based on entries
+                    let statusClass = 'clocked-out'; // Default status
+                    let statusText = 'Not Clocked In';
+                    let clockInTimeText = 'No clock-in today';
+                    
+                    if (entries.length > 0) {
+                        // Sort entries by timestamp
+                        entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                        
+                        // Get the latest entry to determine current status
+                        const latestEntry = entries[entries.length - 1];
+                        
+                        // Update clock-in time text
+                        clockInTimeText = `Clocked In: ${new Date(entries[0].timestamp).toLocaleTimeString()}`;
+                        
+                        // Determine the status class based on the latest entry type
+                        if (latestEntry.type === 'Clock In') {
+                            statusClass = 'clocked-in';
+                            statusText = 'Working';
+                        } else if (latestEntry.type === 'Break Start') {
+                            statusClass = 'on-break';
+                            statusText = 'On Break';
+                        } else if (latestEntry.type === 'Lunch Start') {
+                            statusClass = 'on-lunch';
+                            statusText = 'On Lunch';
+                        } else if (latestEntry.type === 'Break End' || latestEntry.type === 'Lunch End') {
+                            statusClass = 'clocked-in'; // After break/lunch end, employee is clocked in
+                            statusText = 'Working';
+                        } else if (latestEntry.type === 'Clock Out') {
+                            statusClass = 'clocked-out';
+                            statusText = 'Clocked Out';
+                        }
+                    }
+                    
+                    // Create employee status card
+                    const card = document.createElement('div');
+                    card.className = `employee-status-card ${statusClass}`;
+                    
+                    // Set inline styles for text color as a fallback method
+                    // This ensures the text is visible even if CSS rules conflict
+                    const textColor = (statusClass === 'on-break') ? 'black' : 'white';
+                    
+                    card.onclick = () => {
+                        const employeeElement = document.getElementById(`employee-${employee.id}`);
+                        if (employeeElement) {
+                            employeeElement.scrollIntoView({ behavior: 'smooth' });
+                        } else {
+                            alert(`No timeline data available for ${employee.name} in the selected date range`);
+                        }
+                    };
+                    
+                    // Add employee name with inline styles
+                    const name = document.createElement('h3');
+                    name.textContent = employee.name;
+                    name.style.color = textColor;
+                    card.appendChild(name);
+                    
+                    // Add department with inline styles
+                    const department = document.createElement('p');
+                    department.textContent = `Department: ${employee.department}`;
+                    department.style.color = textColor;
+                    card.appendChild(department);
+                    
+                    // Add clock-in time with inline styles
+                    const clockInTime = document.createElement('p');
+                    clockInTime.textContent = clockInTimeText;
+                    clockInTime.style.color = textColor;
+                    card.appendChild(clockInTime);
+                    
+                    // Add current status with inline styles
+                    const status = document.createElement('p');
+                    status.textContent = `Status: ${statusText}`;
+                    status.style.color = textColor;
+                    card.appendChild(status);
+                    
+                    employeeStatusGrid.appendChild(card);
+                });
                 
-                // Get the latest entry to determine current status
-                const latestEntry = entries[entries.length - 1];
-                
-                // Update clock-in time text
-                clockInTimeText = `Clocked In: ${new Date(entries[0].timestamp).toLocaleTimeString()}`;
-                
-                // Determine the status class based on the latest entry type
-                if (latestEntry.type === 'Clock In') {
-                    statusClass = 'clocked-in';
-                    statusText = 'Working';
-                } else if (latestEntry.type === 'Break Start') {
-                    statusClass = 'on-break';
-                    statusText = 'On Break';
-                } else if (latestEntry.type === 'Lunch Start') {
-                    statusClass = 'on-lunch';
-                    statusText = 'On Lunch';
-                } else if (latestEntry.type === 'Break End' || latestEntry.type === 'Lunch End') {
-                    statusClass = 'clocked-in'; // After break/lunch end, employee is clocked in
-                    statusText = 'Working';
-                } else if (latestEntry.type === 'Clock Out') {
-                    statusClass = 'clocked-out';
-                    statusText = 'Clocked Out';
-                }
-            }
-            
-            // Create employee status card
-            const card = document.createElement('div');
-            card.className = `employee-status-card ${statusClass}`;
-            
-            // Set inline styles for text color as a fallback method
-            // This ensures the text is visible even if CSS rules conflict
-            const textColor = (statusClass === 'on-break') ? 'black' : 'white';
-            
-            card.onclick = () => {
-                const employeeElement = document.getElementById(`employee-${employee.id}`);
-                if (employeeElement) {
-                    employeeElement.scrollIntoView({ behavior: 'smooth' });
-                } else {
-                    alert(`No timeline data available for ${employee.name} in the selected date range`);
-                }
-            };
-            
-            // Add employee name with inline styles
-            const name = document.createElement('h3');
-            name.textContent = employee.name;
-            name.style.color = textColor;
-            card.appendChild(name);
-            
-            // Add department with inline styles
-            const department = document.createElement('p');
-            department.textContent = `Department: ${employee.department}`;
-            department.style.color = textColor;
-            card.appendChild(department);
-            
-            // Add clock-in time with inline styles
-            const clockInTime = document.createElement('p');
-            clockInTime.textContent = clockInTimeText;
-            clockInTime.style.color = textColor;
-            card.appendChild(clockInTime);
-            
-            // Add current status with inline styles
-            const status = document.createElement('p');
-            status.textContent = `Status: ${statusText}`;
-            status.style.color = textColor;
-            card.appendChild(status);
-            
-            employeeStatusGrid.appendChild(card);
-        });
-        
-        // Add inline style to ensure background colors aren't overridden
-        document.querySelectorAll('.employee-status-card.clocked-out').forEach(card => {
-            card.style.backgroundColor = '#333';
-        });
-        document.querySelectorAll('.employee-status-card.clocked-in').forEach(card => {
-            card.style.backgroundColor = '#4CAF50';
-        });
-        document.querySelectorAll('.employee-status-card.on-break').forEach(card => {
-            card.style.backgroundColor = '#FFC107';
-        });
-        document.querySelectorAll('.employee-status-card.on-lunch').forEach(card => {
-            card.style.backgroundColor = '#FF9800';
-        });
-    })
-    .catch(error => {
-        console.error('Error fetching data:', error);
-        employeeStatusGrid.innerHTML = '<p>Error loading employee status data</p>';
-    });
-}
+                // Add inline style to ensure background colors aren't overridden
+                document.querySelectorAll('.employee-status-card.clocked-out').forEach(card => {
+                    card.style.backgroundColor = '#333';
+                });
+                document.querySelectorAll('.employee-status-card.clocked-in').forEach(card => {
+                    card.style.backgroundColor = '#4CAF50';
+                });
+                document.querySelectorAll('.employee-status-card.on-break').forEach(card => {
+                    card.style.backgroundColor = '#FFC107';
+                });
+                document.querySelectorAll('.employee-status-card.on-lunch').forEach(card => {
+                    card.style.backgroundColor = '#FF9800';
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching data:', error);
+                employeeStatusGrid.innerHTML = '<p>Error loading employee status data</p>';
+            });
+        }
 
         // Function to print the report
         function printReport() {
