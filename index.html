@@ -55,21 +55,38 @@
             color: #333;
         }
         .employee-total-hours {
-            font-size: 1.2em;
-            font-weight: bold;
-            margin-bottom: 10px;
+            margin-top: 25px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .employee-total-hours h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
             color: #333;
-            background-color: #f0f0f0;
-            padding: 10px;
-            border-radius: 5px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
         }
         .day-container {
-            margin-bottom: 20px;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        .day-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
         }
         .day-header {
+            padding: 12px 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px 8px 0 0;
+            border-left: 4px solid #04a9fd;
             font-size: 1.2em;
             font-weight: bold;
-            margin-bottom: 10px;
             color: #333;
         }
         .timeline {
@@ -79,13 +96,13 @@
             background-color: #333;
             border-radius: 10px;
             position: relative;
-            margin-bottom: 10px;
+            margin: 15px;
             overflow: hidden;
         }
         .timeline-scale {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
+            margin: 5px 15px;
             font-size: 0.9em;
             color: #555;
         }
@@ -115,18 +132,159 @@
             white-space: nowrap;
         }
         .notes {
-            margin-top: 10px;
+            margin: 15px;
             font-size: 0.9em;
             color: #555;
         }
-        .total-hours {
-            margin-top: 10px;
+        
+        /* Hours breakdown styling */
+        .hours-breakdown {
+            background-color: white;
+            border-radius: 8px;
+          
+            overflow: hidden;
+            margin: 15px;
+        }
+        
+        .hours-calculation {
+            padding: 15px;
+        }
+        
+        .calculation-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            align-items: center;
+        }
+        
+        .calculation-row:last-child {
+            border-bottom: none;
+        }
+        
+        .calculation-row.total {
             font-weight: bold;
             font-size: 1.1em;
-            background-color: #e0f7fa;
-            padding: 10px;
-            border-radius: 5px;
+            margin-top: 5px;
+            padding-top: 10px;
+            border-top: 2px solid #f0f0f0;
+            color: #2e7d32;
         }
+        
+        .calculation-row .label {
+            color: #555;
+            flex: 1;
+        }
+        
+        .value-container {
+            text-align: right;
+            display: flex;
+            align-items: center;
+        }
+        
+        .calculation-row .value {
+            font-family: 'Courier New', monospace;
+            padding: 3px 8px;
+            border-radius: 3px;
+            background-color: #f5f5f5;
+            margin-right: 8px;
+            min-width: 70px;
+            text-align: center;
+        }
+        
+        .calculation-row .decimal-value {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .total .value {
+            background-color: #e8f5e9;
+            font-weight: bold;
+        }
+        
+        .total .decimal-value {
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        
+        /* Live hours styling */
+        .live-hours {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background-color: #f5f5f5;
+            border-bottom: 1px solid #e0e0e0;
+            justify-content: space-between;
+        }
+        
+        .live-status {
+            display: flex;
+            align-items: center;
+        }
+        
+        .status-text {
+            margin-right: 8px;
+            font-weight: bold;
+            color: #666;
+        }
+        
+        .currently-working .status-text {
+            color: #2e7d32;
+        }
+        
+        .on-break .status-text {
+            color: #ff8f00;
+        }
+        
+        .live-time {
+            display: flex;
+            align-items: center;
+        }
+        
+        .live-time-counter {
+            margin: 0 8px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            background-color: #e0e0e0;
+            padding: 3px 8px;
+            border-radius: 3px;
+        }
+        
+        .live-indicator {
+            color: #f44336;
+            font-size: 1.2em;
+            animation: pulse 2s infinite;
+        }
+        
+        .currently-working .live-indicator {
+            color: #4CAF50;
+        }
+        
+        .on-break .live-indicator {
+            color: #ff9800;
+        }
+        
+        /* Make summary stand out more */
+        .employee-total-hours .hours-calculation {
+            background-color: white;
+            border-radius: 8px;
+            padding: 10px 15px;
+        }
+        
+        .employee-total-hours .calculation-row {
+            padding: 10px 0;
+        }
+        
+        .employee-total-hours .total {
+            color: #1b5e20;
+            font-size: 1.2em;
+        }
+        
+        .employee-total-hours .total .value {
+            background-color: #c8e6c9;
+            padding: 5px 10px;
+        }
+        
         /* Colors for event types */
         .working { background-color: #4CAF50; }
         .break { background-color: #FFC107; }
@@ -161,37 +319,6 @@
         .break-violation:hover .tooltip {
             visibility: visible;
             opacity: 1;
-        }
-
-        /* Live hours worked styling */
-        .hours-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .live-hours {
-            display: flex;
-            align-items: center;
-            background-color: #f0f0f0;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-weight: bold;
-            color: #333;
-        }
-
-        .live-time-counter {
-            margin-right: 8px;
-        }
-
-        .live-indicator {
-            color: #f44336;
-            font-size: 1.2em;
-            animation: pulse 2s infinite;
-        }
-
-        .currently-working .live-indicator {
-            color: #4CAF50;
         }
 
         @keyframes pulse {
@@ -391,12 +518,79 @@
         document.getElementById('startDate').value = lastMonday.toISOString().split('T')[0];
         document.getElementById('endDate').value = lastSunday.toISOString().split('T')[0];
 
+        // Format hours as hours and minutes (e.g., "8h 30m")
+        function formatHours(hours) {
+            const h = Math.floor(hours);
+            const m = Math.round((hours - h) * 60);
+            return `${h}h ${m}m`;
+        }
+
+        // Helper to format hours as decimal (e.g., "8.50")
+        function formatDecimalHours(hours) {
+            return hours.toFixed(2);
+        }
+
+        // Enhanced function to calculate total hours worked with detailed breakdown
+        function calculateDetailedHours(entries) {
+            // Sort entries by timestamp to ensure chronological order
+            entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            
+            let totalAttendanceMilliseconds = 0;
+            let totalBreakMilliseconds = 0;
+            let clockInTime = null;
+            let breakStartTime = null;
+            
+            // Process all entries to calculate times
+            for (let i = 0; i < entries.length; i++) {
+                const entry = entries[i];
+                const entryTime = new Date(entry.timestamp);
+                
+                if (entry.type === 'Clock In') {
+                    clockInTime = entryTime;
+                } else if (entry.type === 'Clock Out' && clockInTime) {
+                    totalAttendanceMilliseconds += entryTime - clockInTime;
+                    clockInTime = null;
+                } else if ((entry.type === 'Break Start' || entry.type === 'Lunch Start') && clockInTime) {
+                    // Add time up to break start to attendance
+                    totalAttendanceMilliseconds += entryTime - clockInTime;
+                    breakStartTime = entryTime;
+                    clockInTime = null; // Reset clock in time as we've accounted for it
+                } else if ((entry.type === 'Break End' || entry.type === 'Lunch End') && breakStartTime) {
+                    // Calculate break duration
+                    totalBreakMilliseconds += entryTime - breakStartTime;
+                    breakStartTime = null;
+                    // Consider this as a new clock in
+                    clockInTime = entryTime;
+                }
+            }
+            
+            // Convert to hours
+            const totalAttendanceHours = totalAttendanceMilliseconds / (1000 * 60 * 60);
+            const totalBreakHours = totalBreakMilliseconds / (1000 * 60 * 60);
+            const totalWorkedHours = totalAttendanceHours - totalBreakHours;
+            
+            return {
+                attendanceHours: totalAttendanceHours,
+                breakHours: totalBreakHours,
+                workedHours: totalWorkedHours,
+                // Also return formatted times
+                formatted: {
+                    attendance: formatHours(totalAttendanceHours),
+                    breaks: formatHours(totalBreakHours),
+                    worked: formatHours(totalWorkedHours)
+                }
+            };
+        }
+
         // Function to calculate live hours worked for today
         function calculateLiveHoursWorked(entries) {
             const now = new Date();
-            let totalMilliseconds = 0;
+            let totalAttendanceMilliseconds = 0;
+            let totalBreakMilliseconds = 0;
             let currentlyWorking = false;
             let lastClockIn = null;
+            let onBreak = false;
+            let breakStartTime = null;
             
             // Filter entries to only include today's entries
             const todayEntries = entries.filter(entry => {
@@ -415,37 +609,136 @@
                 if (entry.type === 'Clock In') {
                     lastClockIn = entryTime;
                     currentlyWorking = true;
+                    onBreak = false;
                 } else if (entry.type === 'Clock Out' && lastClockIn) {
-                    totalMilliseconds += entryTime - lastClockIn;
+                    totalAttendanceMilliseconds += entryTime - lastClockIn;
                     lastClockIn = null;
                     currentlyWorking = false;
+                    onBreak = false;
                 } else if ((entry.type === 'Break Start' || entry.type === 'Lunch Start') && lastClockIn) {
-                    totalMilliseconds += entryTime - lastClockIn;
+                    // Add time up to break start to attendance
+                    totalAttendanceMilliseconds += entryTime - lastClockIn;
+                    breakStartTime = entryTime;
                     lastClockIn = null;
                     currentlyWorking = false;
-                } else if ((entry.type === 'Break End' || entry.type === 'Lunch End')) {
+                    onBreak = true;
+                } else if ((entry.type === 'Break End' || entry.type === 'Lunch End') && breakStartTime) {
+                    // Calculate break duration
+                    totalBreakMilliseconds += entryTime - breakStartTime;
+                    breakStartTime = null;
+                    // Consider this as a new clock in
                     lastClockIn = entryTime;
                     currentlyWorking = true;
+                    onBreak = false;
                 }
             }
             
             // If still clocked in, add time from last clock-in to now
             if (currentlyWorking && lastClockIn) {
-                totalMilliseconds += now - lastClockIn;
+                totalAttendanceMilliseconds += now - lastClockIn;
             }
             
-            // Convert to hours and minutes
-            const totalSeconds = Math.floor(totalMilliseconds / 1000);
-            const hours = Math.floor(totalSeconds / 3600);
-            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            // If still on break, add time from break start to now
+            if (onBreak && breakStartTime) {
+                totalBreakMilliseconds += now - breakStartTime;
+            }
+            
+            // Convert to hours
+            const totalAttendanceHours = totalAttendanceMilliseconds / (1000 * 60 * 60);
+            const totalBreakHours = totalBreakMilliseconds / (1000 * 60 * 60);
+            const totalWorkedHours = totalAttendanceHours - totalBreakHours;
             
             return {
-                hours,
-                minutes,
-                totalMilliseconds,
+                attendanceHours: totalAttendanceHours,
+                breakHours: totalBreakHours,
+                workedHours: totalWorkedHours,
                 currentlyWorking,
-                formattedTime: `${hours}h ${minutes}m`
+                onBreak,
+                formatted: {
+                    attendance: formatHours(totalAttendanceHours),
+                    breaks: formatHours(totalBreakHours),
+                    worked: formatHours(totalWorkedHours)
+                }
             };
+        }
+
+        // Create HTML for today's live hours display
+        function createLiveHoursDisplay(employeeId, hoursData) {
+            let statusText = 'Not Clocked In';
+            let statusClass = '';
+            
+            if (hoursData.currentlyWorking) {
+                statusText = 'Currently Working';
+                statusClass = 'currently-working';
+            } else if (hoursData.onBreak) {
+                statusText = 'On Break';
+                statusClass = 'on-break';
+            }
+            
+            return `
+                <div class="live-hours ${statusClass}">
+                    <div class="live-status">
+                        <span class="status-text">${statusText}</span>
+                        <span class="live-indicator">●</span>
+                    </div>
+                    <div class="live-time">
+                        <strong>Current Total:</strong> 
+                        <span id="live-hours-${employeeId}" class="live-time-counter">${hoursData.formatted.worked}</span>
+                    </div>
+                </div>
+                <div class="hours-calculation">
+                    <div class="calculation-row">
+                        <span class="label">Time Attended:</span>
+                        <div class="value-container">
+                            <span id="live-attendance-${employeeId}" class="value">${hoursData.formatted.attendance}</span>
+                            <span class="decimal-value">(${formatDecimalHours(hoursData.attendanceHours)}h)</span>
+                        </div>
+                    </div>
+                    <div class="calculation-row">
+                        <span class="label">Combined Break Time:</span>
+                        <div class="value-container">
+                            <span id="live-break-${employeeId}" class="value">${hoursData.formatted.breaks}</span>
+                            <span class="decimal-value">(${formatDecimalHours(hoursData.breakHours)}h)</span>
+                        </div>
+                    </div>
+                    <div class="calculation-row total">
+                        <span class="label">Total Worked:</span>
+                        <div class="value-container">
+                            <span id="live-total-${employeeId}" class="value">${hoursData.formatted.worked}</span>
+                            <span class="decimal-value">(${formatDecimalHours(hoursData.workedHours)}h)</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Create HTML for regular day hours display
+        function createRegularHoursDisplay(hoursData) {
+            return `
+                <div class="hours-calculation">
+                    <div class="calculation-row">
+                        <span class="label">Time Attended:</span>
+                        <div class="value-container">
+                            <span class="value">${hoursData.formatted.attendance}</span>
+                            <span class="decimal-value">(${formatDecimalHours(hoursData.attendanceHours)}h)</span>
+                        </div>
+                    </div>
+                    <div class="calculation-row">
+                        <span class="label">Break Time:</span>
+                        <div class="value-container">
+                            <span class="value">${hoursData.formatted.breaks}</span>
+                            <span class="decimal-value">(${formatDecimalHours(hoursData.breakHours)}h)</span>
+                        </div>
+                    </div>
+                    <div class="calculation-row total">
+                        <span class="label">Total Worked:</span>
+                        <div class="value-container">
+                            <span class="value">${hoursData.formatted.worked}</span>
+                            <span class="decimal-value">(${formatDecimalHours(hoursData.workedHours)}h)</span>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         // Function to update live hours display
@@ -453,7 +746,7 @@
             const now = new Date();
             const today = now.toISOString().split('T')[0];
             
-            // Only update during work hours (7am-7pm)
+            // Only update during work hours (7am-7pm) or if you want to update at all hours, remove this check
             const hour = now.getHours();
             if (hour < 7 || hour >= 19) {
                 // Outside work hours, schedule next update at 7am tomorrow
@@ -489,16 +782,48 @@
                 // Update live hours for each employee
                 employeeEntriesMap.forEach((entries, employeeId) => {
                     const liveHoursElement = document.getElementById(`live-hours-${employeeId}`);
+                    const liveAttendanceElement = document.getElementById(`live-attendance-${employeeId}`);
+                    const liveBreakElement = document.getElementById(`live-break-${employeeId}`);
+                    const liveTotalElement = document.getElementById(`live-total-${employeeId}`);
+                    
                     if (liveHoursElement) {
                         const liveHours = calculateLiveHoursWorked(entries);
-                        liveHoursElement.textContent = liveHours.formattedTime;
                         
-                        // Add visual indicator if currently working
+                        // Update live time counter
+                        liveHoursElement.textContent = liveHours.formatted.worked;
+                        
+                        // Update detailed breakdown if elements exist
+                        if (liveAttendanceElement) {
+                            liveAttendanceElement.textContent = liveHours.formatted.attendance;
+                            liveAttendanceElement.nextElementSibling.textContent = 
+                                `(${formatDecimalHours(liveHours.attendanceHours)}h)`;
+                        }
+                        
+                        if (liveBreakElement) {
+                            liveBreakElement.textContent = liveHours.formatted.breaks;
+                            liveBreakElement.nextElementSibling.textContent = 
+                                `(${formatDecimalHours(liveHours.breakHours)}h)`;
+                        }
+                        
+                        if (liveTotalElement) {
+                            liveTotalElement.textContent = liveHours.formatted.worked;
+                            liveTotalElement.nextElementSibling.textContent = 
+                                `(${formatDecimalHours(liveHours.workedHours)}h)`;
+                        }
+                        
+                        // Add visual indicator based on status
                         const parentContainer = liveHoursElement.closest('.live-hours');
                         if (liveHours.currentlyWorking) {
                             parentContainer.classList.add('currently-working');
-                        } else {
+                            parentContainer.classList.remove('on-break');
+                            parentContainer.querySelector('.status-text').textContent = 'Currently Working';
+                        } else if (liveHours.onBreak) {
+                            parentContainer.classList.add('on-break');
                             parentContainer.classList.remove('currently-working');
+                            parentContainer.querySelector('.status-text').textContent = 'On Break';
+                        } else {
+                            parentContainer.classList.remove('currently-working', 'on-break');
+                            parentContainer.querySelector('.status-text').textContent = 'Not Clocked In';
                         }
                     }
                 });
@@ -614,8 +939,10 @@
                             header.textContent = `${employee.name} (${employee.department})`;
                             employeeDiv.appendChild(header);
 
-                            // Initialize total hours worked for the employee
-                            let employeeTotalHours = 0;
+                            // Track employee total hours
+                            let employeeTotalAttendance = 0;
+                            let employeeTotalBreaks = 0;
+                            let employeeTotalWorked = 0;
 
                             // Add timeline for each day
                             Object.entries(days).forEach(([date, entries]) => {
@@ -824,40 +1151,34 @@
                                 notes.textContent = 'Notes: [Add notes here]';
                                 dayDiv.appendChild(notes);
 
-// Calculate total hours worked for the day
-const totalHours = calculateTotalHours(entries);
-const totalHoursDiv = document.createElement('div');
-totalHoursDiv.className = 'total-hours';
-
-// Check if the day is today
-const isToday = new Date(date).toDateString() === new Date().toDateString();
-if (isToday) {
-    // For today, only show the live hours counter with "Clocked in:" text
-    totalHoursDiv.innerHTML = `
-        <div class="hours-container">
-            <div class="live-hours">
-                <strong>Clocked in:</strong> <span id="live-hours-${employeeId}" class="live-time-counter">Calculating...</span>
-                <span class="live-indicator">●</span>
-            </div>
-        </div>
-    `;
-} else {
-    // Regular display for past days
-    totalHoursDiv.textContent = `Total Hours Worked: ${totalHours.toFixed(2)} hours`;
-}
-dayDiv.appendChild(totalHoursDiv);
-
-                                // Add to employee's total hours
-                                employeeTotalHours += totalHours;
-
+                                // Calculate and display hours for the day
+                                const isToday = new Date(date).toDateString() === new Date().toDateString();
+                                const hoursData = calculateDetailedHours(entries);
+                                
+                                // Add employee's day to total hours
+                                employeeTotalAttendance += hoursData.attendanceHours;
+                                employeeTotalBreaks += hoursData.breakHours;
+                                employeeTotalWorked += hoursData.workedHours;
+                                
+                                // Create hours breakdown
+                                const totalHoursDiv = document.createElement('div');
+                                totalHoursDiv.className = 'hours-breakdown';
+                                
+                                if (isToday) {
+                                    // For today, show live hours with detailed breakdown
+                                    const liveHoursData = calculateLiveHoursWorked(entries);
+                                    totalHoursDiv.innerHTML = createLiveHoursDisplay(employeeId, liveHoursData);
+                                } else {
+                                    // Regular display for past days with detailed breakdown
+                                    totalHoursDiv.innerHTML = createRegularHoursDisplay(hoursData);
+                                }
+                                
+                                dayDiv.appendChild(totalHoursDiv);
                                 employeeDiv.appendChild(dayDiv);
                             });
 
-                            // Add total hours worked for the employee
-                            const employeeTotalHoursDiv = document.createElement('div');
-                            employeeTotalHoursDiv.className = 'employee-total-hours';
-                            employeeTotalHoursDiv.textContent = `Total Hours Worked (All Days): ${employeeTotalHours.toFixed(2)} hours`;
-                            employeeDiv.appendChild(employeeTotalHoursDiv);
+                            // Add employee total hours summary
+                         
 
                             container.appendChild(employeeDiv);
                         }
@@ -886,24 +1207,6 @@ dayDiv.appendChild(totalHoursDiv);
                     }, 300);
                 })
                 .catch(error => console.error('Error fetching data:', error));
-        }
-
-        // Function to calculate total hours worked
-        function calculateTotalHours(entries) {
-            let totalMilliseconds = 0;
-            let clockInTime = null;
-
-            entries.forEach(entry => {
-                if (entry.type === 'Clock In') {
-                    clockInTime = new Date(entry.timestamp);
-                } else if (entry.type === 'Clock Out' && clockInTime) {
-                    const clockOutTime = new Date(entry.timestamp);
-                    totalMilliseconds += clockOutTime - clockInTime;
-                    clockInTime = null;
-                }
-            });
-
-            return totalMilliseconds / (1000 * 60 * 60);
         }
 
         // Function to toggle employee status visibility
@@ -956,6 +1259,7 @@ dayDiv.appendChild(totalHoursDiv);
                     let statusClass = 'clocked-out'; // Default status
                     let statusText = 'Not Clocked In';
                     let clockInTimeText = 'No clock-in today';
+                    let hoursText = '';
                     
                     if (entries.length > 0) {
                         // Sort entries by timestamp
@@ -964,8 +1268,15 @@ dayDiv.appendChild(totalHoursDiv);
                         // Get the latest entry to determine current status
                         const latestEntry = entries[entries.length - 1];
                         
+                        // Calculate hours
+                        const hoursData = calculateLiveHoursWorked(entries);
+                        hoursText = `Hours Worked: ${hoursData.formatted.worked}`;
+                        
                         // Update clock-in time text
-                        clockInTimeText = `Clocked In: ${new Date(entries[0].timestamp).toLocaleTimeString()}`;
+                        const firstClockIn = entries.find(e => e.type === 'Clock In');
+                        if (firstClockIn) {
+                            clockInTimeText = `First Clock In: ${new Date(firstClockIn.timestamp).toLocaleTimeString()}`;
+                        }
                         
                         // Determine the status class based on the latest entry type
                         if (latestEntry.type === 'Clock In') {
@@ -1020,6 +1331,14 @@ dayDiv.appendChild(totalHoursDiv);
                     clockInTime.textContent = clockInTimeText;
                     clockInTime.style.color = textColor;
                     card.appendChild(clockInTime);
+                    
+                    // Add hours worked if available
+                    if (hoursText) {
+                        const hours = document.createElement('p');
+                        hours.textContent = hoursText;
+                        hours.style.color = textColor;
+                        card.appendChild(hours);
+                    }
                     
                     // Add current status with inline styles
                     const status = document.createElement('p');
