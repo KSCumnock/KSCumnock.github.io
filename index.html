@@ -453,10 +453,10 @@
         </div>
     </div>
 
-    <!-- Action Buttons -->
+     <!-- Action Buttons -->
     <div class="action-buttons">
         <button onclick="toggleEmployeeStatus()">Show Employee Status</button>
-        <!-- <button onclick="printReport()">Print Report</button> -->
+        <button onclick="exportReport()">Export Report</button>
     </div>
     
     <!-- Department Filter -->
@@ -529,6 +529,232 @@
         function formatDecimalHours(hours) {
             return hours.toFixed(2);
         }
+
+
+
+
+
+
+// Export CSV Report
+function exportReport() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    const dateFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+
+    // Format the date range header
+    const startDateStr = dateFormatter.format(new Date(startDate));
+    const endDateStr = dateFormatter.format(new Date(endDate));
+
+    let csvContent = "Time Keeping Report\n";
+    csvContent += `Date Range: ${startDateStr} to ${endDateStr}\n\n`;
+    csvContent += "Employee,Department,Scheduled Hours,Date,Clock In,Tea Break Start,Tea Break End,Total Tea Break,Lunch Start,Lunch End,Total Lunch Break,Clock Out,Total Time,Notes\n";
+
+    // Fetch data and generate CSV
+    Promise.all([fetchEmployees, fetchClockingData])
+        .then(([employees, clockingData]) => {
+            // Filter clocking data for the selected date range
+            const filteredClockingData = clockingData.filter(entry => {
+                const entryDate = new Date(entry.timestamp).toISOString().split('T')[0];
+                return entryDate >= startDate && entryDate <= endDate;
+            });
+
+            // Create a map of employees for quick lookup by ID
+            const employeeMap = new Map();
+            employees.forEach(employee => {
+                employeeMap.set(employee.id, employee);
+            });
+
+            // Group clocking data by employee and by day
+            const employeeClockingMap = new Map();
+            filteredClockingData.forEach(entry => {
+                if (!employeeClockingMap.has(entry.employeeId)) {
+                    employeeClockingMap.set(entry.employeeId, {});
+                }
+                const date = new Date(entry.timestamp).toISOString().split('T')[0];
+                if (!employeeClockingMap.get(entry.employeeId)[date]) {
+                    employeeClockingMap.get(entry.employeeId)[date] = [];
+                }
+                employeeClockingMap.get(entry.employeeId)[date].push(entry);
+            });
+
+            // Track total clocked time for the entire period for each employee
+            const employeeTotalMinutes = new Map();
+
+            // Generate CSV rows for each employee
+            employeeClockingMap.forEach((days, employeeId) => {
+                const employee = employeeMap.get(employeeId);
+                if (employee) {
+                    // Add employee header
+                    csvContent += `\n\n========================================\n`;
+                    csvContent += `${employee.name} - ${employee.department}\n`;
+                    csvContent += `========================================\n`;
+
+                    // Initialize period total for this employee
+                    employeeTotalMinutes.set(employeeId, 0);
+
+                    // Generate rows for each day
+                    Object.entries(days).forEach(([date, entries]) => {
+                        let clockIn = "-";
+                        let teaBreakStart = "-";
+                        let teaBreakEnd = "-";
+                        let lunchStart = "-";
+                        let lunchEnd = "-";
+                        let clockOut = "-";
+                        let notes = "";
+
+                        // Sort entries chronologically
+                        entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                        
+                        // Track time segments
+                        let lastClockIn = null;
+                        let lastBreakStart = null;
+                        let lastLunchStart = null;
+                        
+                        // Track total working time (excluding breaks)
+                        let workingTimeMinutes = 0;
+                        let teaBreakMinutes = 0;
+                        let lunchBreakMinutes = 0;
+
+                        // Process entries for the day
+                        for (const entry of entries) {
+                            const entryTime = new Date(entry.timestamp);
+                            const timeStr = entryTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+                            switch (entry.type) {
+                                case 'Clock In':
+                                    clockIn = timeStr;
+                                    lastClockIn = entryTime;
+                                    break;
+                                    
+                                case 'Clock Out':
+                                    clockOut = timeStr;
+                                    if (lastClockIn) {
+                                        // Add working time up to clock out
+                                        const workingSegment = (entryTime - lastClockIn) / (1000 * 60);
+                                        workingTimeMinutes += workingSegment;
+                                        lastClockIn = null;
+                                    }
+                                    break;
+                                    
+                                case 'Break Start':
+                                    teaBreakStart = timeStr;
+                                    lastBreakStart = entryTime;
+                                    if (lastClockIn) {
+                                        // Add working time up to break start
+                                        const workingSegment = (entryTime - lastClockIn) / (1000 * 60);
+                                        workingTimeMinutes += workingSegment;
+                                        lastClockIn = null;
+                                    }
+                                    break;
+                                    
+                                case 'Break End':
+                                    teaBreakEnd = timeStr;
+                                    if (lastBreakStart) {
+                                        // Calculate break duration
+                                        const breakDuration = (entryTime - lastBreakStart) / (1000 * 60);
+                                        teaBreakMinutes += breakDuration;
+                                        lastBreakStart = null;
+                                    }
+                                    // Resume work tracking
+                                    lastClockIn = entryTime;
+                                    break;
+                                    
+                                case 'Lunch Start':
+                                    lunchStart = timeStr;
+                                    lastLunchStart = entryTime;
+                                    if (lastClockIn) {
+                                        // Add working time up to lunch start
+                                        const workingSegment = (entryTime - lastClockIn) / (1000 * 60);
+                                        workingTimeMinutes += workingSegment;
+                                        lastClockIn = null;
+                                    }
+                                    break;
+                                    
+                                case 'Lunch End':
+                                    lunchEnd = timeStr;
+                                    if (lastLunchStart) {
+                                        // Calculate lunch duration
+                                        const lunchDuration = (entryTime - lastLunchStart) / (1000 * 60);
+                                        lunchBreakMinutes += lunchDuration;
+                                        lastLunchStart = null;
+                                    }
+                                    // Resume work tracking
+                                    lastClockIn = entryTime;
+                                    break;
+                            }
+                        }
+
+                        // Handle edge case where the day ends without clocking out
+                        if (lastClockIn) {
+                            // Add note about unclosed session
+                            notes += notes.isEmpty ? "Unclosed session" : ", Unclosed session";
+                        }
+
+                        // Format tea and lunch break totals
+                        const totalTeaBreak = teaBreakMinutes > 0 ? `${Math.round(teaBreakMinutes)}m` : "0m";
+                        const totalLunchBreak = lunchBreakMinutes > 0 ? `${Math.round(lunchBreakMinutes)}m` : "0m";
+
+                        // Calculate total working time
+                        const hours = Math.floor(workingTimeMinutes / 60);
+                        const minutes = Math.round(workingTimeMinutes % 60);
+                        const totalTime = `${hours}h ${minutes}m`;
+
+                        // Add to employee's total for the period
+                        employeeTotalMinutes.set(
+                            employeeId, 
+                            employeeTotalMinutes.get(employeeId) + workingTimeMinutes
+                        );
+
+                        // Add row to CSV
+                        const row = [
+                            `"${employee.name}"`,
+                            `"${employee.department}"`,
+                            `"${employee.startTime} - ${employee.finishTime}"`,
+                            `"${date}"`,
+                            `"${clockIn}"`,
+                            `"${teaBreakStart}"`,
+                            `"${teaBreakEnd}"`,
+                            `"${totalTeaBreak}"`,
+                            `"${lunchStart}"`,
+                            `"${lunchEnd}"`,
+                            `"${totalLunchBreak}"`,
+                            `"${clockOut}"`,
+                            `"${totalTime}"`,
+                            `"${notes}"`
+                        ].join(',');
+
+                        csvContent += row + '\n';
+                    });
+
+                    // Add period total for this employee
+                    const totalPeriodMinutes = employeeTotalMinutes.get(employeeId);
+                    const periodHours = Math.floor(totalPeriodMinutes / 60);
+                    const periodMinutes = Math.round(totalPeriodMinutes % 60);
+                    csvContent += `"PERIOD TOTAL","","","","","","","","","","","","${periodHours}h ${periodMinutes}m",""\n`;
+                }
+            });
+
+            // Trigger download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `TimeKeeperReport_${startDate}_to_${endDate}.csv`;
+            link.click();
+        })
+        .catch(error => console.error('Error exporting report:', error));
+}
+
+
+
+
+
+
+
+
+
+
+
+        
 
         // Enhanced function to calculate total hours worked with detailed breakdown
         function calculateDetailedHours(entries) {
