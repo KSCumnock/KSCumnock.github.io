@@ -757,136 +757,175 @@ function exportReport() {
         
 
         // Enhanced function to calculate total hours worked with detailed breakdown
-        function calculateDetailedHours(entries) {
-            // Sort entries by timestamp to ensure chronological order
-            entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-            
-            let totalAttendanceMilliseconds = 0;
-            let totalBreakMilliseconds = 0;
-            let clockInTime = null;
-            let breakStartTime = null;
-            
-            // Process all entries to calculate times
-            for (let i = 0; i < entries.length; i++) {
-                const entry = entries[i];
-                const entryTime = new Date(entry.timestamp);
-                
-                if (entry.type === 'Clock In') {
-                    clockInTime = entryTime;
-                } else if (entry.type === 'Clock Out' && clockInTime) {
-                    totalAttendanceMilliseconds += entryTime - clockInTime;
-                    clockInTime = null;
-                } else if ((entry.type === 'Break Start' || entry.type === 'Lunch Start') && clockInTime) {
-                    // Add time up to break start to attendance
-                    totalAttendanceMilliseconds += entryTime - clockInTime;
-                    breakStartTime = entryTime;
-                    clockInTime = null; // Reset clock in time as we've accounted for it
-                } else if ((entry.type === 'Break End' || entry.type === 'Lunch End') && breakStartTime) {
-                    // Calculate break duration
-                    totalBreakMilliseconds += entryTime - breakStartTime;
-                    breakStartTime = null;
-                    // Consider this as a new clock in
-                    clockInTime = entryTime;
-                }
-            }
-            
-            // Convert to hours
-            const totalAttendanceHours = totalAttendanceMilliseconds / (1000 * 60 * 60);
-            const totalBreakHours = totalBreakMilliseconds / (1000 * 60 * 60);
-            const totalWorkedHours = totalAttendanceHours - totalBreakHours;
-            
-            return {
-                attendanceHours: totalAttendanceHours,
-                breakHours: totalBreakHours,
-                workedHours: totalWorkedHours,
-                // Also return formatted times
-                formatted: {
-                    attendance: formatHours(totalAttendanceHours),
-                    breaks: formatHours(totalBreakHours),
-                    worked: formatHours(totalWorkedHours)
-                }
-            };
+function calculateDetailedHours(entries) {
+    // Sort entries by timestamp to ensure chronological order
+    entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    
+    // Find first clock in and last clock out to calculate total attendance time
+    const firstEntry = entries[0];
+    const lastEntry = entries[entries.length - 1];
+    
+    let firstClockIn = null;
+    let lastClockOut = null;
+    
+    // Find first clock in
+    for (const entry of entries) {
+        if (entry.type === 'Clock In') {
+            firstClockIn = new Date(entry.timestamp);
+            break;
         }
-
+    }
+    
+    // Find last clock out
+    for (let i = entries.length - 1; i >= 0; i--) {
+        if (entries[i].type === 'Clock Out') {
+            lastClockOut = new Date(entries[i].timestamp);
+            break;
+        }
+    }
+    
+    // Calculate total attendance time (from first clock in to last clock out)
+    let totalAttendanceMilliseconds = 0;
+    if (firstClockIn && lastClockOut) {
+        totalAttendanceMilliseconds = lastClockOut - firstClockIn;
+    } else if (firstClockIn) {
+        // If no clock out, use the last entry time
+        totalAttendanceMilliseconds = new Date(lastEntry.timestamp) - firstClockIn;
+    }
+    
+    // Calculate total break time
+    let totalBreakMilliseconds = 0;
+    let breakStartTime = null;
+    
+    for (const entry of entries) {
+        const entryTime = new Date(entry.timestamp);
+        
+        if (entry.type === 'Break Start' || entry.type === 'Lunch Start') {
+            breakStartTime = entryTime;
+        } else if ((entry.type === 'Break End' || entry.type === 'Lunch End') && breakStartTime) {
+            // Calculate break duration
+            totalBreakMilliseconds += entryTime - breakStartTime;
+            breakStartTime = null;
+        }
+    }
+    
+    // If there's an unclosed break, don't count it
+    // (This is a business decision - you might want to handle unclosed breaks differently)
+    
+    // Convert to hours
+    const totalAttendanceHours = totalAttendanceMilliseconds / (1000 * 60 * 60);
+    const totalBreakHours = totalBreakMilliseconds / (1000 * 60 * 60);
+    const totalWorkedHours = totalAttendanceHours - totalBreakHours;
+    
+    return {
+        attendanceHours: totalAttendanceHours,
+        breakHours: totalBreakHours,
+        workedHours: totalWorkedHours,
+        // Also return formatted times
+        formatted: {
+            attendance: formatHours(totalAttendanceHours),
+            breaks: formatHours(totalBreakHours),
+            worked: formatHours(totalWorkedHours)
+        }
+    };
+}
         // Function to calculate live hours worked for today
-        function calculateLiveHoursWorked(entries) {
-            const now = new Date();
-            let totalAttendanceMilliseconds = 0;
-            let totalBreakMilliseconds = 0;
-            let currentlyWorking = false;
-            let lastClockIn = null;
-            let onBreak = false;
-            let breakStartTime = null;
-            
-            // Filter entries to only include today's entries
-            const todayEntries = entries.filter(entry => {
-                const entryDate = new Date(entry.timestamp);
-                return entryDate.toDateString() === now.toDateString();
-            });
-            
-            // Sort entries by timestamp
-            todayEntries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-            
-            // Process all entries to calculate time worked
-            for (let i = 0; i < todayEntries.length; i++) {
-                const entry = todayEntries[i];
-                const entryTime = new Date(entry.timestamp);
-                
-                if (entry.type === 'Clock In') {
-                    lastClockIn = entryTime;
-                    currentlyWorking = true;
-                    onBreak = false;
-                } else if (entry.type === 'Clock Out' && lastClockIn) {
-                    totalAttendanceMilliseconds += entryTime - lastClockIn;
-                    lastClockIn = null;
-                    currentlyWorking = false;
-                    onBreak = false;
-                } else if ((entry.type === 'Break Start' || entry.type === 'Lunch Start') && lastClockIn) {
-                    // Add time up to break start to attendance
-                    totalAttendanceMilliseconds += entryTime - lastClockIn;
-                    breakStartTime = entryTime;
-                    lastClockIn = null;
-                    currentlyWorking = false;
-                    onBreak = true;
-                } else if ((entry.type === 'Break End' || entry.type === 'Lunch End') && breakStartTime) {
-                    // Calculate break duration
-                    totalBreakMilliseconds += entryTime - breakStartTime;
-                    breakStartTime = null;
-                    // Consider this as a new clock in
-                    lastClockIn = entryTime;
-                    currentlyWorking = true;
-                    onBreak = false;
-                }
-            }
-            
-            // If still clocked in, add time from last clock-in to now
-            if (currentlyWorking && lastClockIn) {
-                totalAttendanceMilliseconds += now - lastClockIn;
-            }
-            
-            // If still on break, add time from break start to now
-            if (onBreak && breakStartTime) {
-                totalBreakMilliseconds += now - breakStartTime;
-            }
-            
-            // Convert to hours
-            const totalAttendanceHours = totalAttendanceMilliseconds / (1000 * 60 * 60);
-            const totalBreakHours = totalBreakMilliseconds / (1000 * 60 * 60);
-            const totalWorkedHours = totalAttendanceHours - totalBreakHours;
-            
-            return {
-                attendanceHours: totalAttendanceHours,
-                breakHours: totalBreakHours,
-                workedHours: totalWorkedHours,
-                currentlyWorking,
-                onBreak,
-                formatted: {
-                    attendance: formatHours(totalAttendanceHours),
-                    breaks: formatHours(totalBreakHours),
-                    worked: formatHours(totalWorkedHours)
-                }
-            };
+// Function to calculate live hours worked for today
+function calculateLiveHoursWorked(entries) {
+    const now = new Date();
+    
+    // Filter entries to only include today's entries
+    const todayEntries = entries.filter(entry => {
+        const entryDate = new Date(entry.timestamp);
+        return entryDate.toDateString() === now.toDateString();
+    });
+    
+    // Sort entries by timestamp
+    todayEntries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    
+    let firstClockIn = null;
+    let breakStartTime = null;
+    let totalBreakMilliseconds = 0;
+    let currentlyWorking = false;
+    let onBreak = false;
+    
+    // Find first clock in
+    for (const entry of todayEntries) {
+        if (entry.type === 'Clock In') {
+            firstClockIn = new Date(entry.timestamp);
+            break;
         }
+    }
+    
+    // Process all entries to calculate break time
+    for (let i = 0; i < todayEntries.length; i++) {
+        const entry = todayEntries[i];
+        const entryTime = new Date(entry.timestamp);
+        
+        if (entry.type === 'Clock In') {
+            currentlyWorking = true;
+            onBreak = false;
+        } else if (entry.type === 'Clock Out') {
+            currentlyWorking = false;
+            onBreak = false;
+        } else if (entry.type === 'Break Start' || entry.type === 'Lunch Start') {
+            breakStartTime = entryTime;
+            currentlyWorking = false;
+            onBreak = true;
+        } else if ((entry.type === 'Break End' || entry.type === 'Lunch End') && breakStartTime) {
+            // Calculate break duration
+            totalBreakMilliseconds += entryTime - breakStartTime;
+            breakStartTime = null;
+            currentlyWorking = true;
+            onBreak = false;
+        }
+    }
+    
+    // If still on break, add time from break start to now
+    if (onBreak && breakStartTime) {
+        totalBreakMilliseconds += now - breakStartTime;
+    }
+    
+    // Calculate total attendance time from first clock in to now or last clock out
+    let totalAttendanceMilliseconds = 0;
+    let lastClockOutTime = null;
+    
+    // Find last clock out
+    for (let i = todayEntries.length - 1; i >= 0; i--) {
+        if (todayEntries[i].type === 'Clock Out') {
+            lastClockOutTime = new Date(todayEntries[i].timestamp);
+            break;
+        }
+    }
+    
+    if (firstClockIn) {
+        if (currentlyWorking || onBreak) {
+            // If still working or on break, calculate up to now
+            totalAttendanceMilliseconds = now - firstClockIn;
+        } else if (lastClockOutTime) {
+            // If clocked out, calculate up to last clock out
+            totalAttendanceMilliseconds = lastClockOutTime - firstClockIn;
+        }
+    }
+    
+    // Convert to hours
+    const totalAttendanceHours = totalAttendanceMilliseconds / (1000 * 60 * 60);
+    const totalBreakHours = totalBreakMilliseconds / (1000 * 60 * 60);
+    const totalWorkedHours = totalAttendanceHours - totalBreakHours;
+    
+    return {
+        attendanceHours: totalAttendanceHours,
+        breakHours: totalBreakHours,
+        workedHours: totalWorkedHours,
+        currentlyWorking,
+        onBreak,
+        formatted: {
+            attendance: formatHours(totalAttendanceHours),
+            breaks: formatHours(totalBreakHours),
+            worked: formatHours(totalWorkedHours)
+        }
+    };
+}
 
         // Create HTML for today's live hours display
         function createLiveHoursDisplay(employeeId, hoursData) {
