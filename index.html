@@ -1093,18 +1093,29 @@ function exportReport() {
         }
 
         // Function to filter employees by department
-        function filterByDepartment() {
-            const department = document.getElementById('departmentFilter').value;
-            const employeeContainers = document.querySelectorAll('.employee-container');
-            
-            employeeContainers.forEach(container => {
-                if (department === 'all' || container.dataset.department === department) {
-                    container.style.display = 'block';
-                } else {
-                    container.style.display = 'none';
-                }
-            });
+       function filterByDepartment() {
+    const department = document.getElementById('departmentFilter').value;
+    
+    // Filter the employee timeline containers
+    const employeeContainers = document.querySelectorAll('.employee-container');
+    employeeContainers.forEach(container => {
+        if (department === 'all' || container.dataset.department === department) {
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
         }
+    });
+    
+    // Filter the employee status cards as well
+    const statusCards = document.querySelectorAll('.employee-status-card');
+    statusCards.forEach(card => {
+        if (department === 'all' || card.dataset.department === department) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
 
         // Function to load data for a specific date range
         function loadData(startDate, endDate) {
@@ -1447,153 +1458,169 @@ function exportReport() {
         }
 
         // Function to show employee status
-        function showEmployeeStatus() {
-            const employeeStatusGrid = document.getElementById('employeeStatusGrid');
-            employeeStatusGrid.innerHTML = ''; // Clear previous content
+function showEmployeeStatus() {
+    const employeeStatusGrid = document.getElementById('employeeStatusGrid');
+    employeeStatusGrid.innerHTML = ''; // Clear previous content
 
-            // Get today's date in YYYY-MM-DD format
-            const today = new Date().toISOString().split('T')[0];
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split('T')[0];
 
-            // Fetch both employees and clocking data
-            Promise.all([
-                fetch('https://raw.githubusercontent.com/SCOSeanKly/TimeKeeperReports/main/TimeKeeperEmployees.json'),
-                fetch('https://raw.githubusercontent.com/SCOSeanKly/TimeKeeperReports/main/timekeeper_entries.json')
-            ])
-            .then(responses => Promise.all(responses.map(response => response.json())))
-            .then(([employees, clockingData]) => {
-                // Filter entries for today
-                const todayEntries = clockingData.filter(entry => {
-                    const entryDate = new Date(entry.timestamp).toISOString().split('T')[0];
-                    return entryDate === today;
-                });
+    // Fetch both employees and clocking data
+    Promise.all([
+        fetch('https://raw.githubusercontent.com/SCOSeanKly/TimeKeeperReports/main/TimeKeeperEmployees.json'),
+        fetch('https://raw.githubusercontent.com/SCOSeanKly/TimeKeeperReports/main/timekeeper_entries.json')
+    ])
+    .then(responses => Promise.all(responses.map(response => response.json())))
+    .then(([employees, clockingData]) => {
+        // Filter entries for today
+        const todayEntries = clockingData.filter(entry => {
+            const entryDate = new Date(entry.timestamp).toISOString().split('T')[0];
+            return entryDate === today;
+        });
 
-                // Group entries by employee
-                const employeeStatusMap = new Map();
-                todayEntries.forEach(entry => {
-                    if (!employeeStatusMap.has(entry.employeeId)) {
-                        employeeStatusMap.set(entry.employeeId, []);
-                    }
-                    employeeStatusMap.get(entry.employeeId).push(entry);
-                });
+        // Group entries by employee
+        const employeeStatusMap = new Map();
+        todayEntries.forEach(entry => {
+            if (!employeeStatusMap.has(entry.employeeId)) {
+                employeeStatusMap.set(entry.employeeId, []);
+            }
+            employeeStatusMap.get(entry.employeeId).push(entry);
+        });
 
-                // Create a card for every employee - even those without entries today
-                employees.forEach(employee => {
-                    // Check if employee has entries today
-                    const entries = employeeStatusMap.get(employee.id) || [];
-                    
-                    // Determine status based on entries
-                    let statusClass = 'clocked-out'; // Default status
-                    let statusText = 'Not Clocked In';
-                    let clockInTimeText = 'No clock-in today';
-                    let hoursText = '';
-                    
-                    if (entries.length > 0) {
-                        // Sort entries by timestamp
-                        entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-                        
-                        // Get the latest entry to determine current status
-                        const latestEntry = entries[entries.length - 1];
-                        
-                        // Calculate hours
-                        const hoursData = calculateLiveHoursWorked(entries);
-                        hoursText = `Hours Worked: ${hoursData.formatted.worked}`;
-                        
-                        // Update clock-in time text
-                        const firstClockIn = entries.find(e => e.type === 'Clock In');
-                        if (firstClockIn) {
-                            clockInTimeText = `First Clock In: ${new Date(firstClockIn.timestamp).toLocaleTimeString()}`;
-                        }
-                        
-                        // Determine the status class based on the latest entry type
-                        if (latestEntry.type === 'Clock In') {
-                            statusClass = 'clocked-in';
-                            statusText = 'Working';
-                        } else if (latestEntry.type === 'Break Start') {
-                            statusClass = 'on-break';
-                            statusText = 'On Break';
-                        } else if (latestEntry.type === 'Lunch Start') {
-                            statusClass = 'on-lunch';
-                            statusText = 'On Lunch';
-                        } else if (latestEntry.type === 'Break End' || latestEntry.type === 'Lunch End') {
-                            statusClass = 'clocked-in'; // After break/lunch end, employee is clocked in
-                            statusText = 'Working';
-                        } else if (latestEntry.type === 'Clock Out') {
-                            statusClass = 'clocked-out';
-                            statusText = 'Clocked Out';
-                        }
-                    }
-                    
-                    // Create employee status card
-                    const card = document.createElement('div');
-                    card.className = `employee-status-card ${statusClass}`;
-                    
-                    // Set inline styles for text color as a fallback method
-                    // This ensures the text is visible even if CSS rules conflict
-                    const textColor = (statusClass === 'on-break') ? 'black' : 'white';
-                    
-                    card.onclick = () => {
-                        const employeeElement = document.getElementById(`employee-${employee.id}`);
-                        if (employeeElement) {
-                            employeeElement.scrollIntoView({ behavior: 'smooth' });
-                        } else {
-                            alert(`No timeline data available for ${employee.name} in the selected date range`);
-                        }
-                    };
-                    
-                    // Add employee name with inline styles
-                    const name = document.createElement('h3');
-                    name.textContent = employee.name;
-                    name.style.color = textColor;
-                    card.appendChild(name);
-                    
-                    // Add department with inline styles
-                    const department = document.createElement('p');
-                    department.textContent = `Department: ${employee.department}`;
-                    department.style.color = textColor;
-                    card.appendChild(department);
-                    
-                    // Add clock-in time with inline styles
-                    const clockInTime = document.createElement('p');
-                    clockInTime.textContent = clockInTimeText;
-                    clockInTime.style.color = textColor;
-                    card.appendChild(clockInTime);
-                    
-                    // Add hours worked if available
-                    if (hoursText) {
-                        const hours = document.createElement('p');
-                        hours.textContent = hoursText;
-                        hours.style.color = textColor;
-                        card.appendChild(hours);
-                    }
-                    
-                    // Add current status with inline styles
-                    const status = document.createElement('p');
-                    status.textContent = `Status: ${statusText}`;
-                    status.style.color = textColor;
-                    card.appendChild(status);
-                    
-                    employeeStatusGrid.appendChild(card);
-                });
+        // Create a card for every employee - even those without entries today
+        employees.forEach(employee => {
+            // Check if employee has entries today
+            const entries = employeeStatusMap.get(employee.id) || [];
+            
+            // Determine status based on entries
+            let statusClass = 'clocked-out'; // Default status
+            let statusText = 'Not Clocked In';
+            let clockInTimeText = 'No clock-in today';
+            let hoursText = '';
+            
+            if (entries.length > 0) {
+                // Sort entries by timestamp
+                entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                 
-                // Add inline style to ensure background colors aren't overridden
-                document.querySelectorAll('.employee-status-card.clocked-out').forEach(card => {
-                    card.style.backgroundColor = '#333';
-                });
-                document.querySelectorAll('.employee-status-card.clocked-in').forEach(card => {
-                    card.style.backgroundColor = '#4CAF50';
-                });
-                document.querySelectorAll('.employee-status-card.on-break').forEach(card => {
-                    card.style.backgroundColor = '#FFC107';
-                });
-                document.querySelectorAll('.employee-status-card.on-lunch').forEach(card => {
-                    card.style.backgroundColor = '#FF9800';
-                });
-            })
-            .catch(error => {
-                console.error('Error fetching data:', error);
-                employeeStatusGrid.innerHTML = '<p>Error loading employee status data</p>';
-            });
-        }
+                // Get the latest entry to determine current status
+                const latestEntry = entries[entries.length - 1];
+                
+                // Calculate hours
+                const hoursData = calculateLiveHoursWorked(entries);
+                hoursText = `Hours Worked: ${hoursData.formatted.worked}`;
+                
+                // Update clock-in time text
+                const firstClockIn = entries.find(e => e.type === 'Clock In');
+                if (firstClockIn) {
+                    clockInTimeText = `First Clock In: ${new Date(firstClockIn.timestamp).toLocaleTimeString()}`;
+                }
+                
+                // Determine the status class based on the latest entry type
+                if (latestEntry.type === 'Clock In') {
+                    statusClass = 'clocked-in';
+                    statusText = 'Working';
+                } else if (latestEntry.type === 'Break Start') {
+                    statusClass = 'on-break';
+                    statusText = 'On Break';
+                } else if (latestEntry.type === 'Lunch Start') {
+                    statusClass = 'on-lunch';
+                    statusText = 'On Lunch';
+                } else if (latestEntry.type === 'Break End' || latestEntry.type === 'Lunch End') {
+                    statusClass = 'clocked-in'; // After break/lunch end, employee is clocked in
+                    statusText = 'Working';
+                } else if (latestEntry.type === 'Clock Out') {
+                    statusClass = 'clocked-out';
+                    statusText = 'Clocked Out';
+                }
+            }
+            
+            // Create employee status card
+            const card = document.createElement('div');
+            card.className = `employee-status-card ${statusClass}`;
+            
+            // Add department data attribute for filtering
+            card.dataset.department = employee.department;
+            
+            // Set inline styles for text color as a fallback method
+            const textColor = (statusClass === 'on-break') ? 'black' : 'white';
+            
+            card.onclick = () => {
+                const employeeElement = document.getElementById(`employee-${employee.id}`);
+                if (employeeElement) {
+                    employeeElement.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    alert(`No timeline data available for ${employee.name} in the selected date range`);
+                }
+            };
+            
+            // Add employee name with inline styles
+            const name = document.createElement('h3');
+            name.textContent = employee.name;
+            name.style.color = textColor;
+            card.appendChild(name);
+            
+            // Add department with inline styles
+            const department = document.createElement('p');
+            department.textContent = `Department: ${employee.department}`;
+            department.style.color = textColor;
+            card.appendChild(department);
+            
+            // Add clock-in time with inline styles
+            const clockInTime = document.createElement('p');
+            clockInTime.textContent = clockInTimeText;
+            clockInTime.style.color = textColor;
+            card.appendChild(clockInTime);
+            
+            // Add hours worked if available
+            if (hoursText) {
+                const hours = document.createElement('p');
+                hours.textContent = hoursText;
+                hours.style.color = textColor;
+                card.appendChild(hours);
+            }
+            
+            // Add current status with inline styles
+            const status = document.createElement('p');
+            status.textContent = `Status: ${statusText}`;
+            status.style.color = textColor;
+            card.appendChild(status);
+            
+            employeeStatusGrid.appendChild(card);
+        });
+        
+        // Add inline style to ensure background colors aren't overridden
+        document.querySelectorAll('.employee-status-card.clocked-out').forEach(card => {
+            card.style.backgroundColor = '#333';
+        });
+        document.querySelectorAll('.employee-status-card.clocked-in').forEach(card => {
+            card.style.backgroundColor = '#4CAF50';
+        });
+        document.querySelectorAll('.employee-status-card.on-break').forEach(card => {
+            card.style.backgroundColor = '#FFC107';
+        });
+        document.querySelectorAll('.employee-status-card.on-lunch').forEach(card => {
+            card.style.backgroundColor = '#FF9800';
+        });
+        
+        // Apply current department filter to the newly shown grid
+        filterByDepartment();
+    })
+    .catch(error => {
+        console.error('Error fetching data:', error);
+        employeeStatusGrid.innerHTML = '<p>Error loading employee status data</p>';
+    });
+}
+
+// Updated toggleEmployeeStatus function to ensure filter is applied
+function toggleEmployeeStatus() {
+    const employeeStatusGrid = document.getElementById('employeeStatusGrid');
+    if (employeeStatusGrid.style.display === 'none') {
+        showEmployeeStatus();
+        employeeStatusGrid.style.display = 'grid';
+    } else {
+        employeeStatusGrid.style.display = 'none';
+    }
+}
 
         // Function to print the report
         function printReport() {
