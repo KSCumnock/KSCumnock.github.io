@@ -377,6 +377,14 @@
         .employee-status-grid .employee-status-card.on-lunch p {
             color: white !important;
         }
+        .legend-color.sick-day { background-color: #9C27B0; } /* Purple for sick days */
+.sick-day { background-color: #9C27B0; } /* Purple background for sick days */
+
+/* Add sick day card styling */
+.employee-status-grid .employee-status-card.sick-day h3,
+.employee-status-grid .employee-status-card.sick-day p {
+    color: white !important;
+}
 
         /* Buttons */
         .action-buttons {
@@ -490,6 +498,10 @@
             <div class="legend-color violation"></div>
             <span class="legend-label">Break/Lunch Violation</span>
         </div>
+        <div class="legend-item">
+    <div class="legend-color sick-day"></div>
+    <span class="legend-label">Sick Day</span>
+</div>
     </div>
 
     <!-- Employee Status Grid -->
@@ -547,7 +559,8 @@ function exportReport() {
 
     let csvContent = "Time Keeping Report\n";
     csvContent += `Date Range: ${startDateStr} to ${endDateStr}\n\n`;
-    csvContent += "Employee,Department,Scheduled Hours,Date,Clock In,Tea Break Start,Tea Break End,Total Tea Break,Lunch Start,Lunch End,Total Lunch Break,Clock Out,Total Time,Notes\n";
+    // Add Status column for sick days
+    csvContent += "Employee,Department,Scheduled Hours,Date,Status,Clock In,Tea Break Start,Tea Break End,Total Tea Break,Lunch Start,Lunch End,Total Lunch Break,Clock Out,Total Time,Notes\n";
 
     // Fetch data and generate CSV
     Promise.all([fetchEmployees, fetchClockingData])
@@ -577,8 +590,9 @@ function exportReport() {
                 employeeClockingMap.get(entry.employeeId)[date].push(entry);
             });
 
-            // Track total clocked time for the entire period for each employee
+            // Track total clocked time and sick days for the entire period for each employee
             const employeeTotalMinutes = new Map();
+            const employeeTotalSickDays = new Map(); // Track sick days count
 
             // Generate CSV rows for each employee
             employeeClockingMap.forEach((days, employeeId) => {
@@ -591,6 +605,7 @@ function exportReport() {
 
                     // Initialize period total for this employee
                     employeeTotalMinutes.set(employeeId, 0);
+                    employeeTotalSickDays.set(employeeId, 0); // Initialize sick days count
 
                     // Generate rows for each day
                     Object.entries(days).forEach(([date, entries]) => {
@@ -601,9 +616,27 @@ function exportReport() {
                         let lunchEnd = "-";
                         let clockOut = "-";
                         let notes = "";
+                        let status = "Present"; // Default status
 
                         // Sort entries chronologically
                         entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                        
+                        // Check if it's a sick day
+                        const isSickDay = entries.some(entry => entry.type === 'Sick Day');
+                        if (isSickDay) {
+                            status = "Sick Day";
+                            employeeTotalSickDays.set(
+                                employeeId, 
+                                employeeTotalSickDays.get(employeeId) + 1
+                            );
+                            
+                            // Look for sick day notes if applicable
+                            const sickDayEntry = entries.find(entry => entry.type === 'Sick Day');
+                            if (sickDayEntry) {
+                                notes = "Employee reported sick";
+                                // If you have a way to store/retrieve notes, add it here
+                            }
+                        }
                         
                         // Track time segments
                         let lastClockIn = null;
@@ -615,102 +648,111 @@ function exportReport() {
                         let teaBreakMinutes = 0;
                         let lunchBreakMinutes = 0;
 
-                        // Process entries for the day
-                        for (const entry of entries) {
-                            const entryTime = new Date(entry.timestamp);
-                            const timeStr = entryTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                        // Don't process entries for time calculations if it's a sick day
+                        if (!isSickDay) {
+                            // Process entries for the day
+                            for (const entry of entries) {
+                                const entryTime = new Date(entry.timestamp);
+                                const timeStr = entryTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-                            switch (entry.type) {
-                                case 'Clock In':
-                                    clockIn = timeStr;
-                                    lastClockIn = entryTime;
-                                    break;
-                                    
-                                case 'Clock Out':
-                                    clockOut = timeStr;
-                                    if (lastClockIn) {
-                                        // Add working time up to clock out
-                                        const workingSegment = (entryTime - lastClockIn) / (1000 * 60);
-                                        workingTimeMinutes += workingSegment;
-                                        lastClockIn = null;
-                                    }
-                                    break;
-                                    
-                                case 'Break Start':
-                                    teaBreakStart = timeStr;
-                                    lastBreakStart = entryTime;
-                                    if (lastClockIn) {
-                                        // Add working time up to break start
-                                        const workingSegment = (entryTime - lastClockIn) / (1000 * 60);
-                                        workingTimeMinutes += workingSegment;
-                                        lastClockIn = null;
-                                    }
-                                    break;
-                                    
-                                case 'Break End':
-                                    teaBreakEnd = timeStr;
-                                    if (lastBreakStart) {
-                                        // Calculate break duration
-                                        const breakDuration = (entryTime - lastBreakStart) / (1000 * 60);
-                                        teaBreakMinutes += breakDuration;
-                                        lastBreakStart = null;
-                                    }
-                                    // Resume work tracking
-                                    lastClockIn = entryTime;
-                                    break;
-                                    
-                                case 'Lunch Start':
-                                    lunchStart = timeStr;
-                                    lastLunchStart = entryTime;
-                                    if (lastClockIn) {
-                                        // Add working time up to lunch start
-                                        const workingSegment = (entryTime - lastClockIn) / (1000 * 60);
-                                        workingTimeMinutes += workingSegment;
-                                        lastClockIn = null;
-                                    }
-                                    break;
-                                    
-                                case 'Lunch End':
-                                    lunchEnd = timeStr;
-                                    if (lastLunchStart) {
-                                        // Calculate lunch duration
-                                        const lunchDuration = (entryTime - lastLunchStart) / (1000 * 60);
-                                        lunchBreakMinutes += lunchDuration;
-                                        lastLunchStart = null;
-                                    }
-                                    // Resume work tracking
-                                    lastClockIn = entryTime;
-                                    break;
+                                switch (entry.type) {
+                                    case 'Clock In':
+                                        clockIn = timeStr;
+                                        lastClockIn = entryTime;
+                                        break;
+                                        
+                                    case 'Clock Out':
+                                        clockOut = timeStr;
+                                        if (lastClockIn) {
+                                            // Add working time up to clock out
+                                            const workingSegment = (entryTime - lastClockIn) / (1000 * 60);
+                                            workingTimeMinutes += workingSegment;
+                                            lastClockIn = null;
+                                        }
+                                        break;
+                                        
+                                    case 'Break Start':
+                                        teaBreakStart = timeStr;
+                                        lastBreakStart = entryTime;
+                                        if (lastClockIn) {
+                                            // Add working time up to break start
+                                            const workingSegment = (entryTime - lastClockIn) / (1000 * 60);
+                                            workingTimeMinutes += workingSegment;
+                                            lastClockIn = null;
+                                        }
+                                        break;
+                                        
+                                    case 'Break End':
+                                        teaBreakEnd = timeStr;
+                                        if (lastBreakStart) {
+                                            // Calculate break duration
+                                            const breakDuration = (entryTime - lastBreakStart) / (1000 * 60);
+                                            teaBreakMinutes += breakDuration;
+                                            lastBreakStart = null;
+                                        }
+                                        // Resume work tracking
+                                        lastClockIn = entryTime;
+                                        break;
+                                        
+                                    case 'Lunch Start':
+                                        lunchStart = timeStr;
+                                        lastLunchStart = entryTime;
+                                        if (lastClockIn) {
+                                            // Add working time up to lunch start
+                                            const workingSegment = (entryTime - lastClockIn) / (1000 * 60);
+                                            workingTimeMinutes += workingSegment;
+                                            lastClockIn = null;
+                                        }
+                                        break;
+                                        
+                                    case 'Lunch End':
+                                        lunchEnd = timeStr;
+                                        if (lastLunchStart) {
+                                            // Calculate lunch duration
+                                            const lunchDuration = (entryTime - lastLunchStart) / (1000 * 60);
+                                            lunchBreakMinutes += lunchDuration;
+                                            lastLunchStart = null;
+                                        }
+                                        // Resume work tracking
+                                        lastClockIn = entryTime;
+                                        break;
+                                }
                             }
+
+                            // Handle edge case where the day ends without clocking out
+                            if (lastClockIn) {
+                                // Add note about unclosed session
+                                notes += notes ? ", Unclosed session" : "Unclosed session";
+                            }
+
+                            // Format tea and lunch break totals
+                            totalTeaBreak = teaBreakMinutes > 0 ? `${Math.round(teaBreakMinutes)}m` : "0m";
+                            totalLunchBreak = lunchBreakMinutes > 0 ? `${Math.round(lunchBreakMinutes)}m` : "0m";
+
+                            // Calculate total working time
+                            const hours = Math.floor(workingTimeMinutes / 60);
+                            const minutes = Math.round(workingTimeMinutes % 60);
+                            totalTime = `${hours}h ${minutes}m`;
+
+                            // Add to employee's total for the period
+                            employeeTotalMinutes.set(
+                                employeeId, 
+                                employeeTotalMinutes.get(employeeId) + workingTimeMinutes
+                            );
+                        } else {
+                            // For sick days, set all time values to zero
+                            totalTeaBreak = "0m";
+                            totalLunchBreak = "0m";
+                            totalTime = "0h 0m";
                         }
 
-                        // Handle edge case where the day ends without clocking out
-                        if (lastClockIn) {
-                            // Add note about unclosed session
-                            notes += notes.isEmpty ? "Unclosed session" : ", Unclosed session";
-                        }
-
-                        // Format tea and lunch break totals
-                        const totalTeaBreak = teaBreakMinutes > 0 ? `${Math.round(teaBreakMinutes)}m` : "0m";
-                        const totalLunchBreak = lunchBreakMinutes > 0 ? `${Math.round(lunchBreakMinutes)}m` : "0m";
-
-                        // Calculate total working time
-                        const hours = Math.floor(workingTimeMinutes / 60);
-                        const minutes = Math.round(workingTimeMinutes % 60);
-                        const totalTime = `${hours}h ${minutes}m`;
-
-                        // Add to employee's total for the period
-                        employeeTotalMinutes.set(
-                            employeeId, 
-                            employeeTotalMinutes.get(employeeId) + workingTimeMinutes
-                        );
-
-                        // Add row to CSV
+                        // Add row to CSV with status column
                         const row = [
                             `"${employee.name}"`,
                             `"${employee.department}"`,
                             `"${employee.startTime} - ${employee.finishTime}"`,
                             `"${date}"`,
+                            `"${status}"`, // Add Status column
                             `"${clockIn}"`,
                             `"${teaBreakStart}"`,
                             `"${teaBreakEnd}"`,
@@ -730,7 +772,13 @@ function exportReport() {
                     const totalPeriodMinutes = employeeTotalMinutes.get(employeeId);
                     const periodHours = Math.floor(totalPeriodMinutes / 60);
                     const periodMinutes = Math.round(totalPeriodMinutes % 60);
-                    csvContent += `"PERIOD TOTAL","","","","","","","","","","","","${periodHours}h ${periodMinutes}m",""\n`;
+                    csvContent += `"PERIOD TOTAL","","","","","","","","","","","","","${periodHours}h ${periodMinutes}m",""\n`;
+                    
+                    // Add sick days count if any
+                    const sickDaysCount = employeeTotalSickDays.get(employeeId);
+                    if (sickDaysCount > 0) {
+                        csvContent += `"SICK DAYS","","","","${sickDaysCount}","","","","","","","","","",""\n`;
+                    }
                 }
             });
 
@@ -753,13 +801,29 @@ function exportReport() {
 
 
 
-
         
 
         // Enhanced function to calculate total hours worked with detailed breakdown
 function calculateDetailedHours(entries) {
     // Sort entries by timestamp to ensure chronological order
     entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+     const isSickDay = entries.some(entry => entry.type === 'Sick Day');
+    
+    // If it's a sick day, return zeros for all values
+    if (isSickDay) {
+        return {
+            attendanceHours: 0,
+            breakHours: 0,
+            workedHours: 0,
+            isSickDay: true,
+            formatted: {
+                attendance: "0h 0m",
+                breaks: "0h 0m",
+                worked: "0h 0m"
+            }
+        };
+    }
     
     // Find first clock in and last clock out to calculate total attendance time
     const firstEntry = entries[0];
@@ -817,11 +881,11 @@ function calculateDetailedHours(entries) {
     const totalBreakHours = totalBreakMilliseconds / (1000 * 60 * 60);
     const totalWorkedHours = totalAttendanceHours - totalBreakHours;
     
-    return {
+       return {
         attendanceHours: totalAttendanceHours,
         breakHours: totalBreakHours,
         workedHours: totalWorkedHours,
-        // Also return formatted times
+        isSickDay: false,
         formatted: {
             attendance: formatHours(totalAttendanceHours),
             breaks: formatHours(totalBreakHours),
@@ -842,6 +906,26 @@ function calculateLiveHoursWorked(entries) {
     
     // Sort entries by timestamp
     todayEntries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+     // Check if any of today's entries is a sick day
+    const isSickDay = todayEntries.some(entry => entry.type === 'Sick Day');
+    
+    // If it's a sick day, return appropriate values
+    if (isSickDay) {
+        return {
+            attendanceHours: 0,
+            breakHours: 0,
+            workedHours: 0,
+            currentlyWorking: false,
+            onBreak: false,
+            isSickDay: true,
+            formatted: {
+                attendance: "0h 0m",
+                breaks: "0h 0m",
+                worked: "0h 0m"
+            }
+        };
+    }
     
     let firstClockIn = null;
     let breakStartTime = null;
@@ -913,12 +997,13 @@ function calculateLiveHoursWorked(entries) {
     const totalBreakHours = totalBreakMilliseconds / (1000 * 60 * 60);
     const totalWorkedHours = totalAttendanceHours - totalBreakHours;
     
-    return {
+     return {
         attendanceHours: totalAttendanceHours,
         breakHours: totalBreakHours,
         workedHours: totalWorkedHours,
         currentlyWorking,
         onBreak,
+        isSickDay: false,
         formatted: {
             attendance: formatHours(totalAttendanceHours),
             breaks: formatHours(totalBreakHours),
@@ -928,54 +1013,76 @@ function calculateLiveHoursWorked(entries) {
 }
 
         // Create HTML for today's live hours display
-        function createLiveHoursDisplay(employeeId, hoursData) {
-            let statusText = 'Not Clocked In';
-            let statusClass = '';
+       function createLiveHoursDisplay(employeeId, hoursData) {
+    let statusText = 'Not Clocked In';
+    let statusClass = '';
+    
+    if (hoursData.isSickDay) {
+        statusText = 'Sick Day';
+        statusClass = 'sick-day';
+    } else if (hoursData.currentlyWorking) {
+        statusText = 'Currently Working';
+        statusClass = 'currently-working';
+    } else if (hoursData.onBreak) {
+        statusText = 'On Break';
+        statusClass = 'on-break';
+    }
+    
+    let displayHtml = `
+        <div class="live-hours ${statusClass}">
+            <div class="live-status">
+                <span class="status-text">${statusText}</span>
+                <span class="live-indicator">●</span>
+            </div>`;
             
-            if (hoursData.currentlyWorking) {
-                statusText = 'Currently Working';
-                statusClass = 'currently-working';
-            } else if (hoursData.onBreak) {
-                statusText = 'On Break';
-                statusClass = 'on-break';
-            }
-            
-            return `
-                <div class="live-hours ${statusClass}">
-                    <div class="live-status">
-                        <span class="status-text">${statusText}</span>
-                        <span class="live-indicator">●</span>
-                    </div>
-                    <div class="live-time">
-                        <strong>Current Total:</strong> 
-                        <span id="live-hours-${employeeId}" class="live-time-counter">${hoursData.formatted.worked}</span>
+    // Only show hours tracking if not a sick day
+    if (!hoursData.isSickDay) {
+        displayHtml += `
+            <div class="live-time">
+                <strong>Current Total:</strong> 
+                <span id="live-hours-${employeeId}" class="live-time-counter">${hoursData.formatted.worked}</span>
+            </div>
+        </div>
+        <div class="hours-calculation">
+            <div class="calculation-row">
+                <span class="label">Time Attended:</span>
+                <div class="value-container">
+                    <span id="live-attendance-${employeeId}" class="value">${hoursData.formatted.attendance}</span>
+                    <span class="decimal-value">(${formatDecimalHours(hoursData.attendanceHours)}h)</span>
+                </div>
+            </div>
+            <div class="calculation-row">
+                <span class="label">Combined Break Time:</span>
+                <div class="value-container">
+                    <span id="live-break-${employeeId}" class="value">${hoursData.formatted.breaks}</span>
+                    <span class="decimal-value">(${formatDecimalHours(hoursData.breakHours)}h)</span>
+                </div>
+            </div>
+            <div class="calculation-row total">
+                <span class="label">Total Worked:</span>
+                <div class="value-container">
+                    <span id="live-total-${employeeId}" class="value">${hoursData.formatted.worked}</span>
+                    <span class="decimal-value">(${formatDecimalHours(hoursData.workedHours)}h)</span>
+                </div>
+            </div>
+        </div>`;
+    } else {
+        // Display special message for sick days
+        displayHtml += `
+            </div>
+            <div class="hours-calculation">
+                <div class="calculation-row total">
+                    <span class="label">Status:</span>
+                    <div class="value-container">
+                        <span class="value" style="background-color: #f3e5f5;">Sick Day</span>
+                        <span class="decimal-value">(Not working today)</span>
                     </div>
                 </div>
-                <div class="hours-calculation">
-                    <div class="calculation-row">
-                        <span class="label">Time Attended:</span>
-                        <div class="value-container">
-                            <span id="live-attendance-${employeeId}" class="value">${hoursData.formatted.attendance}</span>
-                            <span class="decimal-value">(${formatDecimalHours(hoursData.attendanceHours)}h)</span>
-                        </div>
-                    </div>
-                    <div class="calculation-row">
-                        <span class="label">Combined Break Time:</span>
-                        <div class="value-container">
-                            <span id="live-break-${employeeId}" class="value">${hoursData.formatted.breaks}</span>
-                            <span class="decimal-value">(${formatDecimalHours(hoursData.breakHours)}h)</span>
-                        </div>
-                    </div>
-                    <div class="calculation-row total">
-                        <span class="label">Total Worked:</span>
-                        <div class="value-container">
-                            <span id="live-total-${employeeId}" class="value">${hoursData.formatted.worked}</span>
-                            <span class="decimal-value">(${formatDecimalHours(hoursData.workedHours)}h)</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
+            </div>`;
+    }
+    
+    return displayHtml;
+}
 
         // Create HTML for regular day hours display
         function createRegularHoursDisplay(hoursData) {
@@ -1157,234 +1264,184 @@ function calculateLiveHoursWorked(entries) {
 }
 
         // Function to load data for a specific date range
-        function loadData(startDate, endDate) {
-            Promise.all([fetchEmployees, fetchClockingData])
-                .then(([employees, clockingData]) => {
-                    const container = document.getElementById('employeeTimeline');
-                    const dateRange = document.getElementById('dateRange');
-                    const totalEmployees = document.getElementById('totalEmployees');
+      function loadData(startDate, endDate) {
+    Promise.all([fetchEmployees, fetchClockingData])
+        .then(([employees, clockingData]) => {
+            const container = document.getElementById('employeeTimeline');
+            const dateRange = document.getElementById('dateRange');
+            const totalEmployees = document.getElementById('totalEmployees');
 
-                    // Load departments for filter
-                    loadDepartments(employees);
+            // Load departments for filter
+            loadDepartments(employees);
 
-                    // Filter clocking data for the selected date range
-                    const filteredClockingData = clockingData.filter(entry => {
-                        const entryDate = new Date(entry.timestamp).toISOString().split('T')[0];
-                        return entryDate >= startDate && entryDate <= endDate;
-                    });
+            // Filter clocking data for the selected date range
+            const filteredClockingData = clockingData.filter(entry => {
+                const entryDate = new Date(entry.timestamp).toISOString().split('T')[0];
+                return entryDate >= startDate && entryDate <= endDate;
+            });
 
-                    // Set report header information
-                    dateRange.textContent = `${startDate} to ${endDate}`;
-                    totalEmployees.textContent = employees.length;
+            // Set report header information
+            dateRange.textContent = `${startDate} to ${endDate}`;
+            totalEmployees.textContent = employees.length;
 
-                    // Create a map of employees for quick lookup by ID
-                    const employeeMap = new Map();
-                    employees.forEach(employee => {
-                        employeeMap.set(employee.id, employee);
-                    });
+            // Create a map of employees for quick lookup by ID
+            const employeeMap = new Map();
+            employees.forEach(employee => {
+                employeeMap.set(employee.id, employee);
+            });
 
-                    // Group clocking data by employee and by day
-                    const employeeClockingMap = new Map();
-                    filteredClockingData.forEach(entry => {
-                        if (!employeeClockingMap.has(entry.employeeId)) {
-                            employeeClockingMap.set(entry.employeeId, {});
+            // Group clocking data by employee and by day
+            const employeeClockingMap = new Map();
+            filteredClockingData.forEach(entry => {
+                if (!employeeClockingMap.has(entry.employeeId)) {
+                    employeeClockingMap.set(entry.employeeId, {});
+                }
+                const date = new Date(entry.timestamp).toISOString().split('T')[0];
+                if (!employeeClockingMap.get(entry.employeeId)[date]) {
+                    employeeClockingMap.get(entry.employeeId)[date] = [];
+                }
+                employeeClockingMap.get(entry.employeeId)[date].push(entry);
+            });
+
+            // Clear existing content
+            container.innerHTML = '';
+
+            // Track company-wide sick days for reporting
+            let totalSickDays = 0;
+
+            // Display timeline for each employee
+            employeeClockingMap.forEach((days, employeeId) => {
+                const employee = employeeMap.get(employeeId);
+                if (employee) {
+                    // Create employee container
+                    const employeeDiv = document.createElement('div');
+                    employeeDiv.className = 'employee-container';
+                    employeeDiv.id = `employee-${employeeId}`;
+                    employeeDiv.dataset.department = employee.department;
+
+                    // Add employee header
+                    const header = document.createElement('div');
+                    header.className = 'employee-header';
+                    header.textContent = `${employee.name} (${employee.department})`;
+                    employeeDiv.appendChild(header);
+
+                    // Track employee total hours and sick days
+                    let employeeTotalAttendance = 0;
+                    let employeeTotalBreaks = 0;
+                    let employeeTotalWorked = 0;
+                    let employeeSickDays = 0;
+
+                    // Add timeline for each day
+                    Object.entries(days).forEach(([date, entries]) => {
+                        const dayDiv = document.createElement('div');
+                        dayDiv.className = 'day-container';
+
+                        // Check if any entry is a sick day
+                        const isSickDay = entries.some(entry => entry.type === 'Sick Day');
+                        
+                        if (isSickDay) {
+                            employeeSickDays++;
+                            totalSickDays++;
                         }
-                        const date = new Date(entry.timestamp).toISOString().split('T')[0];
-                        if (!employeeClockingMap.get(entry.employeeId)[date]) {
-                            employeeClockingMap.get(entry.employeeId)[date] = [];
+
+                        // Add day header
+                        const dayHeader = document.createElement('div');
+                        dayHeader.className = 'day-header';
+                        
+                        // Show sick day in header if applicable
+                        if (isSickDay) {
+                            dayHeader.textContent = `Date: ${new Date(date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })} - SICK DAY`;
+                            dayHeader.style.borderLeft = '4px solid #9C27B0'; // Purple border for sick days
+                        } else {
+                            dayHeader.textContent = `Date: ${new Date(date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}`;
                         }
-                        employeeClockingMap.get(entry.employeeId)[date].push(entry);
-                    });
+                        
+                        dayDiv.appendChild(dayHeader);
 
-                    // Clear existing content
-                    container.innerHTML = '';
+                        // Add timeline scale
+                        const timelineScale = document.createElement('div');
+                        timelineScale.className = 'timeline-scale';
+                        for (let hour = 7; hour <= 19; hour += 2) {
+                            const timeLabel = document.createElement('span');
+                            timeLabel.textContent = `${hour}:00`;
+                            timelineScale.appendChild(timeLabel);
+                        }
+                        dayDiv.appendChild(timelineScale);
 
-                    // Display timeline for each employee
-                    employeeClockingMap.forEach((days, employeeId) => {
-                        const employee = employeeMap.get(employeeId);
-                        if (employee) {
-                            // Create employee container
-                            const employeeDiv = document.createElement('div');
-                            employeeDiv.className = 'employee-container';
-                            employeeDiv.id = `employee-${employeeId}`;
-                            employeeDiv.dataset.department = employee.department;
+                        // Add timeline
+                        const timeline = document.createElement('div');
+                        timeline.className = 'timeline';
 
-                            // Add employee header
-                            const header = document.createElement('div');
-                            header.className = 'employee-header';
-                            header.textContent = `${employee.name} (${employee.department})`;
-                            employeeDiv.appendChild(header);
+                        // Define the start and end of the workday (7:00 AM to 7:00 PM)
+                        const workdayStart = new Date(`${date}T07:00:00Z`);
+                        const workdayEnd = new Date(`${date}T19:00:00Z`);
+                        const totalDuration = workdayEnd - workdayStart;
 
-                            // Track employee total hours
-                            let employeeTotalAttendance = 0;
-                            let employeeTotalBreaks = 0;
-                            let employeeTotalWorked = 0;
+                        // Add hourly markers
+                        for (let hour = 7; hour <= 19; hour++) {
+                            const markerTime = new Date(`${date}T${String(hour).padStart(2, '0')}:00:00Z`);
+                            const markerPosition = ((markerTime - workdayStart) / totalDuration) * 100;
 
-                            // Add timeline for each day
-                            Object.entries(days).forEach(([date, entries]) => {
-                                const dayDiv = document.createElement('div');
-                                dayDiv.className = 'day-container';
+                            // Create marker element
+                            const marker = document.createElement('div');
+                            marker.className = 'marker';
+                            marker.style.left = `${markerPosition}%`;
 
-                                // Add day header
-                                const dayHeader = document.createElement('div');
-                                dayHeader.className = 'day-header';
-                                dayHeader.textContent = `Date: ${new Date(date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}`;
-                                dayDiv.appendChild(dayHeader);
+                            // Add label for the hour
+                            const markerLabel = document.createElement('div');
+                            markerLabel.className = 'marker-label';
+                            markerLabel.textContent = `${hour}:00`;
+                            marker.appendChild(markerLabel);
 
-                                // Add timeline scale
-                                const timelineScale = document.createElement('div');
-                                timelineScale.className = 'timeline-scale';
-                                for (let hour = 7; hour <= 19; hour += 2) {
-                                    const timeLabel = document.createElement('span');
-                                    timeLabel.textContent = `${hour}:00`;
-                                    timelineScale.appendChild(timeLabel);
-                                }
-                                dayDiv.appendChild(timelineScale);
+                            timeline.appendChild(marker);
+                        }
 
-                                // Add timeline
-                                const timeline = document.createElement('div');
-                                timeline.className = 'timeline';
+                        // Check if this is a sick day
+                        if (isSickDay) {
+                            // For sick days, show a solid purple bar for the entire day
+                            const sickDayBar = document.createElement('div');
+                            sickDayBar.className = 'progress-bar sick-day';
+                            sickDayBar.style.width = '100%';
+                            sickDayBar.style.left = '0%';
+                            timeline.appendChild(sickDayBar);
+                        } else {
+                            // Process regular workday
+                            // Sort entries by timestamp
+                            entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                            
+                            // Add the "no clockings" segment before the first clock-in
+                            const firstEvent = new Date(entries[0].timestamp);
+                            const noClockingsBefore = firstEvent - workdayStart;
+                            if (noClockingsBefore > 0) {
+                                const noClockingsSegment = document.createElement('div');
+                                noClockingsSegment.className = 'progress-bar clocked-out';
+                                noClockingsSegment.style.width = `${(noClockingsBefore / totalDuration) * 100}%`;
+                                noClockingsSegment.style.left = '0%';
+                                timeline.appendChild(noClockingsSegment);
+                            }
 
-                                // Sort entries by timestamp
-                                entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                            // Track break and lunch periods for violation checking
+                            let breakStartTime = null;
+                            let lunchStartTime = null;
+                            
+                            // Create progress bar segments for clockings
+                            let previousTime = firstEvent;
+                            let currentState = 'clocked-out'; // Default state
+                            
+                            // If first event is Clock In, set state to working
+                            if (entries[0].type === 'Clock In') {
+                                currentState = 'working';
+                            }
 
-                                // Define the start and end of the workday (7:00 AM to 7:00 PM)
-                                const workdayStart = new Date(`${date}T07:00:00Z`);
-                                const workdayEnd = new Date(`${date}T19:00:00Z`);
-                                const totalDuration = workdayEnd - workdayStart;
-
-                                // Add hourly markers
-                                for (let hour = 7; hour <= 19; hour++) {
-                                    const markerTime = new Date(`${date}T${String(hour).padStart(2, '0')}:00:00Z`);
-                                    const markerPosition = ((markerTime - workdayStart) / totalDuration) * 100;
-
-                                    // Create marker element
-                                    const marker = document.createElement('div');
-                                    marker.className = 'marker';
-                                    marker.style.left = `${markerPosition}%`;
-
-                                    // Add label for the hour
-                                    const markerLabel = document.createElement('div');
-                                    markerLabel.className = 'marker-label';
-                                    markerLabel.textContent = `${hour}:00`;
-                                    marker.appendChild(markerLabel);
-
-                                    timeline.appendChild(marker);
-                                }
-
-                                // Add the "no clockings" segment before the first clock-in
-                                const firstEvent = new Date(entries[0].timestamp);
-                                const noClockingsBefore = firstEvent - workdayStart;
-                                if (noClockingsBefore > 0) {
-                                    const noClockingsSegment = document.createElement('div');
-                                    noClockingsSegment.className = 'progress-bar clocked-out';
-                                    noClockingsSegment.style.width = `${(noClockingsBefore / totalDuration) * 100}%`;
-                                    noClockingsSegment.style.left = '0%';
-                                    timeline.appendChild(noClockingsSegment);
-                                }
-
-                                // Track break and lunch periods for violation checking
-                                let breakStartTime = null;
-                                let lunchStartTime = null;
+                            // Process all entries
+                            for (let i = 0; i < entries.length; i++) {
+                                const entry = entries[i];
+                                const eventTime = new Date(entry.timestamp);
+                                const segmentDuration = eventTime - previousTime;
                                 
-                                // Create progress bar segments for clockings
-                                let previousTime = firstEvent;
-                                let currentState = 'clocked-out'; // Default state
-                                
-                                // If first event is Clock In, set state to working
-                                if (entries[0].type === 'Clock In') {
-                                    currentState = 'working';
-                                }
-
-                                // Process all entries
-                                for (let i = 0; i < entries.length; i++) {
-                                    const entry = entries[i];
-                                    const eventTime = new Date(entry.timestamp);
-                                    const segmentDuration = eventTime - previousTime;
-                                    
-                                    // Skip creating a segment if there's no duration
-                                    if (segmentDuration <= 0) {
-                                        // Update state based on the event type
-                                        if (entry.type === 'Clock In') {
-                                            currentState = 'working';
-                                        } else if (entry.type === 'Break Start') {
-                                            currentState = 'break';
-                                            breakStartTime = eventTime;
-                                        } else if (entry.type === 'Break End') {
-                                            currentState = 'working';
-                                        } else if (entry.type === 'Lunch Start') {
-                                            currentState = 'lunch';
-                                            lunchStartTime = eventTime;
-                                        } else if (entry.type === 'Lunch End') {
-                                            currentState = 'working';
-                                        } else if (entry.type === 'Clock Out') {
-                                            currentState = 'clocked-out';
-                                        }
-                                        
-                                        previousTime = eventTime;
-                                        continue;
-                                    }
-
-                                    // Create segment with current state
-                                    const segment = document.createElement('div');
-                                    segment.className = `progress-bar ${currentState}`;
-                                    segment.style.width = `${(segmentDuration / totalDuration) * 100}%`;
-                                    segment.style.left = `${((previousTime - workdayStart) / totalDuration) * 100}%`;
-                                    timeline.appendChild(segment);
-                                    
-                                    // Check for break violations (if applicable)
-                                    if (currentState === 'break' && entry.type === 'Break End') {
-                                        const breakDuration = eventTime - breakStartTime;
-                                        const breakMinutes = breakDuration / (1000 * 60);
-                                        
-                                        // If break is longer than 15 minutes, mark as violation
-                                        if (breakMinutes > 15) {
-                                            const violationStart = new Date(breakStartTime.getTime() + (15 * 60 * 1000));
-                                            const violationDuration = eventTime - violationStart;
-                                            const violationWidth = (violationDuration / totalDuration) * 100;
-                                            const violationLeft = ((violationStart - workdayStart) / totalDuration) * 100;
-                                            
-                                            const violationMarker = document.createElement('div');
-                                            violationMarker.className = 'break-violation';
-                                            violationMarker.style.width = `${violationWidth}%`;
-                                            violationMarker.style.left = `${violationLeft}%`;
-                                            
-                                            const tooltip = document.createElement('div');
-                                            tooltip.className = 'tooltip';
-                                            tooltip.textContent = `Break violation: ${Math.round(breakMinutes)} min (15 min limit)`;
-                                            violationMarker.appendChild(tooltip);
-                                            
-                                            timeline.appendChild(violationMarker);
-                                        }
-                                    }
-                                    
-                                    // Check for lunch violations (if applicable)
-                                    if (currentState === 'lunch' && entry.type === 'Lunch End') {
-                                        const lunchDuration = eventTime - lunchStartTime;
-                                        const lunchMinutes = lunchDuration / (1000 * 60);
-                                        
-                                        // If lunch is longer than 30 minutes, mark as violation
-                                        if (lunchMinutes > 30) {
-                                            const violationStart = new Date(lunchStartTime.getTime() + (30 * 60 * 1000));
-                                            const violationDuration = eventTime - violationStart;
-                                            const violationWidth = (violationDuration / totalDuration) * 100;
-                                            const violationLeft = ((violationStart - workdayStart) / totalDuration) * 100;
-                                            
-                                            const violationMarker = document.createElement('div');
-                                            violationMarker.className = 'break-violation';
-                                            violationMarker.style.width = `${violationWidth}%`;
-                                            violationMarker.style.left = `${violationLeft}%`;
-                                            
-                                            const tooltip = document.createElement('div');
-                                            tooltip.className = 'tooltip';
-                                            tooltip.textContent = `Lunch violation: ${Math.round(lunchMinutes)} min (30 min limit)`;
-                                            violationMarker.appendChild(tooltip);
-                                            
-                                            timeline.appendChild(violationMarker);
-                                        }
-                                    }
-
-                                    // Update state for the next segment
+                                // Skip creating a segment if there's no duration
+                                if (segmentDuration <= 0) {
+                                    // Update state based on the event type
                                     if (entry.type === 'Clock In') {
                                         currentState = 'working';
                                     } else if (entry.type === 'Break Start') {
@@ -1402,88 +1459,240 @@ function calculateLiveHoursWorked(entries) {
                                     }
                                     
                                     previousTime = eventTime;
+                                    continue;
                                 }
 
-                                // Add the "no clockings" segment after the last clock-out
-                                const lastEvent = new Date(entries[entries.length - 1].timestamp);
-                                const noClockingsAfter = workdayEnd - lastEvent;
-                                if (noClockingsAfter > 0) {
-                                    const noClockingsSegment = document.createElement('div');
-                                    // Use clocked-out style for the remaining time if the last event was a Clock Out
-                                    // Otherwise, use the current state
-                                    const lastEventType = entries[entries.length - 1].type;
-                                    const finalState = lastEventType === 'Clock Out' ? 'clocked-out' : currentState;
-                                    noClockingsSegment.className = `progress-bar ${finalState}`;
-                                    noClockingsSegment.style.width = `${(noClockingsAfter / totalDuration) * 100}%`;
-                                    noClockingsSegment.style.left = `${((lastEvent - workdayStart) / totalDuration) * 100}%`;
-                                    timeline.appendChild(noClockingsSegment);
-                                }
-
-                                dayDiv.appendChild(timeline);
-
-                                // Add notes (if any)
-                                const notes = document.createElement('div');
-                                notes.className = 'notes';
-                                notes.textContent = 'Notes: [Add notes here]';
-                                dayDiv.appendChild(notes);
-
-                                // Calculate and display hours for the day
-                                const isToday = new Date(date).toDateString() === new Date().toDateString();
-                                const hoursData = calculateDetailedHours(entries);
+                                // Create segment with current state
+                                const segment = document.createElement('div');
+                                segment.className = `progress-bar ${currentState}`;
+                                segment.style.width = `${(segmentDuration / totalDuration) * 100}%`;
+                                segment.style.left = `${((previousTime - workdayStart) / totalDuration) * 100}%`;
+                                timeline.appendChild(segment);
                                 
-                                // Add employee's day to total hours
-                                employeeTotalAttendance += hoursData.attendanceHours;
-                                employeeTotalBreaks += hoursData.breakHours;
-                                employeeTotalWorked += hoursData.workedHours;
-                                
-                                // Create hours breakdown
-                                const totalHoursDiv = document.createElement('div');
-                                totalHoursDiv.className = 'hours-breakdown';
-                                
-                                if (isToday) {
-                                    // For today, show live hours with detailed breakdown
-                                    const liveHoursData = calculateLiveHoursWorked(entries);
-                                    totalHoursDiv.innerHTML = createLiveHoursDisplay(employeeId, liveHoursData);
-                                } else {
-                                    // Regular display for past days with detailed breakdown
-                                    totalHoursDiv.innerHTML = createRegularHoursDisplay(hoursData);
+                                // Check for break violations (if applicable)
+                                if (currentState === 'break' && entry.type === 'Break End') {
+                                    const breakDuration = eventTime - breakStartTime;
+                                    const breakMinutes = breakDuration / (1000 * 60);
+                                    
+                                    // If break is longer than 15 minutes, mark as violation
+                                    if (breakMinutes > 15) {
+                                        const violationStart = new Date(breakStartTime.getTime() + (15 * 60 * 1000));
+                                        const violationDuration = eventTime - violationStart;
+                                        const violationWidth = (violationDuration / totalDuration) * 100;
+                                        const violationLeft = ((violationStart - workdayStart) / totalDuration) * 100;
+                                        
+                                        const violationMarker = document.createElement('div');
+                                        violationMarker.className = 'break-violation';
+                                        violationMarker.style.width = `${violationWidth}%`;
+                                        violationMarker.style.left = `${violationLeft}%`;
+                                        
+                                        const tooltip = document.createElement('div');
+                                        tooltip.className = 'tooltip';
+                                        tooltip.textContent = `Break violation: ${Math.round(breakMinutes)} min (15 min limit)`;
+                                        violationMarker.appendChild(tooltip);
+                                        
+                                        timeline.appendChild(violationMarker);
+                                    }
                                 }
                                 
-                                dayDiv.appendChild(totalHoursDiv);
-                                employeeDiv.appendChild(dayDiv);
-                            });
+                                // Check for lunch violations (if applicable)
+                                if (currentState === 'lunch' && entry.type === 'Lunch End') {
+                                    const lunchDuration = eventTime - lunchStartTime;
+                                    const lunchMinutes = lunchDuration / (1000 * 60);
+                                    
+                                    // If lunch is longer than 30 minutes, mark as violation
+                                    if (lunchMinutes > 30) {
+                                        const violationStart = new Date(lunchStartTime.getTime() + (30 * 60 * 1000));
+                                        const violationDuration = eventTime - violationStart;
+                                        const violationWidth = (violationDuration / totalDuration) * 100;
+                                        const violationLeft = ((violationStart - workdayStart) / totalDuration) * 100;
+                                        
+                                        const violationMarker = document.createElement('div');
+                                        violationMarker.className = 'break-violation';
+                                        violationMarker.style.width = `${violationWidth}%`;
+                                        violationMarker.style.left = `${violationLeft}%`;
+                                        
+                                        const tooltip = document.createElement('div');
+                                        tooltip.className = 'tooltip';
+                                        tooltip.textContent = `Lunch violation: ${Math.round(lunchMinutes)} min (30 min limit)`;
+                                        violationMarker.appendChild(tooltip);
+                                        
+                                        timeline.appendChild(violationMarker);
+                                    }
+                                }
 
-                            // Add employee total hours summary
-                         
+                                // Update state for the next segment
+                                if (entry.type === 'Clock In') {
+                                    currentState = 'working';
+                                } else if (entry.type === 'Break Start') {
+                                    currentState = 'break';
+                                    breakStartTime = eventTime;
+                                } else if (entry.type === 'Break End') {
+                                    currentState = 'working';
+                                } else if (entry.type === 'Lunch Start') {
+                                    currentState = 'lunch';
+                                    lunchStartTime = eventTime;
+                                } else if (entry.type === 'Lunch End') {
+                                    currentState = 'working';
+                                } else if (entry.type === 'Clock Out') {
+                                    currentState = 'clocked-out';
+                                }
+                                
+                                previousTime = eventTime;
+                            }
 
-                            container.appendChild(employeeDiv);
+                            // Add the "no clockings" segment after the last clock-out
+                            const lastEvent = new Date(entries[entries.length - 1].timestamp);
+                            const noClockingsAfter = workdayEnd - lastEvent;
+                            if (noClockingsAfter > 0) {
+                                const noClockingsSegment = document.createElement('div');
+                                // Use clocked-out style for the remaining time if the last event was a Clock Out
+                                // Otherwise, use the current state
+                                const lastEventType = entries[entries.length - 1].type;
+                                const finalState = lastEventType === 'Clock Out' ? 'clocked-out' : currentState;
+                                noClockingsSegment.className = `progress-bar ${finalState}`;
+                                noClockingsSegment.style.width = `${(noClockingsAfter / totalDuration) * 100}%`;
+                                noClockingsSegment.style.left = `${((lastEvent - workdayStart) / totalDuration) * 100}%`;
+                                timeline.appendChild(noClockingsSegment);
+                            }
                         }
+
+                        dayDiv.appendChild(timeline);
+
+                        // Add notes (if any)
+                        const notes = document.createElement('div');
+                        notes.className = 'notes';
+                        
+                        // Show sick day note if applicable
+                        if (isSickDay) {
+                            notes.textContent = 'Notes: Employee reported sick';
+                        } else {
+                            notes.textContent = 'Notes: [Add notes here]';
+                        }
+                        
+                        dayDiv.appendChild(notes);
+
+                        // Calculate and display hours for the day
+                        const isToday = new Date(date).toDateString() === new Date().toDateString();
+                        
+                        // For sick days, use zero hours
+                        let hoursData;
+                        if (isSickDay) {
+                            hoursData = {
+                                attendanceHours: 0,
+                                breakHours: 0,
+                                workedHours: 0,
+                                isSickDay: true,
+                                formatted: {
+                                    attendance: "0h 0m",
+                                    breaks: "0h 0m", 
+                                    worked: "0h 0m"
+                                }
+                            };
+                        } else {
+                            hoursData = calculateDetailedHours(entries);
+                            
+                            // Add employee's day to total hours
+                            employeeTotalAttendance += hoursData.attendanceHours;
+                            employeeTotalBreaks += hoursData.breakHours;
+                            employeeTotalWorked += hoursData.workedHours;
+                        }
+                        
+                        // Create hours breakdown
+                        const totalHoursDiv = document.createElement('div');
+                        totalHoursDiv.className = 'hours-breakdown';
+                        
+                        if (isToday) {
+                            // For today, show live hours with detailed breakdown
+                            const liveHoursData = isSickDay 
+                                ? { ...hoursData, currentlyWorking: false, onBreak: false, isSickDay: true }
+                                : calculateLiveHoursWorked(entries);
+                                
+                            totalHoursDiv.innerHTML = createLiveHoursDisplay(employeeId, liveHoursData);
+                        } else {
+                            // Regular display for past days with detailed breakdown
+                            // For sick days, show special display
+                            if (isSickDay) {
+                                totalHoursDiv.innerHTML = `
+                                    <div class="hours-calculation">
+                                        <div class="calculation-row total">
+                                            <span class="label">Status:</span>
+                                            <div class="value-container">
+                                                <span class="value" style="background-color: #f3e5f5;">Sick Day</span>
+                                                <span class="decimal-value">(Not working)</span>
+                                            </div>
+                                        </div>
+                                    </div>`;
+                            } else {
+                                totalHoursDiv.innerHTML = createRegularHoursDisplay(hoursData);
+                            }
+                        }
+                        
+                        dayDiv.appendChild(totalHoursDiv);
+                        employeeDiv.appendChild(dayDiv);
                     });
 
-                    // Apply initial department filter
-                    filterByDepartment();
-
-                    // Start the live hours update for today
-                    if (document.querySelector('.live-time-counter')) {
-                        updateLiveHoursDisplay();
+                    // Add employee total hours summary with sick days
+                    const totalHoursDiv = document.createElement('div');
+                    totalHoursDiv.className = 'employee-total-hours';
+                    
+                    // Create summary HTML
+                    let summaryHtml = `
+                        <h3>Summary for ${employee.name}</h3>
+                        <div class="hours-calculation">
+                            <div class="calculation-row">
+                                <span class="label">Total Hours Worked:</span>
+                                <div class="value-container">
+                                    <span class="value">${formatHours(employeeTotalWorked)}</span>
+                                    <span class="decimal-value">(${formatDecimalHours(employeeTotalWorked)}h)</span>
+                                </div>
+                            </div>`;
+                    
+                    // Add sick days count if any
+                    if (employeeSickDays > 0) {
+                        summaryHtml += `
+                            <div class="calculation-row">
+                                <span class="label">Sick Days:</span>
+                                <div class="value-container">
+                                    <span class="value" style="background-color: #f3e5f5;">${employeeSickDays}</span>
+                                    <span class="decimal-value">(Period total)</span>
+                                </div>
+                            </div>`;
                     }
+                    
+                    // Finish the summary div
+                    summaryHtml += `</div>`;
+                    totalHoursDiv.innerHTML = summaryHtml;
+                    employeeDiv.appendChild(totalHoursDiv);
 
-                    // Animate progress bars with a slight delay to ensure proper rendering
-                    setTimeout(() => {
-                        document.querySelectorAll('.progress-bar').forEach(bar => {
-                            const originalWidth = bar.style.width;
-                            bar.style.width = '0';
-                            
-                            // Force a reflow to ensure the animation works
-                            void bar.offsetWidth;
-                            
-                            // Set back to original width to trigger animation
-                            bar.style.width = originalWidth;
-                        });
-                    }, 300);
-                })
-                .catch(error => console.error('Error fetching data:', error));
-        }
+                    container.appendChild(employeeDiv);
+                }
+            });
+
+            // Apply initial department filter
+            filterByDepartment();
+
+            // Start the live hours update for today
+            if (document.querySelector('.live-time-counter')) {
+                updateLiveHoursDisplay();
+            }
+
+            // Animate progress bars with a slight delay to ensure proper rendering
+            setTimeout(() => {
+                document.querySelectorAll('.progress-bar').forEach(bar => {
+                    const originalWidth = bar.style.width;
+                    bar.style.width = '0';
+                    
+                    // Force a reflow to ensure the animation works
+                    void bar.offsetWidth;
+                    
+                    // Set back to original width to trigger animation
+                    bar.style.width = originalWidth;
+                });
+            }, 300);
+        })
+        .catch(error => console.error('Error fetching data:', error));
+}
 
         // Function to toggle employee status visibility
         function toggleEmployeeStatus() {
@@ -1541,35 +1750,44 @@ function showEmployeeStatus() {
                 // Sort entries by timestamp
                 entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                 
-                // Get the latest entry to determine current status
-                const latestEntry = entries[entries.length - 1];
-                
-                // Calculate hours
-                const hoursData = calculateLiveHoursWorked(entries);
-                hoursText = `Hours Worked: ${hoursData.formatted.worked}`;
-                
-                // Update clock-in time text
-                const firstClockIn = entries.find(e => e.type === 'Clock In');
-                if (firstClockIn) {
-                    clockInTimeText = `First Clock In: ${new Date(firstClockIn.timestamp).toLocaleTimeString()}`;
-                }
-                
-                // Determine the status class based on the latest entry type
-                if (latestEntry.type === 'Clock In') {
-                    statusClass = 'clocked-in';
-                    statusText = 'Working';
-                } else if (latestEntry.type === 'Break Start') {
-                    statusClass = 'on-break';
-                    statusText = 'On Break';
-                } else if (latestEntry.type === 'Lunch Start') {
-                    statusClass = 'on-lunch';
-                    statusText = 'On Lunch';
-                } else if (latestEntry.type === 'Break End' || latestEntry.type === 'Lunch End') {
-                    statusClass = 'clocked-in'; // After break/lunch end, employee is clocked in
-                    statusText = 'Working';
-                } else if (latestEntry.type === 'Clock Out') {
-                    statusClass = 'clocked-out';
-                    statusText = 'Clocked Out';
+                // Check if any entry is a Sick Day
+                const sickDayEntry = entries.find(e => e.type === 'Sick Day');
+                if (sickDayEntry) {
+                    statusClass = 'sick-day';
+                    statusText = 'Sick Day';
+                    clockInTimeText = 'Marked as sick today';
+                    hoursText = '';
+                } else {
+                    // Get the latest entry to determine current status
+                    const latestEntry = entries[entries.length - 1];
+                    
+                    // Calculate hours
+                    const hoursData = calculateLiveHoursWorked(entries);
+                    hoursText = `Hours Worked: ${hoursData.formatted.worked}`;
+                    
+                    // Update clock-in time text
+                    const firstClockIn = entries.find(e => e.type === 'Clock In');
+                    if (firstClockIn) {
+                        clockInTimeText = `First Clock In: ${new Date(firstClockIn.timestamp).toLocaleTimeString()}`;
+                    }
+                    
+                    // Determine the status class based on the latest entry type
+                    if (latestEntry.type === 'Clock In') {
+                        statusClass = 'clocked-in';
+                        statusText = 'Working';
+                    } else if (latestEntry.type === 'Break Start') {
+                        statusClass = 'on-break';
+                        statusText = 'On Break';
+                    } else if (latestEntry.type === 'Lunch Start') {
+                        statusClass = 'on-lunch';
+                        statusText = 'On Lunch';
+                    } else if (latestEntry.type === 'Break End' || latestEntry.type === 'Lunch End') {
+                        statusClass = 'clocked-in'; // After break/lunch end, employee is clocked in
+                        statusText = 'Working';
+                    } else if (latestEntry.type === 'Clock Out') {
+                        statusClass = 'clocked-out';
+                        statusText = 'Clocked Out';
+                    }
                 }
             }
             
@@ -1639,6 +1857,9 @@ function showEmployeeStatus() {
         });
         document.querySelectorAll('.employee-status-card.on-lunch').forEach(card => {
             card.style.backgroundColor = '#FF9800';
+        });
+        document.querySelectorAll('.employee-status-card.sick-day').forEach(card => {
+            card.style.backgroundColor = '#9C27B0'; // Purple background for sick days
         });
         
         // Apply current department filter to the newly shown grid
