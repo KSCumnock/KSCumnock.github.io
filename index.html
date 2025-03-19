@@ -547,19 +547,31 @@
 
 
 
-// Export CSV Report
+// Update CSV export to exclude future dates
 function exportReport() {
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
     const dateFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+
+    // Get current date for future date checking
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+    const todayStr = today.toISOString().split('T')[0];
 
     // Format the date range header
     const startDateStr = dateFormatter.format(new Date(startDate));
     const endDateStr = dateFormatter.format(new Date(endDate));
 
     let csvContent = "Time Keeping Report\n";
-    csvContent += `Date Range: ${startDateStr} to ${endDateStr}\n\n`;
-    // Add Status column for sick days
+    
+    // If end date is in the future, note that the report only includes dates up to today
+    if (endDate > todayStr) {
+        csvContent += `Date Range: ${startDateStr} to ${endDateStr} (Only showing dates up to ${dateFormatter.format(today)})\n\n`;
+    } else {
+        csvContent += `Date Range: ${startDateStr} to ${endDateStr}\n\n`;
+    }
+    
+    // Add Status column for tracking status
     csvContent += "Employee,Department,Scheduled Hours,Date,Status,Clock In,Tea Break Start,Tea Break End,Total Tea Break,Lunch Start,Lunch End,Total Lunch Break,Clock Out,Total Time,Notes\n";
 
     // Fetch data and generate CSV
@@ -590,9 +602,10 @@ function exportReport() {
                 employeeClockingMap.get(entry.employeeId)[date].push(entry);
             });
 
-            // Track total clocked time and sick days for the entire period for each employee
+            // Track total clocked time and sick/absent days for the entire period for each employee
             const employeeTotalMinutes = new Map();
             const employeeTotalSickDays = new Map(); // Track sick days count
+            const employeeTotalAbsentDays = new Map(); // Track absent days count
 
             // Generate CSV rows for each employee
             employeeClockingMap.forEach((days, employeeId) => {
@@ -606,9 +619,33 @@ function exportReport() {
                     // Initialize period total for this employee
                     employeeTotalMinutes.set(employeeId, 0);
                     employeeTotalSickDays.set(employeeId, 0); // Initialize sick days count
+                    employeeTotalAbsentDays.set(employeeId, 0); // Initialize absent days count
 
-                    // Generate rows for each day
-                    Object.entries(days).forEach(([date, entries]) => {
+                    // Generate a list of all dates in the range (excluding future dates)
+                    const allDates = [];
+                    const currentDate = new Date(startDate);
+                    const endDateObj = new Date(endDate);
+                    
+                    while (currentDate <= endDateObj) {
+                        const dateStr = currentDate.toISOString().split('T')[0];
+                        // Only add dates up to and including today
+                        if (dateStr <= todayStr) {
+                            allDates.push(dateStr);
+                        }
+                        currentDate.setDate(currentDate.getDate() + 1);
+                    }
+
+                    // Process all dates in the range, excluding future dates
+                    allDates.forEach(date => {
+                        const entries = days[date] || [];
+                        const dateObj = new Date(date);
+                        const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6; // 0 is Sunday, 6 is Saturday
+                        
+                        // Skip weekends if there are no entries
+                        if (isWeekend && entries.length === 0) {
+                            return;
+                        }
+                        
                         let clockIn = "-";
                         let teaBreakStart = "-";
                         let teaBreakEnd = "-";
@@ -617,7 +654,38 @@ function exportReport() {
                         let clockOut = "-";
                         let notes = "";
                         let status = "Present"; // Default status
-
+                        
+                        // If no entries for this day and it's not a weekend, mark as absent
+                        if (entries.length === 0) {
+                            status = "Absent";
+                            notes = "No clockings recorded for this day";
+                            employeeTotalAbsentDays.set(
+                                employeeId,
+                                employeeTotalAbsentDays.get(employeeId) + 1
+                            );
+                            // Add row for absent day to CSV
+                            const row = [
+                                `"${employee.name}"`,
+                                `"${employee.department}"`,
+                                `"${employee.startTime} - ${employee.finishTime}"`,
+                                `"${date}"`,
+                                `"${status}"`,
+                                `"${clockIn}"`,
+                                `"${teaBreakStart}"`,
+                                `"${teaBreakEnd}"`,
+                                `"0m"`,
+                                `"${lunchStart}"`,
+                                `"${lunchEnd}"`,
+                                `"0m"`,
+                                `"${clockOut}"`,
+                                `"0h 0m"`,
+                                `"${notes}"`
+                            ].join(',');
+                            csvContent += row + '\n';
+                            return;
+                        }
+                        
+                        // If there are entries, continue with the existing logic
                         // Sort entries chronologically
                         entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                         
@@ -778,6 +846,12 @@ function exportReport() {
                     const sickDaysCount = employeeTotalSickDays.get(employeeId);
                     if (sickDaysCount > 0) {
                         csvContent += `"SICK DAYS","","","","${sickDaysCount}","","","","","","","","","",""\n`;
+                    }
+                    
+                    // Add absent days count if any
+                    const absentDaysCount = employeeTotalAbsentDays.get(employeeId);
+                    if (absentDaysCount > 0) {
+                        csvContent += `"ABSENT DAYS","","","","${absentDaysCount}","","","","","","","","","",""\n`;
                     }
                 }
             });
@@ -1263,13 +1337,22 @@ function calculateLiveHoursWorked(entries) {
     });
 }
 
-        // Function to load data for a specific date range
-      function loadData(startDate, endDate) {
+
+
+
+
+  // Update loadData function to exclude future dates
+
+function loadData(startDate, endDate) {
     Promise.all([fetchEmployees, fetchClockingData])
         .then(([employees, clockingData]) => {
             const container = document.getElementById('employeeTimeline');
             const dateRange = document.getElementById('dateRange');
             const totalEmployees = document.getElementById('totalEmployees');
+            
+            // Get current date for future date checking
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
 
             // Load departments for filter
             loadDepartments(employees);
@@ -1308,6 +1391,22 @@ function calculateLiveHoursWorked(entries) {
 
             // Track company-wide sick days for reporting
             let totalSickDays = 0;
+            let totalAbsentDays = 0; // Track absent days
+
+            // Generate a list of all dates in the range (excluding future dates)
+            const allDates = [];
+            const currentDate = new Date(startDate);
+            const endDateObj = new Date(endDate);
+            const todayStr = today.toISOString().split('T')[0];
+            
+            while (currentDate <= endDateObj) {
+                const dateStr = currentDate.toISOString().split('T')[0];
+                // Only add dates up to and including today
+                if (dateStr <= todayStr) {
+                    allDates.push(dateStr);
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
 
             // Display timeline for each employee
             employeeClockingMap.forEach((days, employeeId) => {
@@ -1330,30 +1429,51 @@ function calculateLiveHoursWorked(entries) {
                     let employeeTotalBreaks = 0;
                     let employeeTotalWorked = 0;
                     let employeeSickDays = 0;
+                    let employeeAbsentDays = 0; // Track absent days
 
-                    // Add timeline for each day
-                    Object.entries(days).forEach(([date, entries]) => {
+                    // Add timeline for each day in the date range (excluding future dates)
+                    allDates.forEach(date => {
+                        const entries = days[date] || [];
+                        const dateObj = new Date(date);
+                        const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6; // 0 is Sunday, 6 is Saturday
+                        
+                        // Skip weekends if there are no entries
+                        if (isWeekend && entries.length === 0) {
+                            return;
+                        }
+
                         const dayDiv = document.createElement('div');
                         dayDiv.className = 'day-container';
 
                         // Check if any entry is a sick day
                         const isSickDay = entries.some(entry => entry.type === 'Sick Day');
+                        const isAbsent = entries.length === 0; // No clockings for this day
                         
                         if (isSickDay) {
                             employeeSickDays++;
                             totalSickDays++;
+                        }
+                        
+                        if (isAbsent) {
+                            employeeAbsentDays++;
+                            totalAbsentDays++;
                         }
 
                         // Add day header
                         const dayHeader = document.createElement('div');
                         dayHeader.className = 'day-header';
                         
-                        // Show sick day in header if applicable
+                        const formattedDate = new Date(date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+                        
+                        // Show appropriate status in header
                         if (isSickDay) {
-                            dayHeader.textContent = `Date: ${new Date(date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })} - SICK DAY`;
+                            dayHeader.textContent = `Date: ${formattedDate} - SICK DAY`;
                             dayHeader.style.borderLeft = '4px solid #9C27B0'; // Purple border for sick days
+                        } else if (isAbsent) {
+                            dayHeader.textContent = `Date: ${formattedDate} - NO CLOCKINGS`;
+                            dayHeader.style.borderLeft = '4px solid #000000'; // Black border for absent days
                         } else {
-                            dayHeader.textContent = `Date: ${new Date(date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}`;
+                            dayHeader.textContent = `Date: ${formattedDate}`;
                         }
                         
                         dayDiv.appendChild(dayHeader);
@@ -1396,7 +1516,7 @@ function calculateLiveHoursWorked(entries) {
                             timeline.appendChild(marker);
                         }
 
-                        // Check if this is a sick day
+                        // Check if this is a sick day or absent day
                         if (isSickDay) {
                             // For sick days, show a solid purple bar for the entire day
                             const sickDayBar = document.createElement('div');
@@ -1404,8 +1524,15 @@ function calculateLiveHoursWorked(entries) {
                             sickDayBar.style.width = '100%';
                             sickDayBar.style.left = '0%';
                             timeline.appendChild(sickDayBar);
+                        } else if (isAbsent) {
+                            // For absent days, show a solid black bar for the entire day
+                            const absentDayBar = document.createElement('div');
+                            absentDayBar.className = 'progress-bar clocked-out';
+                            absentDayBar.style.width = '100%';
+                            absentDayBar.style.left = '0%';
+                            timeline.appendChild(absentDayBar);
                         } else {
-                            // Process regular workday
+                            // Process regular workday with clockings
                             // Sort entries by timestamp
                             entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                             
@@ -1563,9 +1690,11 @@ function calculateLiveHoursWorked(entries) {
                         const notes = document.createElement('div');
                         notes.className = 'notes';
                         
-                        // Show sick day note if applicable
+                        // Show appropriate notes based on status
                         if (isSickDay) {
                             notes.textContent = 'Notes: Employee reported sick';
+                        } else if (isAbsent) {
+                            notes.textContent = 'Notes: No clockings recorded for this day';
                         } else {
                             notes.textContent = 'Notes: [Add notes here]';
                         }
@@ -1575,7 +1704,7 @@ function calculateLiveHoursWorked(entries) {
                         // Calculate and display hours for the day
                         const isToday = new Date(date).toDateString() === new Date().toDateString();
                         
-                        // For sick days, use zero hours
+                        // For sick days or absent days, use zero hours
                         let hoursData;
                         if (isSickDay) {
                             hoursData = {
@@ -1583,6 +1712,20 @@ function calculateLiveHoursWorked(entries) {
                                 breakHours: 0,
                                 workedHours: 0,
                                 isSickDay: true,
+                                isAbsent: false,
+                                formatted: {
+                                    attendance: "0h 0m",
+                                    breaks: "0h 0m", 
+                                    worked: "0h 0m"
+                                }
+                            };
+                        } else if (isAbsent) {
+                            hoursData = {
+                                attendanceHours: 0,
+                                breakHours: 0,
+                                workedHours: 0,
+                                isSickDay: false,
+                                isAbsent: true,
                                 formatted: {
                                     attendance: "0h 0m",
                                     breaks: "0h 0m", 
@@ -1604,14 +1747,27 @@ function calculateLiveHoursWorked(entries) {
                         
                         if (isToday) {
                             // For today, show live hours with detailed breakdown
-                            const liveHoursData = isSickDay 
-                                ? { ...hoursData, currentlyWorking: false, onBreak: false, isSickDay: true }
-                                : calculateLiveHoursWorked(entries);
-                                
-                            totalHoursDiv.innerHTML = createLiveHoursDisplay(employeeId, liveHoursData);
+                            if (isAbsent) {
+                                // For absent days on today's date
+                                totalHoursDiv.innerHTML = `
+                                    <div class="hours-calculation">
+                                        <div class="calculation-row total">
+                                            <span class="label">Status:</span>
+                                            <div class="value-container">
+                                                <span class="value" style="background-color: #333; color: white;">Absent</span>
+                                                <span class="decimal-value">(No clockings)</span>
+                                            </div>
+                                        </div>
+                                    </div>`;
+                            } else {
+                                const liveHoursData = isSickDay 
+                                    ? { ...hoursData, currentlyWorking: false, onBreak: false, isSickDay: true }
+                                    : calculateLiveHoursWorked(entries);
+                                    
+                                totalHoursDiv.innerHTML = createLiveHoursDisplay(employeeId, liveHoursData);
+                            }
                         } else {
                             // Regular display for past days with detailed breakdown
-                            // For sick days, show special display
                             if (isSickDay) {
                                 totalHoursDiv.innerHTML = `
                                     <div class="hours-calculation">
@@ -1620,6 +1776,17 @@ function calculateLiveHoursWorked(entries) {
                                             <div class="value-container">
                                                 <span class="value" style="background-color: #f3e5f5;">Sick Day</span>
                                                 <span class="decimal-value">(Not working)</span>
+                                            </div>
+                                        </div>
+                                    </div>`;
+                            } else if (isAbsent) {
+                                totalHoursDiv.innerHTML = `
+                                    <div class="hours-calculation">
+                                        <div class="calculation-row total">
+                                            <span class="label">Status:</span>
+                                            <div class="value-container">
+                                                <span class="value" style="background-color: #333; color: white;">Absent</span>
+                                                <span class="decimal-value">(No clockings)</span>
                                             </div>
                                         </div>
                                     </div>`;
@@ -1632,7 +1799,7 @@ function calculateLiveHoursWorked(entries) {
                         employeeDiv.appendChild(dayDiv);
                     });
 
-                    // Add employee total hours summary with sick days
+                    // Add employee total hours summary with sick days and absent days
                     const totalHoursDiv = document.createElement('div');
                     totalHoursDiv.className = 'employee-total-hours';
                     
@@ -1656,6 +1823,18 @@ function calculateLiveHoursWorked(entries) {
                                 <div class="value-container">
                                     <span class="value" style="background-color: #f3e5f5;">${employeeSickDays}</span>
                                     <span class="decimal-value">(Period total)</span>
+                                </div>
+                            </div>`;
+                    }
+                    
+                    // Add absent days count if any
+                    if (employeeAbsentDays > 0) {
+                        summaryHtml += `
+                            <div class="calculation-row">
+                                <span class="label">Absent Days:</span>
+                                <div class="value-container">
+                                    <span class="value" style="background-color: #333; color: white;">${employeeAbsentDays}</span>
+                                    <span class="decimal-value">(No clockings)</span>
                                 </div>
                             </div>`;
                     }
@@ -1694,6 +1873,8 @@ function calculateLiveHoursWorked(entries) {
         .catch(error => console.error('Error fetching data:', error));
 }
 
+
+
         // Function to toggle employee status visibility
         function toggleEmployeeStatus() {
             const employeeStatusGrid = document.getElementById('employeeStatusGrid');
@@ -1705,7 +1886,9 @@ function calculateLiveHoursWorked(entries) {
             }
         }
 
-        // Function to show employee status
+
+
+
 function showEmployeeStatus() {
     const employeeStatusGrid = document.getElementById('employeeStatusGrid');
     employeeStatusGrid.innerHTML = ''; // Clear previous content
@@ -1789,6 +1972,12 @@ function showEmployeeStatus() {
                         statusText = 'Clocked Out';
                     }
                 }
+            } else {
+                // No entries today, mark as absent
+                statusClass = 'absent';
+                statusText = 'Absent';
+                clockInTimeText = 'No clockings recorded today';
+                hoursText = '';
             }
             
             // Create employee status card
@@ -1861,6 +2050,9 @@ function showEmployeeStatus() {
         document.querySelectorAll('.employee-status-card.sick-day').forEach(card => {
             card.style.backgroundColor = '#9C27B0'; // Purple background for sick days
         });
+        document.querySelectorAll('.employee-status-card.absent').forEach(card => {
+            card.style.backgroundColor = '#000000'; // Black background for absent days
+        });
         
         // Apply current department filter to the newly shown grid
         filterByDepartment();
@@ -1870,6 +2062,10 @@ function showEmployeeStatus() {
         employeeStatusGrid.innerHTML = '<p>Error loading employee status data</p>';
     });
 }
+
+
+
+
 
 // Updated toggleEmployeeStatus function to ensure filter is applied
 function toggleEmployeeStatus() {
