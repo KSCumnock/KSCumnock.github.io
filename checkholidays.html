@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holiday Request Status</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 800;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .employee-selection {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 500;
+            color: #333;
+            font-size: 18px;
+        }
+        
+        select {
+            width: 100%;
+            max-width: 400px;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            background: white;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin-top: 15px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-size: 16px;
+        }
+        
+        .employee-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .holiday-request {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: 1px solid #e9ecef;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .holiday-request:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        
+        .holiday-request.pending {
+            border-left-color: #ffc107;
+            background: linear-gradient(to right, rgba(255, 193, 7, 0.05), white);
+        }
+        
+        .holiday-request.approved {
+            border-left-color: #28a745;
+            background: linear-gradient(to right, rgba(40, 167, 69, 0.05), white);
+        }
+        
+        .holiday-request.rejected {
+            border-left-color: #dc3545;
+            background: linear-gradient(to right, rgba(220, 53, 69, 0.05), white);
+        }
+        
+        .holiday-request.cancelled {
+            border-left-color: #6c757d;
+            background: linear-gradient(to right, rgba(108, 117, 125, 0.05), white);
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-approved {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-cancelled {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+        
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .request-dates {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .request-details {
+            color: #555;
+            line-height: 1.8;
+            font-size: 15px;
+        }
+        
+        .request-details strong {
+            color: #333;
+        }
+        
+        .no-requests {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .no-requests h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+            text-align: center;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .stats-summary {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .request-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .request-dates {
+                font-size: 1.1em;
+            }
+        }
+        
+        .refresh-note {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 14px;
+            border: 1px solid #bbdefb;
+            text-align: center;
+        }
+        
+        .special-notice {
+            background: linear-gradient(135deg, #ff9a56 0%, #ffad56 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-left: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Holiday Request Status</h1>
+            <p>Check the status of your holiday requests</p>
+        </div>
+        
+        <div class="content">
+            <div id="loading" class="loading">
+                Loading employee data...
+            </div>
+            
+            <div id="error-message" class="error hidden"></div>
+            
+            <div id="employee-selection" class="employee-selection hidden">
+                <h3 style="margin-bottom: 25px; color: #333; font-size: 1.4em;">Select Your Name</h3>
+                
+                <div class="form-group">
+                    <label for="employee-select">Choose your name from the list:</label>
+                    <select id="employee-select">
+                        <option value="">Select your name...</option>
+                    </select>
+                </div>
+                
+                <button id="view-requests" onclick="viewMyRequests()" disabled>View My Requests</button>
+            </div>
+            
+            <div id="results-section" class="hidden">
+                <div id="employee-info" class="employee-info">
+                    <h3 id="employee-name" style="margin: 0 0 20px 0; font-size: 1.8em;"></h3>
+                    <div class="stats-summary" id="stats-summary"></div>
+                </div>
+                
+                <div class="refresh-note">
+                    🔄 <strong>Live Data:</strong> This information is pulled directly from the system and shows your current status.
+                </div>
+                
+                <h3 style="margin-bottom: 25px; color: #333; font-size: 1.4em;">Your Holiday Requests</h3>
+                <div id="requests-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // GitHub Configuration
+        const GITHUB_CONFIG = {
+            owner: 'KSCumnock',
+            repo: 'Holidays',
+            branch: 'main'
+        };
+        
+        const GITHUB_API_BASE = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/`;
+        const EMPLOYEES_FILE = 'employees.json';
+        const HOLIDAY_REQUESTS_FILE = 'holiday-requests.json';
+
+        let employeesData = [];
+        let holidayRequestsData = [];
+        let currentEmployee = null;
+
+        // Initialize the app
+        async function init() {
+            try {
+                await loadDataFromGitHub();
+                populateEmployeeDropdown();
+                
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('employee-selection').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('loading').classList.add('hidden');
+                showError('Failed to load data from the system. Please try again later or contact your administrator.');
+            }
+        }
+
+        // Load data from GitHub
+        async function loadDataFromGitHub() {
+            try {
+                // Load employees
+                const employeesResponse = await fetch(GITHUB_API_BASE + EMPLOYEES_FILE);
+                if (!employeesResponse.ok) {
+                    throw new Error(`Failed to fetch employees: ${employeesResponse.statusText}`);
+                }
+                const employeesData_raw = await employeesResponse.json();
+                employeesData = JSON.parse(atob(employeesData_raw.content));
+
+                // Load holiday requests
+                const requestsResponse = await fetch(GITHUB_API_BASE + HOLIDAY_REQUESTS_FILE);
+                if (!requestsResponse.ok) {
+                    throw new Error(`Failed to fetch holiday requests: ${requestsResponse.statusText}`);
+                }
+                const requestsData_raw = await requestsResponse.json();
+                holidayRequestsData = JSON.parse(atob(requestsData_raw.content));
+
+                console.log('Data loaded successfully');
+            } catch (error) {
+                console.error('Error loading from GitHub:', error);
+                throw error;
+            }
+        }
+
+        function populateEmployeeDropdown() {
+            const select = document.getElementById('employee-select');
+            const viewButton = document.getElementById('view-requests');
+            
+            // Sort employees alphabetically by name
+            const sortedEmployees = [...employeesData].sort((a, b) => a.name.localeCompare(b.name));
+            
+            sortedEmployees.forEach(employee => {
+                const option = document.createElement('option');
+                option.value = employee.id;
+                option.textContent = employee.name;
+                select.appendChild(option);
+            });
+            
+            select.addEventListener('change', function() {
+                viewButton.disabled = !this.value;
+            });
+        }
+
+        function viewMyRequests() {
+            const selectElement = document.getElementById('employee-select');
+            const selectedEmployeeId = parseInt(selectElement.value);
+            
+            if (!selectedEmployeeId) {
+                showError('Please select your name first.');
+                return;
+            }
+            
+            currentEmployee = employeesData.find(emp => emp.id === selectedEmployeeId);
+            if (!currentEmployee) {
+                showError('Employee not found.');
+                return;
+            }
+            
+            const employeeRequests = holidayRequestsData.filter(req => req.employeeId === selectedEmployeeId);
+            
+            displayEmployeeInfo(currentEmployee, employeeRequests);
+            displayHolidayRequests(employeeRequests);
+            
+            document.getElementById('results-section').classList.remove('hidden');
+            
+            // Scroll to results
+            document.getElementById('results-section').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start' 
+            });
+        }
+
+        function calculateRemainingDays(employee, requests) {
+            // Calculate actual used days from approved requests
+            const approvedRequests = requests.filter(req => req.status === 'approved');
+            const actualUsedDays = approvedRequests.reduce((sum, req) => sum + req.days, 0);
+            
+            // Calculate pending days that would be deducted if approved
+            const pendingRequests = requests.filter(req => req.status === 'pending');
+            const pendingDays = pendingRequests.reduce((sum, req) => sum + req.days, 0);
+            
+            const remainingDays = employee.totalAllowance - actualUsedDays;
+            const remainingIfPendingApproved = remainingDays - pendingDays;
+            
+            return {
+                actualUsed: actualUsedDays,
+                remaining: remainingDays,
+                pending: pendingDays,
+                remainingIfPendingApproved: remainingIfPendingApproved
+            };
+        }
+
+        function displayEmployeeInfo(employee, requests) {
+            document.getElementById('employee-name').textContent = employee.name;
+            
+            const approvedRequests = requests.filter(req => req.status === 'approved');
+            const pendingRequests = requests.filter(req => req.status === 'pending');
+            const rejectedRequests = requests.filter(req => req.status === 'rejected');
+            const cancelledRequests = requests.filter(req => req.status === 'cancelled');
+            
+            const dayCalculations = calculateRemainingDays(employee, requests);
+            
+            // Find next upcoming holiday
+            const today = new Date().toISOString().split('T')[0];
+            const upcomingHolidays = approvedRequests.filter(req => req.startDate >= today)
+                .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            
+            let nextHolidayInfo = '';
+            if (upcomingHolidays.length > 0) {
+                const nextHoliday = upcomingHolidays[0];
+                const daysUntil = Math.ceil((new Date(nextHoliday.startDate) - new Date(today)) / (1000 * 60 * 60 * 24));
+                if (daysUntil === 0) {
+                    nextHolidayInfo = '<span class="special-notice">🏖️ Holiday Today!</span>';
+                } else if (daysUntil === 1) {
+                    nextHolidayInfo = '<span class="special-notice">🎉 Holiday Tomorrow!</span>';
+                } else if (daysUntil <= 7) {
+                    nextHolidayInfo = `<span class="special-notice">⏰ Holiday in ${daysUntil} days</span>`;
+                }
+            }
+            
+            const statsHtml = `
+                <div class="stat-card">
+                    <div class="stat-value">${employee.totalAllowance}</div>
+                    <div class="stat-label">Total Allowance</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${dayCalculations.actualUsed}</div>
+                    <div class="stat-label">Days Used</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${dayCalculations.remaining}</div>
+                    <div class="stat-label">Days Remaining</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${pendingRequests.length}</div>
+                    <div class="stat-label">Pending Requests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${approvedRequests.length}</div>
+                    <div class="stat-label">Approved Requests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${requests.length}</div>
+                    <div class="stat-label">Total Requests</div>
+                </div>
+            `;
+            
+            document.getElementById('stats-summary').innerHTML = statsHtml + nextHolidayInfo;
+            
+            // Show warning if pending requests would exceed remaining days
+            if (dayCalculations.remainingIfPendingApproved < 0) {
+                const warningDiv = document.createElement('div');
+                warningDiv.style.cssText = 'background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: center;';
+                warningDiv.innerHTML = `⚠️ <strong>Notice:</strong> If all pending requests are approved, you would exceed your allowance by ${Math.abs(dayCalculations.remainingIfPendingApproved)} days.`;
+                document.getElementById('stats-summary').appendChild(warningDiv);
+            }
+        }
+
+        function displayHolidayRequests(requests) {
+            const container = document.getElementById('requests-container');
+            
+            if (requests.length === 0) {
+                container.innerHTML = `
+                    <div class="no-requests">
+                        <h3>📭 No Holiday Requests</h3>
+                        <p>You haven't submitted any holiday requests yet.</p>
+                        <p style="margin-top: 10px;">Contact your administrator to submit new requests.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort by submitted date (newest first)
+            const sortedRequests = [...requests].sort((a, b) => 
+                new Date(b.submittedDate) - new Date(a.submittedDate)
+            );
+            
+            const today = new Date().toISOString().split('T')[0];
+            
+            container.innerHTML = sortedRequests.map(request => {
+                const dateRange = request.startDate === request.endDate ? 
+                    formatDate(request.startDate) : 
+                    `${formatDate(request.startDate)} to ${formatDate(request.endDate)}`;
+                
+                const dayText = request.isHalfDay ? 
+                    `${request.days} day (${request.halfDayPeriod} half-day)` : 
+                    `${request.days} days`;
+                
+                // Check if this is an upcoming, current, or past holiday
+                const isUpcoming = request.status === 'approved' && request.startDate >= today;
+                const isPast = request.status === 'approved' && request.endDate < today;
+                const isCurrent = request.status === 'approved' && request.startDate <= today && request.endDate >= today;
+                
+                let statusIcon = '';
+                let statusText = request.status;
+                
+                if (isCurrent) {
+                    statusIcon = '🏖️';
+                    statusText = 'Current Holiday';
+                } else if (isUpcoming) {
+                    const daysUntil = Math.ceil((new Date(request.startDate) - new Date(today)) / (1000 * 60 * 60 * 24));
+                    statusIcon = '⏳';
+                    statusText = `Approved (in ${daysUntil} days)`;
+                } else if (isPast) {
+                    statusIcon = '✅';
+                    statusText = 'Completed';
+                } else if (request.status === 'pending') {
+                    statusIcon = '⏰';
+                    statusText = 'Pending Approval';
+                } else if (request.status === 'rejected') {
+                    statusIcon = '❌';
+                    statusText = 'Rejected';
+                } else if (request.status === 'cancelled') {
+                    statusIcon = '🚫';
+                    statusText = 'Cancelled';
+                } else {
+                    statusIcon = '📋';
+                    statusText = request.status;
+                }
+                
+                return `
+                    <div class="holiday-request ${request.status}">
+                        <div class="request-header">
+                            <div class="request-dates">${dateRange}</div>
+                            <span class="status-badge status-${request.status}">
+                                ${statusIcon} ${statusText}
+                            </span>
+                        </div>
+                        <div class="request-details">
+                            <p><strong>Duration:</strong> ${dayText}</p>
+                            <p><strong>Reason:</strong> ${request.reason || 'Not specified'}</p>
+                            <p><strong>Submitted:</strong> ${formatDate(request.submittedDate)}</p>
+                            ${request.approvedDate ? `<p><strong>Approved:</strong> ${formatDate(request.approvedDate)}</p>` : ''}
+                            ${request.rejectedDate ? `<p><strong>Rejected:</strong> ${formatDate(request.rejectedDate)}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-GB', {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        // Initialize app when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
