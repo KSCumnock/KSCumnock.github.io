@@ -1,0 +1,2345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holiday Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .tab-container {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            background: #f8f9fa;
+            border: none;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            color: #333;
+        }
+        
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .tab:hover {
+            background: #e9ecef;
+        }
+        
+        .tab.active:hover {
+            background: white;
+        }
+        
+        .content {
+            padding: 30px;
+            min-height: 500px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .holiday-request {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .holiday-request.pending {
+            border-left-color: #ffc107;
+            background: linear-gradient(to right, rgba(255, 193, 7, 0.03), white);
+        }
+        
+        .holiday-request.approved {
+            border-left-color: #28a745;
+            background: linear-gradient(to right, rgba(40, 167, 69, 0.03), white);
+        }
+        
+        .holiday-request.rejected {
+            border-left-color: #dc3545;
+            background: linear-gradient(to right, rgba(220, 53, 69, 0.03), white);
+        }
+        
+        .holiday-request.cancelled {
+            border-left-color: #6c757d;
+            background: linear-gradient(to right, rgba(108, 117, 125, 0.03), white);
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-approved {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        /* Global Typography Consistency */
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 500;
+            color: #333;
+            margin: 0 0 15px 0;
+            line-height: 1.3;
+        }
+        
+        h1 { font-size: 2.5em; }
+        h2 { font-size: 2em; }
+        h3 { font-size: 1.5em; }
+        h4 { font-size: 1.25em; }
+        h5 { font-size: 1.1em; }
+        h6 { font-size: 1em; }
+        
+        p {
+            margin: 0 0 15px 0;
+            line-height: 1.5;
+            color: #555;
+        }
+        
+        /* Employee Cards Grid */
+        .employee-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .employee-card-selector {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .employee-card-selector:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+        }
+        
+        .employee-card-selector.selected {
+            border-color: #667eea;
+            background: #f8f9ff;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+        }
+        
+        .employee-card-name {
+            font-size: 1.1em;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        
+        .employee-card-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .employee-stat {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .employee-stat strong {
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .employee-next-holiday {
+            font-size: 12px;
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 6px 10px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        /* Half Day Styling */
+        .half-day-container {
+            margin-bottom: 10px;
+        }
+        
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 500;
+            color: #333;
+            user-select: none;
+        }
+        
+        .checkbox-label input[type="checkbox"] {
+            display: none;
+        }
+        
+        .checkbox-custom {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 4px;
+            margin-right: 10px;
+            position: relative;
+            transition: all 0.2s ease;
+            background: white;
+        }
+        
+        .checkbox-label input[type="checkbox"]:checked + .checkbox-custom {
+            background: #667eea;
+            border-color: #667eea;
+        }
+        
+        .checkbox-label input[type="checkbox"]:checked + .checkbox-custom::after {
+            content: "✓";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .checkbox-label:hover .checkbox-custom {
+            border-color: #667eea;
+        }
+        
+        .days-calculator {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(102, 126, 234, 0.05));
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            color: #333;
+        }
+        
+        .days-calculator span {
+            color: #667eea;
+            font-size: 1.2em;
+        }
+        
+        .pin-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .pin-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        
+        .pin-input {
+            font-size: 24px;
+            text-align: center;
+            letter-spacing: 10px;
+            margin: 20px 0;
+            width: 200px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .allowance-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn-approve {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        
+        .btn-reject {
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+        }
+        
+        .holiday-request.cancelled {
+            border-left-color: #6c757d;
+        }
+        
+        .status-cancelled {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+        
+        .btn-cancel {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+        
+        .admin-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .admin-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .admin-section h4 {
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+        
+        /* Consistent Card Styling */
+        .employee-card, .holiday-request-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+        
+        .employee-card:hover, .holiday-request-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+        }
+        
+        .employee-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .employee-card h5 {
+            margin: 0 0 8px 0;
+            color: #333;
+            font-weight: 500;
+            font-size: 1.1em;
+        }
+        
+        .employee-card p {
+            margin: 0;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        /* Holiday Request Cards */
+        .holiday-request {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            border: 1px solid #e9ecef;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .holiday-request h4 {
+            color: #333;
+            font-weight: 500;
+            font-size: 1.1em;
+            margin: 0 0 12px 0;
+        }
+        
+        .holiday-request p {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .holiday-request p strong {
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .compact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .compact-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .employee-summary {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .employee-summary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .employee-name {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .employee-stats {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 15px;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6c757d;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .close-btn:hover {
+            color: #dc3545;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .compact-request {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-left: 3px solid #667eea;
+            font-size: 14px;
+        }
+        
+        .compact-request.pending {
+            border-left-color: #ffc107;
+        }
+        
+        .compact-request.approved {
+            border-left-color: #28a745;
+        }
+        
+        .compact-request.rejected {
+            border-left-color: #dc3545;
+        }
+        
+        .compact-request.cancelled {
+            border-left-color: #6c757d;
+        }
+        
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .request-dates {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .tabs-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .admin-tab-btn {
+            padding: 8px 16px;
+            border: 1px solid #d0d7de;
+            background: #f6f8fa;
+            color: #24292f;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .admin-tab-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .admin-tab-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .admin-tab-btn.active:hover {
+            background: #5a6bc4;
+            border-color: #5a6bc4;
+        }
+        
+        /* Calendar Styles */
+        .calendar-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .calendar-nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 500;
+            min-width: 50px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            transition: all 0.2s ease;
+        }
+        
+        .calendar-nav:hover {
+            background: linear-gradient(135deg, #5a6bc4 0%, #6a4c93 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .calendar-day-header {
+            background: #667eea;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .calendar-day {
+            background: white;
+            padding: 6px 4px;
+            min-height: 80px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            height: auto;
+        }
+        
+        .calendar-day:hover {
+            background: #f8f9fa;
+        }
+        
+        .calendar-day.other-month {
+            background: #f8f9fa;
+            color: #6c757d;
+        }
+        
+        .calendar-day.today {
+            background: #e3f2fd;
+            font-weight: bold;
+        }
+        
+        .calendar-day.has-holiday {
+            background: #fff3cd;
+        }
+        
+        .calendar-day.has-holiday.today {
+            background: #fff3cd;
+        }
+        
+        .calendar-day-number {
+            font-weight: 500;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+        
+        .calendar-day.today .calendar-day-number {
+            color: #1976d2;
+        }
+        
+        .employee-name-list {
+            font-size: 10px;
+            line-height: 1.2;
+            color: #666;
+            flex: 1;
+        }
+        
+        .employee-name-item {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 3px;
+            padding: 1px 3px;
+            margin-bottom: 1px;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border-left: 2px solid #667eea;
+        }
+        
+        .employee-name-item.pending {
+            background: rgba(255, 193, 7, 0.1);
+            border-left-color: #ffc107;
+        }
+        
+        .employee-name-item.approved {
+            background: rgba(40, 167, 69, 0.1);
+            border-left-color: #28a745;
+        }
+        
+        .employee-name-item.rejected {
+            background: rgba(220, 53, 69, 0.1);
+            border-left-color: #dc3545;
+        }
+        
+        .employee-name-item.cancelled {
+            background: rgba(108, 117, 125, 0.1);
+            border-left-color: #6c757d;
+        }
+        
+        /* Popover Styles */
+        .popover {
+            position: absolute;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            padding: 15px;
+            z-index: 1001;
+            max-width: 300px;
+            min-width: 200px;
+        }
+        
+        .popover-header {
+            font-weight: 500;
+            margin-bottom: 10px;
+            color: #333;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 8px;
+        }
+        
+        .popover-employee {
+            margin-bottom: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .popover-employee strong {
+            color: #667eea;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏖️ Holiday Management System</h1>
+            <p>Manage employee holiday requests and allowances</p>
+        </div>
+        
+        <div class="tab-container">
+            <button class="tab active" onclick="showTab('employee')">Employee Portal</button>
+            <button class="tab" onclick="showTab('calendar')">Calendar View</button>
+            <button class="tab" onclick="showTab('admin')">Admin Panel</button>
+        </div>
+        
+        <!-- Employee Portal -->
+        <div id="employee-tab" class="content">
+            <div class="loading" id="employee-loading">Loading employees...</div>
+            <div id="employee-error" class="error hidden"></div>
+            
+            <div id="employee-content" class="hidden">
+                <h3 style="margin-bottom: 20px; color: #333; font-weight: 500;">Select Employee</h3>
+                <div id="employee-cards" class="employee-cards-grid"></div>
+                
+                <div id="employee-info" class="hidden">
+                    <div class="allowance-info">
+                        <h3 style="margin: 0 0 10px 0; font-weight: 500;">Holiday Allowance</h3>
+                        <p style="margin: 0; font-size: 16px;"><span id="remaining-days">0</span> days remaining out of <span id="total-days">0</span> total days</p>
+                    </div>
+                    
+                    <form id="holiday-form" onsubmit="submitHolidayRequest(event)">
+                        <div class="grid">
+                            <div>
+                                <div class="form-group">
+                                    <label for="start-date">Start Date:</label>
+                                    <input type="date" id="start-date" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="end-date">End Date:</label>
+                                    <input type="date" id="end-date" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <div class="half-day-container">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="half-day-toggle" onchange="toggleHalfDay()">
+                                            <span class="checkbox-custom"></span>
+                                            Half Day Request
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group hidden" id="half-day-options">
+                                    <label for="half-day-period">Time Period:</label>
+                                    <select id="half-day-period">
+                                        <option value="morning">Morning (AM)</option>
+                                        <option value="afternoon">Afternoon (PM)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="form-group">
+                                    <label for="reason">Reason (optional):</label>
+                                    <textarea id="reason" rows="4" placeholder="Family vacation, medical appointment, etc."></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <div class="days-calculator" id="days-preview">
+                                        <strong>Days to be deducted:</strong> <span id="calculated-days">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit">Submit Holiday Request</button>
+                    </form>
+                    
+                    <h3 style="margin: 40px 0 20px 0; color: #333; font-weight: 500;">Your Holiday Requests</h3>
+                    <div id="employee-requests"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Calendar View -->
+        <div id="calendar-tab" class="content hidden">
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <button class="calendar-nav" onclick="changeMonth(-1)">❮</button>
+                    <h3 id="calendar-title"></h3>
+                    <button class="calendar-nav" onclick="changeMonth(1)">❯</button>
+                </div>
+                <div class="calendar-grid" id="calendar-grid"></div>
+            </div>
+            <p style="color: #6c757d; text-align: center; margin-top: 10px;">
+                💡 Click on dates with employee names to see detailed holiday information
+            </p>
+        </div>
+        
+        <!-- Admin Panel -->
+        <div id="admin-tab" class="content hidden">
+            <div class="loading" id="admin-loading">Loading admin data...</div>
+            <div id="admin-error" class="error hidden"></div>
+            
+            <div id="admin-content" class="hidden">
+                <!-- Admin Navigation Tabs -->
+                <div class="tabs-container">
+                    <button class="admin-tab-btn active" onclick="showAdminSection('pending')">Pending Requests</button>
+                    <button class="admin-tab-btn" onclick="showAdminSection('employees')">Employee Management</button>
+                    <button class="admin-tab-btn" onclick="showAdminSection('all-requests')">All Requests</button>
+                    <button class="admin-tab-btn" onclick="showAdminSection('employee-view')">Employee Quick View</button>
+                    <button class="admin-tab-btn" onclick="showAdminSection('reports')">📄 Reports</button>
+                </div>
+                
+                <!-- Pending Requests Section -->
+                <div id="admin-pending" class="admin-section">
+                    <h3>🕒 Pending Holiday Requests</h3>
+                    <div id="pending-requests"></div>
+                </div>
+                
+                <!-- Employee Management Section -->
+                <div id="admin-employees" class="admin-section hidden">
+                    <h3>👥 Employee Management</h3>
+                    <div class="compact-grid">
+                        <div>
+                            <h4>Add New Employee</h4>
+                            <form id="add-employee-form" onsubmit="addEmployee(event)">
+                                <div class="form-group">
+                                    <label for="employee-name">Employee Name:</label>
+                                    <input type="text" id="employee-name" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="employee-allowance">Annual Holiday Allowance:</label>
+                                    <input type="number" id="employee-allowance" value="25" min="1" required>
+                                </div>
+                                
+                                <button type="submit">Add Employee</button>
+                            </form>
+                        </div>
+                        
+                        <div>
+                            <h4>Current Employees</h4>
+                            <div id="employee-list"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- All Requests Section -->
+                <div id="admin-all-requests" class="admin-section hidden">
+                    <h3>📋 All Holiday Requests</h3>
+                    <div id="all-requests"></div>
+                </div>
+                
+                <!-- Employee Quick View Section -->
+                <div id="admin-employee-view" class="admin-section hidden">
+                    <h3>👤 Employee Quick View</h3>
+                    <p style="color: #6c757d; margin-bottom: 15px;">Click on any employee to view their holiday history</p>
+                    <div id="employee-quick-view"></div>
+                </div>
+                
+                <!-- Employee Reports Section -->
+                <div id="admin-reports" class="admin-section hidden">
+                    <h3>📄 Employee Reports</h3>
+                    <p style="color: #6c757d; margin-bottom: 20px;">Generate detailed holiday reports for individual employees or all employees</p>
+                    
+                    <div class="compact-grid">
+                        <div>
+                            <h4>Individual Employee Report</h4>
+                            <div class="form-group">
+                                <label for="report-employee-select">Select Employee:</label>
+                                <select id="report-employee-select">
+                                    <option value="">Choose an employee...</option>
+                                </select>
+                            </div>
+                            <button onclick="exportEmployeeReport()" id="export-single-btn" disabled>Export Employee Report</button>
+                        </div>
+                        
+                        <div>
+                            <h4>All Employees Report</h4>
+                            <p style="font-size: 14px; color: #6c757d; margin-bottom: 15px;">
+                                Generate a comprehensive report containing holiday data for all employees.
+                            </p>
+                            <button onclick="exportAllEmployeesReport()">Export All Employees Report</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PIN Modal -->
+    <div id="pin-modal" class="pin-modal hidden">
+        <div class="pin-content">
+            <h3>Admin Access Required</h3>
+            <p>Please enter the admin PIN:</p>
+            <input type="password" id="pin-input" class="pin-input" maxlength="4" placeholder="****">
+            <div>
+                <button onclick="checkPin()">Enter</button>
+                <button onclick="closePinModal()" style="margin-left: 10px; background: #6c757d;">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Employee Detail Modal -->
+    <div id="employee-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="employee-modal-title">Employee Holiday History</h3>
+                <button class="close-btn" onclick="closeEmployeeModal()">×</button>
+            </div>
+            <div id="employee-modal-content"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - GitHub Integration
+        const GITHUB_CONFIG = {
+            owner: 'KSCumnock',
+            repo: 'Holidays',
+            branch: 'main',
+            token: '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',
+        };
+        
+        const GITHUB_API_BASE = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/`;
+        const EMPLOYEES_FILE = 'employees.json';
+        const HOLIDAY_REQUESTS_FILE = 'holiday-requests.json';
+        
+        // GitHub API Functions
+        async function getFileFromGitHub(filename) {
+            try {
+                const response = await fetch(GITHUB_API_BASE + filename, {
+                    headers: {
+                        'Authorization': `token ${GITHUB_CONFIG.token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch ${filename}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                return {
+                    content: JSON.parse(atob(data.content)),
+                    sha: data.sha
+                };
+            } catch (error) {
+                console.error(`Error fetching ${filename}:`, error);
+                throw error;
+            }
+        }
+        
+        async function saveFileToGitHub(filename, content, sha, commitMessage) {
+            try {
+                const response = await fetch(GITHUB_API_BASE + filename, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${GITHUB_CONFIG.token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: commitMessage,
+                        content: btoa(JSON.stringify(content, null, 2)),
+                        sha: sha,
+                        branch: GITHUB_CONFIG.branch
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to save ${filename}: ${response.statusText}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error(`Error saving ${filename}:`, error);
+                throw error;
+            }
+        }
+        
+        // Data storage with GitHub SHA tracking
+        let employees = [];
+        let holidayRequests = [];
+        let employeesSha = null;
+        let holidayRequestsSha = null;
+        let currentEmployee = null;
+        let nextRequestId = 1;
+        let nextEmployeeId = 1;
+        let currentDate = new Date();
+        let currentPopover = null;
+        
+        // API Functions
+        async function loadEmployees() {
+            try {
+                const fileData = await getFileFromGitHub(EMPLOYEES_FILE);
+                employees = fileData.content;
+                employeesSha = fileData.sha;
+                
+                // Update next ID based on existing data
+                if (employees.length > 0) {
+                    nextEmployeeId = Math.max(...employees.map(emp => emp.id)) + 1;
+                }
+                
+                return employees;
+            } catch (error) {
+                console.error('Error loading employees:', error);
+                throw error;
+            }
+        }
+        
+        async function loadHolidayRequests() {
+            try {
+                const fileData = await getFileFromGitHub(HOLIDAY_REQUESTS_FILE);
+                holidayRequests = fileData.content;
+                holidayRequestsSha = fileData.sha;
+                
+                // Update next ID based on existing data
+                if (holidayRequests.length > 0) {
+                    nextRequestId = Math.max(...holidayRequests.map(req => req.id)) + 1;
+                }
+                
+                return holidayRequests;
+            } catch (error) {
+                console.error('Error loading holiday requests:', error);
+                throw error;
+            }
+        }
+        
+        async function saveEmployees() {
+            try {
+                const result = await saveFileToGitHub(
+                    EMPLOYEES_FILE, 
+                    employees, 
+                    employeesSha, 
+                    'Update employees data'
+                );
+                employeesSha = result.content.sha;
+                console.log('Employees saved successfully to GitHub');
+            } catch (error) {
+                console.error('Error saving employees:', error);
+                alert('Failed to save employee data to GitHub. Please try again.');
+                throw error;
+            }
+        }
+        
+        async function saveHolidayRequests() {
+            try {
+                const result = await saveFileToGitHub(
+                    HOLIDAY_REQUESTS_FILE, 
+                    holidayRequests, 
+                    holidayRequestsSha, 
+                    'Update holiday requests data'
+                );
+                holidayRequestsSha = result.content.sha;
+                console.log('Holiday requests saved successfully to GitHub');
+            } catch (error) {
+                console.error('Error saving holiday requests:', error);
+                alert('Failed to save holiday request data to GitHub. Please try again.');
+                throw error;
+            }
+        }
+        
+        // Initialize the app
+        async function init() {
+            try {
+                // Force hide all modals on startup
+                const employeeModal = document.getElementById('employee-modal');
+                const pinModal = document.getElementById('pin-modal');
+                
+                employeeModal.classList.add('hidden');
+                employeeModal.style.display = 'none';
+                pinModal.classList.add('hidden');
+                pinModal.style.display = 'none';
+                
+                await loadEmployees();
+                await loadHolidayRequests();
+                populateEmployeeCards();
+                renderCalendar();
+                showTab('employee');
+                
+                document.getElementById('employee-loading').classList.add('hidden');
+                document.getElementById('employee-content').classList.remove('hidden');
+            } catch (error) {
+                document.getElementById('employee-loading').classList.add('hidden');
+                document.getElementById('employee-error').textContent = 'Failed to load data: ' + error.message;
+                document.getElementById('employee-error').classList.remove('hidden');
+            }
+        }
+        
+        // Tab switching
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.content').forEach(content => content.classList.add('hidden'));
+            
+            if (tabName === 'admin') {
+                document.getElementById('pin-modal').classList.remove('hidden');
+                document.getElementById('pin-modal').style.display = 'flex';
+            } else if (tabName === 'calendar') {
+                document.getElementById('calendar-tab').classList.remove('hidden');
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                renderCalendar();
+            } else {
+                document.getElementById('employee-tab').classList.remove('hidden');
+                document.querySelectorAll('.tab')[0].classList.add('active');
+            }
+            
+            // Close any open popovers
+            closePopover();
+        }
+        
+        // PIN modal functions
+        async function checkPin() {
+            const pin = document.getElementById('pin-input').value;
+            if (pin === '4224') {
+                closePinModal();
+                document.getElementById('admin-tab').classList.remove('hidden');
+                document.querySelectorAll('.tab')[2].classList.add('active');
+                await loadAdminData();
+            } else {
+                alert('Incorrect PIN. Please try again.');
+                document.getElementById('pin-input').value = '';
+            }
+        }
+        
+        function closePinModal() {
+            const pinModal = document.getElementById('pin-modal');
+            pinModal.classList.add('hidden');
+            pinModal.style.display = 'none';
+            document.getElementById('pin-input').value = '';
+        }
+        
+        // Employee functions
+        function populateEmployeeCards() {
+            const container = document.getElementById('employee-cards');
+            
+            if (employees.length === 0) {
+                container.innerHTML = '<p>No employees found.</p>';
+                return;
+            }
+            
+            container.innerHTML = employees.map(employee => {
+                const remainingDays = employee.totalAllowance - employee.usedDays;
+                const employeeRequests = holidayRequests.filter(req => req.employeeId === employee.id);
+                const approvedRequests = employeeRequests.filter(req => req.status === 'approved');
+                const pendingRequests = employeeRequests.filter(req => req.status === 'pending');
+                
+                // Find next upcoming holiday
+                const today = new Date().toISOString().split('T')[0];
+                const upcomingHolidays = approvedRequests.filter(req => req.startDate >= today)
+                    .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+                
+                let nextHolidayText = 'No upcoming holidays';
+                let nextHolidayClass = 'none';
+                
+                if (upcomingHolidays.length > 0) {
+                    const nextHoliday = upcomingHolidays[0];
+                    const daysUntil = Math.ceil((new Date(nextHoliday.startDate) - new Date(today)) / (1000 * 60 * 60 * 24));
+                    if (daysUntil === 0) {
+                        nextHolidayText = 'Holiday starts today!';
+                    } else if (daysUntil === 1) {
+                        nextHolidayText = 'Holiday starts tomorrow';
+                    } else {
+                        nextHolidayText = `Next holiday in ${daysUntil} days`;
+                    }
+                    nextHolidayClass = '';
+                }
+                
+                return `
+                    <div class="employee-card-selector" onclick="selectEmployee(${employee.id})" data-employee-id="${employee.id}">
+                        <div class="employee-card-name">${employee.name}</div>
+                        <div class="employee-card-stats">
+                            <div class="employee-stat">
+                                <strong>${remainingDays}</strong> days left
+                            </div>
+                            <div class="employee-stat">
+                                <strong>${pendingRequests.length}</strong> pending
+                            </div>
+                            <div class="employee-stat">
+                                <strong>${employee.totalAllowance}</strong> total allowance
+                            </div>
+                            <div class="employee-stat">
+                                <strong>${employeeRequests.length}</strong> total requests
+                            </div>
+                        </div>
+                        <div class="employee-next-holiday ${nextHolidayClass}">
+                            ${nextHolidayText}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function selectEmployee(employeeId) {
+            // Remove previous selection
+            document.querySelectorAll('.employee-card-selector').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selection to clicked card
+            document.querySelector(`[data-employee-id="${employeeId}"]`).classList.add('selected');
+            
+            // Update current employee
+            currentEmployee = employees.find(emp => emp.id === employeeId);
+            
+            if (currentEmployee) {
+                document.getElementById('employee-info').classList.remove('hidden');
+                document.getElementById('remaining-days').textContent = currentEmployee.totalAllowance - currentEmployee.usedDays;
+                document.getElementById('total-days').textContent = currentEmployee.totalAllowance;
+                loadEmployeeRequests();
+            } else {
+                document.getElementById('employee-info').classList.add('hidden');
+            }
+        }
+        
+        function calculateDays(startDate, endDate, isHalfDay = false) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const diffTime = Math.abs(end - start);
+            const fullDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            
+            if (isHalfDay && fullDays === 1) {
+                return 0.5;
+            }
+            return fullDays;
+        }
+        
+        function toggleHalfDay() {
+            const halfDayToggle = document.getElementById('half-day-toggle');
+            const halfDayOptions = document.getElementById('half-day-options');
+            const endDateInput = document.getElementById('end-date');
+            const startDateInput = document.getElementById('start-date');
+            
+            if (halfDayToggle.checked) {
+                halfDayOptions.classList.remove('hidden');
+                // For half days, end date should match start date
+                if (startDateInput.value) {
+                    endDateInput.value = startDateInput.value;
+                }
+                endDateInput.disabled = true;
+            } else {
+                halfDayOptions.classList.add('hidden');
+                endDateInput.disabled = false;
+            }
+            updateDaysPreview();
+        }
+        
+        function updateDaysPreview() {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const isHalfDay = document.getElementById('half-day-toggle').checked;
+            const calculatedDaysSpan = document.getElementById('calculated-days');
+            
+            if (startDate && endDate) {
+                const days = calculateDays(startDate, endDate, isHalfDay);
+                calculatedDaysSpan.textContent = days;
+            } else {
+                calculatedDaysSpan.textContent = '0';
+            }
+        }
+        
+        async function submitHolidayRequest(event) {
+            event.preventDefault();
+            
+            if (!currentEmployee) return;
+            
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const reason = document.getElementById('reason').value;
+            const isHalfDay = document.getElementById('half-day-toggle').checked;
+            const halfDayPeriod = isHalfDay ? document.getElementById('half-day-period').value : null;
+            
+            const days = calculateDays(startDate, endDate, isHalfDay);
+            const remainingDays = currentEmployee.totalAllowance - currentEmployee.usedDays;
+            
+            if (days > remainingDays) {
+                alert(`You don't have enough holiday days remaining. You have ${remainingDays} days left.`);
+                return;
+            }
+            
+            const newRequest = {
+                id: nextRequestId++,
+                employeeId: currentEmployee.id,
+                employeeName: currentEmployee.name,
+                startDate,
+                endDate: isHalfDay ? startDate : endDate, // Half days use same start/end date
+                days,
+                isHalfDay,
+                halfDayPeriod,
+                reason,
+                status: 'pending',
+                submittedDate: new Date().toISOString().split('T')[0]
+            };
+            
+            holidayRequests.push(newRequest);
+            await saveHolidayRequests();
+            
+            // Reset form
+            document.getElementById('holiday-form').reset();
+            document.getElementById('half-day-toggle').checked = false;
+            document.getElementById('half-day-options').classList.add('hidden');
+            document.getElementById('end-date').disabled = false;
+            updateDaysPreview();
+            
+            // Refresh displays
+            loadEmployeeRequests();
+            populateEmployeeCards();
+            renderCalendar(); // Update calendar view
+            
+            alert('Holiday request submitted successfully!');
+        }
+        
+        function loadEmployeeRequests() {
+            if (!currentEmployee) return;
+            
+            const container = document.getElementById('employee-requests');
+            const requests = holidayRequests.filter(req => req.employeeId === currentEmployee.id);
+            
+            if (requests.length === 0) {
+                container.innerHTML = '<p>No holiday requests found.</p>';
+                return;
+            }
+            
+            container.innerHTML = requests.map(request => {
+                const dateRange = request.startDate === request.endDate ? 
+                    request.startDate : 
+                    `${request.startDate} to ${request.endDate}`;
+                
+                const dayText = request.isHalfDay ? 
+                    `${request.days} day (${request.halfDayPeriod} half-day)` : 
+                    `${request.days} days`;
+                
+                return `
+                    <div class="holiday-request ${request.status}">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="flex: 1;">
+                                <h4>${dateRange} (${dayText})</h4>
+                                <p><strong>Reason:</strong> ${request.reason || 'Not specified'}</p>
+                                <p><strong>Submitted:</strong> ${request.submittedDate}</p>
+                            </div>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px; margin-left: 15px;">
+                                <span class="status-badge status-${request.status}">${request.status}</span>
+                                ${request.status === 'pending' || request.status === 'approved' ? 
+                                    `<button class="btn-cancel btn-small" onclick="cancelHolidayRequest(${request.id})">Cancel</button>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        async function cancelHolidayRequest(requestId) {
+            if (!confirm('Are you sure you want to cancel this holiday request?')) return;
+            
+            const request = holidayRequests.find(req => req.id === requestId);
+            if (request) {
+                // If the request was approved, return the days to the employee
+                if (request.status === 'approved') {
+                    const employee = employees.find(emp => emp.id === request.employeeId);
+                    if (employee) {
+                        employee.usedDays -= request.days;
+                    }
+                    await saveEmployees();
+                }
+                
+                request.status = 'cancelled';
+                await saveHolidayRequests();
+                
+                // Refresh displays
+                loadEmployeeRequests();
+                renderCalendar();
+                
+                alert('Holiday request cancelled successfully!');
+            }
+        }
+        
+        // Calendar functions
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            // Update calendar title
+            const monthNames = ["January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"];
+            document.getElementById('calendar-title').textContent = `${monthNames[month]} ${year}`;
+            
+            // Get approved holidays for this month
+            const allHolidays = holidayRequests.filter(req => req.status !== 'cancelled');
+            
+            // Create calendar grid
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+            
+            // Day headers
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayHeaders.forEach(day => {
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'calendar-day-header';
+                dayHeader.textContent = day;
+                grid.appendChild(dayHeader);
+            });
+            
+            // Get first day of month and number of days
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            // Generate calendar days
+            const today = new Date();
+            const currentDateStr = today.toISOString().split('T')[0];
+            
+            for (let i = 0; i < 42; i++) { // 6 weeks
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+                
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                
+                const dateStr = date.toISOString().split('T')[0];
+                
+                // Add day number
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'calendar-day-number';
+                dayNumber.textContent = date.getDate();
+                dayElement.appendChild(dayNumber);
+                
+                // Check if date is in current month
+                if (date.getMonth() !== month) {
+                    dayElement.classList.add('other-month');
+                }
+                
+                // Check if date is today
+                if (dateStr === currentDateStr) {
+                    dayElement.classList.add('today');
+                }
+                
+                // Check for holidays on this date
+                const holidaysOnDate = getHolidaysOnDate(dateStr, allHolidays);
+                if (holidaysOnDate.length > 0) {
+                    dayElement.classList.add('has-holiday');
+                    
+                    // Create employee name list container
+                    const employeeList = document.createElement('div');
+                    employeeList.className = 'employee-name-list';
+                    
+                    // Add employee names
+                    holidaysOnDate.forEach(holiday => {
+                        const employeeName = document.createElement('span');
+                        employeeName.className = `employee-name-item ${holiday.status}`;
+                        employeeName.textContent = holiday.employeeName;
+                        employeeName.title = `${holiday.employeeName} - ${holiday.reason || 'No reason specified'}`;
+                        employeeList.appendChild(employeeName);
+                    });
+                    
+                    dayElement.appendChild(employeeList);
+                    
+                    // Add click handler for popover
+                    dayElement.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        showHolidayPopover(e.currentTarget, dateStr, holidaysOnDate);
+                    });
+                }
+                
+                grid.appendChild(dayElement);
+            }
+        }
+        
+        function getHolidaysOnDate(dateStr, holidays) {
+            return holidays.filter(holiday => {
+                const start = new Date(holiday.startDate);
+                const end = new Date(holiday.endDate);
+                const checkDate = new Date(dateStr);
+                return checkDate >= start && checkDate <= end;
+            });
+        }
+        
+        function showHolidayPopover(element, dateStr, holidays) {
+            closePopover();
+            
+            const popover = document.createElement('div');
+            popover.className = 'popover';
+            
+            const formattedDate = new Date(dateStr).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            let content = `<div class="popover-header">${formattedDate}</div>`;
+            
+            holidays.forEach(holiday => {
+                const startDate = new Date(holiday.startDate).toLocaleDateString();
+                const endDate = new Date(holiday.endDate).toLocaleDateString();
+                const dateRange = startDate === endDate ? startDate : `${startDate} - ${endDate}`;
+                
+                const dayText = holiday.isHalfDay ? 
+                    `${holiday.days} day (${holiday.halfDayPeriod} half-day)` : 
+                    `${holiday.days} days`;
+                
+                content += `
+                    <div class="popover-employee">
+                        <strong>${holiday.employeeName}</strong><br>
+                        <em>Status: ${holiday.status}</em><br>
+                        ${dateRange} (${dayText})<br>
+                        <em>${holiday.reason || 'No reason specified'}</em>
+                    </div>
+                `;
+            });
+            
+            popover.innerHTML = content;
+            
+            // Position popover
+            const rect = element.getBoundingClientRect();
+            popover.style.left = rect.left + 'px';
+            popover.style.top = (rect.bottom + 5) + 'px';
+            
+            // Adjust if popover goes off screen
+            document.body.appendChild(popover);
+            const popoverRect = popover.getBoundingClientRect();
+            if (popoverRect.right > window.innerWidth) {
+                popover.style.left = (window.innerWidth - popoverRect.width - 10) + 'px';
+            }
+            if (popoverRect.bottom > window.innerHeight) {
+                popover.style.top = (rect.top - popoverRect.height - 5) + 'px';
+            }
+            
+            currentPopover = popover;
+            
+            // Close popover when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', closePopover);
+            }, 0);
+        }
+        
+        function closePopover() {
+            if (currentPopover) {
+                currentPopover.remove();
+                currentPopover = null;
+                document.removeEventListener('click', closePopover);
+            }
+        }
+        
+        function changeMonth(direction) {
+            currentDate.setMonth(currentDate.getMonth() + direction);
+            renderCalendar();
+            closePopover();
+        }
+        
+        // Admin functions
+        let currentAdminSection = 'pending';
+        
+        function showAdminSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.admin-section').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Show selected section
+            document.getElementById(`admin-${section}`).classList.remove('hidden');
+            
+            // Find and activate the correct tab button
+            const tabButtons = document.querySelectorAll('.admin-tab-btn');
+            tabButtons.forEach((btn, index) => {
+                if ((section === 'pending' && index === 0) ||
+                    (section === 'employees' && index === 1) ||
+                    (section === 'all-requests' && index === 2) ||
+                    (section === 'employee-view' && index === 3) ||
+                    (section === 'reports' && index === 4)) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            currentAdminSection = section;
+            
+            // Load data for specific sections
+            if (section === 'employee-view') {
+                loadEmployeeQuickView();
+            } else if (section === 'reports') {
+                loadReportsSection();
+            }
+        }
+        
+        async function loadAdminData() {
+            try {
+                document.getElementById('admin-loading').classList.remove('hidden');
+                document.getElementById('admin-content').classList.add('hidden');
+                
+                await loadEmployees();
+                await loadHolidayRequests();
+                
+                loadPendingRequests();
+                loadEmployeeList();
+                loadAllRequests();
+                loadEmployeeQuickView();
+                loadReportsSection();
+                
+                document.getElementById('admin-loading').classList.add('hidden');
+                document.getElementById('admin-content').classList.remove('hidden');
+            } catch (error) {
+                document.getElementById('admin-loading').classList.add('hidden');
+                document.getElementById('admin-error').textContent = 'Failed to load admin data: ' + error.message;
+                document.getElementById('admin-error').classList.remove('hidden');
+            }
+        }
+        
+        function loadEmployeeQuickView() {
+            const container = document.getElementById('employee-quick-view');
+            
+            if (employees.length === 0) {
+                container.innerHTML = '<p>No employees found.</p>';
+                return;
+            }
+            
+            container.innerHTML = employees.map(employee => {
+                const employeeRequests = holidayRequests.filter(req => req.employeeId === employee.id);
+                const pendingCount = employeeRequests.filter(req => req.status === 'pending').length;
+                const approvedCount = employeeRequests.filter(req => req.status === 'approved').length;
+                const cancelledCount = employeeRequests.filter(req => req.status === 'cancelled').length;
+                
+                return `
+                    <div class="employee-summary" onclick="showEmployeeDetail(${employee.id})">
+                        <div class="employee-name">${employee.name}</div>
+                        <div class="employee-stats">
+                            Allowance: ${employee.totalAllowance} | Used: ${employee.usedDays} | Remaining: ${employee.totalAllowance - employee.usedDays} |
+                            Requests: ${employeeRequests.length} total (${pendingCount} pending, ${approvedCount} approved, ${cancelledCount} cancelled)
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function showEmployeeDetail(employeeId) {
+            const employee = employees.find(emp => emp.id === employeeId);
+            if (!employee) return;
+            
+            const employeeRequests = holidayRequests.filter(req => req.employeeId === employeeId);
+            
+            document.getElementById('employee-modal-title').textContent = `${employee.name} - Holiday History`;
+            
+            let content = `
+                <div class="allowance-info" style="margin-bottom: 20px;">
+                    <h4>Holiday Allowance Summary</h4>
+                    <p>Total: ${employee.totalAllowance} days | Used: ${employee.usedDays} days | Remaining: ${employee.totalAllowance - employee.usedDays} days</p>
+                </div>
+            `;
+            
+            if (employeeRequests.length === 0) {
+                content += '<p>No holiday requests found for this employee.</p>';
+            } else {
+                // Sort by submitted date (newest first)
+                const sortedRequests = [...employeeRequests].sort((a, b) => 
+                    new Date(b.submittedDate) - new Date(a.submittedDate)
+                );
+                
+                content += '<h4>Holiday Requests</h4>';
+                content += sortedRequests.map(request => {
+                    const dateRange = request.startDate === request.endDate ? 
+                        request.startDate : 
+                        `${request.startDate} to ${request.endDate}`;
+                    
+                    const dayText = request.isHalfDay ? 
+                        `${request.days} day (${request.halfDayPeriod} half-day)` : 
+                        `${request.days} days`;
+                    
+                    return `
+                        <div class="compact-request ${request.status}">
+                            <div class="request-header">
+                                <span class="request-dates">${dateRange}</span>
+                                <span class="status-badge status-${request.status}">${request.status}</span>
+                            </div>
+                            <div><strong>Days:</strong> ${dayText}</div>
+                            <div><strong>Reason:</strong> ${request.reason || 'Not specified'}</div>
+                            <div><strong>Submitted:</strong> ${request.submittedDate}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            document.getElementById('employee-modal-content').innerHTML = content;
+            
+            // Force show the modal
+            const modal = document.getElementById('employee-modal');
+            modal.classList.remove('hidden');
+            modal.style.display = 'flex';
+        }
+        
+        function closeEmployeeModal() {
+            const modal = document.getElementById('employee-modal');
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+        }
+        
+        function loadPendingRequests() {
+            const container = document.getElementById('pending-requests');
+            const pendingRequests = holidayRequests.filter(req => req.status === 'pending');
+            
+            if (pendingRequests.length === 0) {
+                container.innerHTML = '<p>No pending requests.</p>';
+                return;
+            }
+            
+            container.innerHTML = pendingRequests.map(request => {
+                const dateRange = request.startDate === request.endDate ? 
+                    request.startDate : 
+                    `${request.startDate} to ${request.endDate}`;
+                
+                const dayText = request.isHalfDay ? 
+                    `${request.days} day (${request.halfDayPeriod} half-day)` : 
+                    `${request.days} days`;
+                
+                return `
+                    <div class="holiday-request pending">
+                        <h4>${request.employeeName}</h4>
+                        <p><strong>Dates:</strong> ${dateRange} (${dayText})</p>
+                        <p><strong>Reason:</strong> ${request.reason || 'Not specified'}</p>
+                        <p><strong>Submitted:</strong> ${request.submittedDate}</p>
+                        <div class="action-buttons">
+                            <button class="btn-approve" onclick="approveRequest(${request.id})">Approve</button>
+                            <button class="btn-reject" onclick="rejectRequest(${request.id})">Reject</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        async function approveRequest(requestId) {
+            const request = holidayRequests.find(req => req.id === requestId);
+            if (request) {
+                request.status = 'approved';
+                
+                // Deduct days from employee allowance
+                const employee = employees.find(emp => emp.id === request.employeeId);
+                if (employee) {
+                    employee.usedDays += request.days;
+                }
+                
+                await saveHolidayRequests();
+                await saveEmployees();
+                
+                loadAdminData();
+                renderCalendar(); // Update calendar view
+            }
+        }
+        
+        async function rejectRequest(requestId) {
+            const request = holidayRequests.find(req => req.id === requestId);
+            if (request) {
+                request.status = 'rejected';
+                await saveHolidayRequests();
+                loadAdminData();
+            }
+        }
+        
+        async function addEmployee(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('employee-name').value;
+            const allowance = parseInt(document.getElementById('employee-allowance').value);
+            
+            const newEmployee = {
+                id: nextEmployeeId++,
+                name,
+                totalAllowance: allowance,
+                usedDays: 0
+            };
+            
+            employees.push(newEmployee);
+            await saveEmployees();
+            
+            // Reset form
+            document.getElementById('add-employee-form').reset();
+            
+            // Refresh displays
+            populateEmployeeCards();
+            loadEmployeeList();
+        }
+        
+        async function removeEmployee(employeeId) {
+            if (confirm('Are you sure you want to remove this employee? This will also remove all their holiday requests.')) {
+                employees = employees.filter(emp => emp.id !== employeeId);
+                holidayRequests = holidayRequests.filter(req => req.employeeId !== employeeId);
+                
+                await saveEmployees();
+                await saveHolidayRequests();
+                
+                populateEmployeeCards();
+                loadAdminData();
+                renderCalendar(); // Update calendar view
+                
+                // Clear employee info if removed employee was selected
+                if (currentEmployee && currentEmployee.id === employeeId) {
+                    currentEmployee = null;
+                    document.getElementById('employee-info').classList.add('hidden');
+                    // Remove selection from cards
+                    document.querySelectorAll('.employee-card-selector').forEach(card => {
+                        card.classList.remove('selected');
+                    });
+                }
+            }
+        }
+        
+        function loadEmployeeList() {
+            const container = document.getElementById('employee-list');
+            
+            if (employees.length === 0) {
+                container.innerHTML = '<p>No employees found.</p>';
+                return;
+            }
+            
+            container.innerHTML = employees.map(employee => `
+                <div class="employee-card">
+                    <div>
+                        <h5>${employee.name}</h5>
+                        <p style="font-size: 13px;">Total: ${employee.totalAllowance} | Used: ${employee.usedDays} | Remaining: ${employee.totalAllowance - employee.usedDays}</p>
+                    </div>
+                    <button class="btn-danger btn-small" onclick="removeEmployee(${employee.id})">Remove</button>
+                </div>
+            `).join('');
+        }
+        
+        function loadAllRequests() {
+            const container = document.getElementById('all-requests');
+            
+            if (holidayRequests.length === 0) {
+                container.innerHTML = '<p>No holiday requests found.</p>';
+                return;
+            }
+            
+            // Sort requests by submitted date (newest first)
+            const sortedRequests = [...holidayRequests].sort((a, b) => 
+                new Date(b.submittedDate) - new Date(a.submittedDate)
+            );
+            
+            container.innerHTML = sortedRequests.map(request => {
+                const dateRange = request.startDate === request.endDate ? 
+                    request.startDate : 
+                    `${request.startDate} to ${request.endDate}`;
+                
+                const dayText = request.isHalfDay ? 
+                    `${request.days} day (${request.halfDayPeriod} half-day)` : 
+                    `${request.days} days`;
+                
+                return `
+                    <div class="holiday-request ${request.status}">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="flex: 1;">
+                                <h4>${request.employeeName}</h4>
+                                <p><strong>Dates:</strong> ${dateRange} (${dayText})</p>
+                                <p><strong>Reason:</strong> ${request.reason || 'Not specified'}</p>
+                                <p><strong>Submitted:</strong> ${request.submittedDate}</p>
+                            </div>
+                            <div style="margin-left: 15px;">
+                                <span class="status-badge status-${request.status}">${request.status}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Report generation functions
+        function loadReportsSection() {
+            const select = document.getElementById('report-employee-select');
+            const exportBtn = document.getElementById('export-single-btn');
+            
+            // Clear existing options
+            select.innerHTML = '<option value="">Choose an employee...</option>';
+            
+            // Populate with employees
+            employees.forEach(employee => {
+                const option = document.createElement('option');
+                option.value = employee.id;
+                option.textContent = employee.name;
+                select.appendChild(option);
+            });
+            
+            // Add change listener to enable/disable export button
+            select.addEventListener('change', function() {
+                exportBtn.disabled = !this.value;
+            });
+        }
+        
+        function generateEmployeeReportData(employeeId) {
+            const employee = employees.find(emp => emp.id === employeeId);
+            if (!employee) return null;
+            
+            const employeeRequests = holidayRequests.filter(req => req.employeeId === employeeId);
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Calculate statistics
+            const approvedRequests = employeeRequests.filter(req => req.status === 'approved');
+            const pendingRequests = employeeRequests.filter(req => req.status === 'pending');
+            const rejectedRequests = employeeRequests.filter(req => req.status === 'rejected');
+            const cancelledRequests = employeeRequests.filter(req => req.status === 'cancelled');
+            
+            const totalDaysRequested = employeeRequests.reduce((sum, req) => sum + req.days, 0);
+            const approvedDays = approvedRequests.reduce((sum, req) => sum + req.days, 0);
+            const pendingDays = pendingRequests.reduce((sum, req) => sum + req.days, 0);
+            
+            // Find upcoming holidays
+            const upcomingHolidays = approvedRequests.filter(req => req.startDate >= today)
+                .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            
+            // Find past holidays
+            const pastHolidays = approvedRequests.filter(req => req.endDate < today)
+                .sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+            
+            return {
+                employee,
+                stats: {
+                    totalRequests: employeeRequests.length,
+                    approvedCount: approvedRequests.length,
+                    pendingCount: pendingRequests.length,
+                    rejectedCount: rejectedRequests.length,
+                    cancelledCount: cancelledRequests.length,
+                    totalDaysRequested,
+                    approvedDays,
+                    pendingDays,
+                    remainingDays: employee.totalAllowance - employee.usedDays
+                },
+                upcomingHolidays,
+                pastHolidays,
+                allRequests: employeeRequests.sort((a, b) => new Date(b.submittedDate) - new Date(a.submittedDate))
+            };
+        }
+        
+        function generateReportHTML(reportData, isAllEmployees = false) {
+            const currentDate = new Date().toLocaleDateString('en-GB');
+            
+            if (isAllEmployees) {
+                let html = `
+                    <html>
+                    <head>
+                        <title>All Employees Holiday Report</title>
+                        <meta charset="UTF-8">
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; color: #333; }
+                            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #667eea; padding-bottom: 20px; }
+                            .employee-section { margin-bottom: 40px; padding: 20px; border: 1px solid #e9ecef; border-radius: 8px; }
+                            .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+                            .stat-card { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; }
+                            .stat-value { font-size: 1.5em; font-weight: bold; color: #667eea; }
+                            .requests-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                            .requests-table th, .requests-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                            .requests-table th { background-color: #667eea; color: white; }
+                            .status { padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; text-transform: uppercase; }
+                            .status.approved { background: #d4edda; color: #155724; }
+                            .status.pending { background: #fff3cd; color: #856404; }
+                            .status.rejected { background: #f8d7da; color: #721c24; }
+                            .status.cancelled { background: #e2e3e5; color: #383d41; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <h1>Holiday Management System - All Employees Report</h1>
+                            <p>Generated on: ${currentDate}</p>
+                        </div>
+                `;
+                
+                reportData.forEach(data => {
+                    html += generateEmployeeSectionHTML(data);
+                });
+                
+                html += `</body></html>`;
+                return html;
+            } else {
+                let html = `
+                    <html>
+                    <head>
+                        <title>${reportData.employee.name} - Holiday Report</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; color: #333; }
+                            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #667eea; padding-bottom: 20px; }
+                            .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+                            .stat-card { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; }
+                            .stat-value { font-size: 1.5em; font-weight: bold; color: #667eea; }
+                            .section { margin: 30px 0; }
+                            .requests-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                            .requests-table th, .requests-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                            .requests-table th { background-color: #667eea; color: white; }
+                            .status { padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; text-transform: uppercase; }
+                            .status.approved { background: #d4edda; color: #155724; }
+                            .status.pending { background: #fff3cd; color: #856404; }
+                            .status.rejected { background: #f8d7da; color: #721c24; }
+                            .status.cancelled { background: #e2e3e5; color: #383d41; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <h1>🏖️ Holiday Report: ${reportData.employee.name}</h1>
+                            <p>Generated on: ${currentDate}</p>
+                        </div>
+                `;
+                
+                html += generateEmployeeSectionHTML(reportData, false);
+                html += `</body></html>`;
+                return html;
+            }
+        }
+        
+        function generateEmployeeSectionHTML(data, isSection = true) {
+            const { employee, stats, upcomingHolidays, pastHolidays, allRequests } = data;
+            
+            let html = isSection ? `<div class="employee-section"><h2>${employee.name}</h2>` : '';
+            
+            html += `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">${employee.totalAllowance}</div>
+                        <div>Total Allowance</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${employee.usedDays}</div>
+                        <div>Days Used</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.remainingDays}</div>
+                        <div>Days Remaining</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.totalRequests}</div>
+                        <div>Total Requests</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.approvedCount}</div>
+                        <div>Approved</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.pendingCount}</div>
+                        <div>Pending</div>
+                    </div>
+                </div>
+            `;
+            
+            if (upcomingHolidays.length > 0) {
+                html += `
+                    <div class="section">
+                        <h3>📅 Upcoming Holidays</h3>
+                        <table class="requests-table">
+                            <thead>
+                                <tr>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Days</th>
+                                    <th>Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                upcomingHolidays.forEach(holiday => {
+                    const dayText = holiday.isHalfDay ? 
+                        `${holiday.days} (${holiday.halfDayPeriod} half-day)` : 
+                        holiday.days.toString();
+                    
+                    html += `
+                        <tr>
+                            <td>${holiday.startDate}</td>
+                            <td>${holiday.endDate}</td>
+                            <td>${dayText}</td>
+                            <td>${holiday.reason || 'Not specified'}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += `</tbody></table></div>`;
+            }
+            
+            if (allRequests.length > 0) {
+                html += `
+                    <div class="section">
+                        <h3>📋 All Holiday Requests</h3>
+                        <table class="requests-table">
+                            <thead>
+                                <tr>
+                                    <th>Submitted</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Days</th>
+                                    <th>Reason</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                allRequests.forEach(request => {
+                    const dayText = request.isHalfDay ? 
+                        `${request.days} (${request.halfDayPeriod} half-day)` : 
+                        request.days.toString();
+                    
+                    html += `
+                        <tr>
+                            <td>${request.submittedDate}</td>
+                            <td>${request.startDate}</td>
+                            <td>${request.endDate}</td>
+                            <td>${dayText}</td>
+                            <td>${request.reason || 'Not specified'}</td>
+                            <td><span class="status ${request.status}">${request.status}</span></td>
+                        </tr>
+                    `;
+                });
+                
+                html += `</tbody></table></div>`;
+            }
+            
+            if (isSection) {
+                html += `</div>`;
+            }
+            
+            return html;
+        }
+        
+        function exportEmployeeReport() {
+            const selectElement = document.getElementById('report-employee-select');
+            const selectedEmployeeId = parseInt(selectElement.value);
+            
+            if (!selectedEmployeeId) {
+                alert('Please select an employee first.');
+                return;
+            }
+            
+            const reportData = generateEmployeeReportData(selectedEmployeeId);
+            if (!reportData) {
+                alert('Employee not found.');
+                return;
+            }
+            
+            const html = generateReportHTML(reportData);
+            downloadHTML(html, `${reportData.employee.name}_Holiday_Report_${new Date().toISOString().split('T')[0]}.html`);
+        }
+        
+        function exportAllEmployeesReport() {
+            if (employees.length === 0) {
+                alert('No employees found.');
+                return;
+            }
+            
+            const allReportData = employees.map(employee => generateEmployeeReportData(employee.id));
+            const html = generateReportHTML(allReportData, true);
+            downloadHTML(html, `All_Employees_Holiday_Report_${new Date().toISOString().split('T')[0]}.html`);
+        }
+        
+        function downloadHTML(html, filename) {
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        // Initialize app when page loads
+        document.addEventListener('DOMContentLoaded', init);
+        
+        // Add event listeners for date inputs to update preview
+        document.addEventListener('DOMContentLoaded', () => {
+            const startDateInput = document.getElementById('start-date');
+            const endDateInput = document.getElementById('end-date');
+            
+            if (startDateInput) {
+                startDateInput.addEventListener('change', () => {
+                    const halfDayToggle = document.getElementById('half-day-toggle');
+                    if (halfDayToggle && halfDayToggle.checked) {
+                        document.getElementById('end-date').value = startDateInput.value;
+                    }
+                    updateDaysPreview();
+                });
+            }
+            
+            if (endDateInput) {
+                endDateInput.addEventListener('change', updateDaysPreview);
+            }
+        });
+        
+        // Handle Enter key in PIN input
+        document.getElementById('pin-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkPin();
+            }
+        });
+        
+        // Close modals when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.calendar-day') && !e.target.closest('.popover')) {
+                closePopover();
+            }
+            
+            // Close employee modal when clicking outside
+            if (e.target.classList.contains('modal')) {
+                closeEmployeeModal();
+            }
+        });
+    </script>
+</body>
+</html></div
