@@ -1047,6 +1047,40 @@
         </div>
     </div>
     
+    <!-- GitHub Token Modal -->
+    <div id="github-token-modal" class="pin-modal hidden">
+        <div class="pin-content" style="max-width: 500px; text-align: left;">
+            <h3 style="text-align: center; margin-bottom: 20px;">GitHub Configuration Required</h3>
+            <p style="margin-bottom: 15px;">To save and load holiday data, please provide your GitHub Personal Access Token:</p>
+            
+            <div class="form-group">
+                <label for="github-token-input">GitHub Personal Access Token:</label>
+                <input type="password" id="github-token-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="font-family: monospace;">
+            </div>
+            
+            <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0; font-size: 14px;">
+                <p style="margin: 0 0 10px 0; font-weight: 500;">How to create a GitHub token:</p>
+                <ol style="margin: 0; padding-left: 20px;">
+                    <li>Go to GitHub Settings → Developer settings → Personal access tokens</li>
+                    <li>Click "Generate new token (classic)"</li>
+                    <li>Give it a name like "Holiday Management System"</li>
+                    <li>Select the "repo" scope (full repository access)</li>
+                    <li>Click "Generate token" and copy the token</li>
+                </ol>
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                <button onclick="saveGitHubToken()" id="save-token-btn">Save & Continue</button>
+                <button onclick="closeGitHubTokenModal()" style="background: #6c757d;">Cancel</button>
+                <button onclick="clearStoredToken()" style="background: #dc3545;">Clear Stored Token</button>
+            </div>
+            
+            <p style="font-size: 12px; color: #6c757d; text-align: center; margin-top: 15px;">
+                Your token is stored securely in your browser and never transmitted elsewhere.
+            </p>
+        </div>
+    </div>
+
     <!-- Employee Detail Modal -->
     <div id="employee-modal" class="modal hidden">
         <div class="modal-content">
@@ -1064,24 +1098,130 @@
             owner: 'KSCumnock',
             repo: 'Holidays',
             branch: 'main',
-            token: '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',
+            token: null, // Will be set by user input
         };
         
         const GITHUB_API_BASE = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/`;
         const EMPLOYEES_FILE = 'employees.json';
         const HOLIDAY_REQUESTS_FILE = 'holiday-requests.json';
         
+        // GitHub token management
+        function getGitHubToken() {
+            // First check memory, then local storage
+            if (GITHUB_CONFIG.token) {
+                return GITHUB_CONFIG.token;
+            }
+            
+            // Try to get from local storage
+            const storedToken = localStorage.getItem('github_token');
+            if (storedToken) {
+                GITHUB_CONFIG.token = storedToken;
+                return storedToken;
+            }
+            
+            return null;
+        }
+        
+        function setGitHubToken(token) {
+            GITHUB_CONFIG.token = token;
+            // Store in local storage for persistence
+            if (token) {
+                localStorage.setItem('github_token', token);
+            } else {
+                localStorage.removeItem('github_token');
+            }
+        }
+        
+        function clearGitHubToken() {
+            GITHUB_CONFIG.token = null;
+            localStorage.removeItem('github_token');
+        }
+        
+        function promptForGitHubToken() {
+            return new Promise((resolve) => {
+                document.getElementById('github-token-modal').classList.remove('hidden');
+                document.getElementById('github-token-modal').style.display = 'flex';
+                
+                // Store the resolve function so we can call it later
+                window.tokenPromiseResolve = resolve;
+            });
+        }
+        
+        function saveGitHubToken() {
+            const token = document.getElementById('github-token-input').value.trim();
+            
+            if (!token) {
+                alert('Please enter a valid GitHub token.');
+                return;
+            }
+            
+            if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+                alert('GitHub tokens should start with "ghp_" or "github_pat_". Please check your token.');
+                return;
+            }
+            
+            setGitHubToken(token);
+            closeGitHubTokenModal();
+            
+            // Resolve the promise to continue with the original operation
+            if (window.tokenPromiseResolve) {
+                window.tokenPromiseResolve(token);
+                window.tokenPromiseResolve = null;
+            }
+            
+            console.log('GitHub token saved successfully');
+        }
+        
+        function closeGitHubTokenModal() {
+            const modal = document.getElementById('github-token-modal');
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+            document.getElementById('github-token-input').value = '';
+            
+            // If user cancels, reject the promise
+            if (window.tokenPromiseResolve) {
+                window.tokenPromiseResolve(null);
+                window.tokenPromiseResolve = null;
+            }
+        }
+        
+        function clearStoredToken() {
+            if (confirm('Are you sure you want to clear the stored GitHub token? You will need to enter it again.')) {
+                clearGitHubToken();
+                alert('GitHub token cleared. Please enter a new token.');
+                document.getElementById('github-token-input').value = '';
+                document.getElementById('github-token-input').focus();
+            }
+        }
+        
+        async function ensureGitHubToken() {
+            if (!getGitHubToken()) {
+                const token = await promptForGitHubToken();
+                if (!token) {
+                    throw new Error('GitHub token is required to proceed.');
+                }
+            }
+            return getGitHubToken();
+        }
+        
         // GitHub API Functions
         async function getFileFromGitHub(filename) {
             try {
+                const token = await ensureGitHubToken();
+                
                 const response = await fetch(GITHUB_API_BASE + filename, {
                     headers: {
-                        'Authorization': `token ${GITHUB_CONFIG.token}`,
+                        'Authorization': `token ${token}`,
                         'Accept': 'application/vnd.github.v3+json'
                     }
                 });
                 
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        // Clear the invalid token and prompt for a new one
+                        clearGitHubToken();
+                        throw new Error('Invalid GitHub token. Please check your token and try again.');
+                    }
                     throw new Error(`Failed to fetch ${filename}: ${response.statusText}`);
                 }
                 
@@ -1098,10 +1238,12 @@
         
         async function saveFileToGitHub(filename, content, sha, commitMessage) {
             try {
+                const token = await ensureGitHubToken();
+                
                 const response = await fetch(GITHUB_API_BASE + filename, {
                     method: 'PUT',
                     headers: {
-                        'Authorization': `token ${GITHUB_CONFIG.token}`,
+                        'Authorization': `token ${token}`,
                         'Accept': 'application/vnd.github.v3+json',
                         'Content-Type': 'application/json'
                     },
@@ -1114,6 +1256,11 @@
                 });
                 
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        // Clear the invalid token and prompt for a new one
+                        clearGitHubToken();
+                        throw new Error('Invalid GitHub token. Please check your token and try again.');
+                    }
                     throw new Error(`Failed to save ${filename}: ${response.statusText}`);
                 }
                 
@@ -1212,12 +1359,24 @@
                 // Force hide all modals on startup
                 const employeeModal = document.getElementById('employee-modal');
                 const pinModal = document.getElementById('pin-modal');
+                const githubTokenModal = document.getElementById('github-token-modal');
                 
                 employeeModal.classList.add('hidden');
                 employeeModal.style.display = 'none';
                 pinModal.classList.add('hidden');
                 pinModal.style.display = 'none';
+                githubTokenModal.classList.add('hidden');
+                githubTokenModal.style.display = 'none';
                 
+                // Show loading state
+                document.getElementById('employee-loading').classList.remove('hidden');
+                document.getElementById('employee-content').classList.add('hidden');
+                document.getElementById('employee-error').classList.add('hidden');
+                
+                // Ensure we have a GitHub token before proceeding
+                await ensureGitHubToken();
+                
+                // Now load the data
                 await loadEmployees();
                 await loadHolidayRequests();
                 populateEmployeeCards();
@@ -1230,6 +1389,16 @@
                 document.getElementById('employee-loading').classList.add('hidden');
                 document.getElementById('employee-error').textContent = 'Failed to load data: ' + error.message;
                 document.getElementById('employee-error').classList.remove('hidden');
+                
+                // If it's a token error, show a helpful message
+                if (error.message.includes('GitHub token')) {
+                    document.getElementById('employee-error').innerHTML = `
+                        <strong>GitHub Token Required</strong><br>
+                        Please refresh the page and enter a valid GitHub Personal Access Token to continue.
+                        <br><br>
+                        <button onclick="location.reload()" style="margin-top: 10px;">Refresh Page</button>
+                    `;
+                }
             }
         }
         
@@ -1730,6 +1899,10 @@
             try {
                 document.getElementById('admin-loading').classList.remove('hidden');
                 document.getElementById('admin-content').classList.add('hidden');
+                document.getElementById('admin-error').classList.add('hidden');
+                
+                // Ensure we have a GitHub token before proceeding
+                await ensureGitHubToken();
                 
                 await loadEmployees();
                 await loadHolidayRequests();
@@ -2114,6 +2287,7 @@
                     <html>
                     <head>
                         <title>${reportData.employee.name} - Holiday Report</title>
+                        <meta charset="UTF-8">
                         <style>
                             body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; color: #333; }
                             .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #667eea; padding-bottom: 20px; }
@@ -2133,7 +2307,7 @@
                     </head>
                     <body>
                         <div class="header">
-                            <h1>🏖️ Holiday Report: ${reportData.employee.name}</h1>
+                            <h1>Holiday Report: ${reportData.employee.name}</h1>
                             <p>Generated on: ${currentDate}</p>
                         </div>
                 `;
@@ -2181,7 +2355,7 @@
             if (upcomingHolidays.length > 0) {
                 html += `
                     <div class="section">
-                        <h3>📅 Upcoming Holidays</h3>
+                        <h3>Upcoming Holidays</h3>
                         <table class="requests-table">
                             <thead>
                                 <tr>
@@ -2215,7 +2389,7 @@
             if (allRequests.length > 0) {
                 html += `
                     <div class="section">
-                        <h3>📋 All Holiday Requests</h3>
+                        <h3>All Holiday Requests</h3>
                         <table class="requests-table">
                             <thead>
                                 <tr>
@@ -2322,11 +2496,21 @@
             }
         });
         
-        // Handle Enter key in PIN input
-        document.getElementById('pin-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                checkPin();
-            }
+        // Handle Enter key in inputs
+        document.addEventListener('DOMContentLoaded', () => {
+            // PIN input
+            document.getElementById('pin-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    checkPin();
+                }
+            });
+            
+            // GitHub token input
+            document.getElementById('github-token-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    saveGitHubToken();
+                }
+            });
         });
         
         // Close modals when clicking outside
@@ -2338,6 +2522,11 @@
             // Close employee modal when clicking outside
             if (e.target.classList.contains('modal')) {
                 closeEmployeeModal();
+            }
+            
+            // Close GitHub token modal when clicking outside
+            if (e.target.id === 'github-token-modal') {
+                closeGitHubTokenModal();
             }
         });
     </script>
