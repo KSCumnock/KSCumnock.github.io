@@ -723,7 +723,7 @@
             branch: 'main'
         };
         
-        const GITHUB_API_BASE = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/`;
+        const GITHUB_RAW_BASE = `https://raw.githubusercontent.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/${GITHUB_CONFIG.branch}/`;
         
         let employeesData = [];
         let holidayRequestsData = [];
@@ -732,6 +732,7 @@
         let currentYear = new Date().getFullYear();
         let availableYears = [];
         let tooltip = null;
+        let dataCache = new Map(); // Cache for loaded data
 
         // Dynamic file names based on year
         function getFileNames(year) {
@@ -741,27 +742,39 @@
             };
         }
 
-        // Check if year data is available
-        async function checkYearAvailability(year) {
-            try {
-                const fileNames = getFileNames(year);
-                const response = await fetch(GITHUB_API_BASE + fileNames.employees);
-                return response.ok;
-            } catch (error) {
-                return false;
+        // Check if year data is available with retry
+        async function checkYearAvailability(year, retries = 2) {
+            for (let i = 0; i <= retries; i++) {
+                try {
+                    const fileNames = getFileNames(year);
+                    const response = await fetch(GITHUB_RAW_BASE + fileNames.employees);
+                    return response.ok;
+                } catch (error) {
+                    if (i === retries) {
+                        console.warn(`Failed to check availability for ${year} after ${retries + 1} attempts`);
+                        return false;
+                    }
+                    // Wait before retry
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                }
             }
+            return false;
         }
 
-        // Find all available years
+        // Find all available years (optimized to reduce requests)
         async function findAvailableYears() {
             const currentYear = new Date().getFullYear();
-            const yearsToCheck = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2, currentYear + 3];
+            // Start with current year, then check adjacent years
+            const yearsToCheck = [currentYear, currentYear + 1, currentYear - 1, currentYear + 2, currentYear - 2];
             const available = [];
             
+            // Check years sequentially to avoid overwhelming the server
             for (const year of yearsToCheck) {
                 if (await checkYearAvailability(year)) {
                     available.push(year);
                 }
+                // Small delay between requests to be respectful
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
             
             return available.sort((a, b) => a - b);
@@ -829,28 +842,43 @@
             }
         }
 
-        // Load data from GitHub
+        // Load data from GitHub with caching
         async function loadDataFromGitHub() {
             try {
+                const cacheKey = `data-${currentYear}`;
+                
+                // Check if data is already cached
+                if (dataCache.has(cacheKey)) {
+                    const cachedData = dataCache.get(cacheKey);
+                    employeesData = cachedData.employees;
+                    holidayRequestsData = cachedData.holidayRequests;
+                    console.log(`Data loaded from cache for ${currentYear}`);
+                    return;
+                }
+                
                 const fileNames = getFileNames(currentYear);
                 
                 // Load employees
-                const employeesResponse = await fetch(GITHUB_API_BASE + fileNames.employees);
+                const employeesResponse = await fetch(GITHUB_RAW_BASE + fileNames.employees);
                 if (!employeesResponse.ok) {
                     throw new Error(`Failed to fetch employees for ${currentYear}: ${employeesResponse.statusText}`);
                 }
-                const employeesData_raw = await employeesResponse.json();
-                employeesData = JSON.parse(atob(employeesData_raw.content));
+                employeesData = await employeesResponse.json();
 
                 // Load holiday requests
-                const requestsResponse = await fetch(GITHUB_API_BASE + fileNames.holidayRequests);
+                const requestsResponse = await fetch(GITHUB_RAW_BASE + fileNames.holidayRequests);
                 if (!requestsResponse.ok) {
                     throw new Error(`Failed to fetch holiday requests for ${currentYear}: ${requestsResponse.statusText}`);
                 }
-                const requestsData_raw = await requestsResponse.json();
-                holidayRequestsData = JSON.parse(atob(requestsData_raw.content));
+                holidayRequestsData = await requestsResponse.json();
 
-                console.log(`Data loaded successfully for ${currentYear}`);
+                // Cache the data
+                dataCache.set(cacheKey, {
+                    employees: employeesData,
+                    holidayRequests: holidayRequestsData
+                });
+
+                console.log(`Data loaded and cached for ${currentYear}`);
             } catch (error) {
                 console.error('Error loading from GitHub:', error);
                 throw error;
