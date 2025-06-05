@@ -734,6 +734,14 @@
         let tooltip = null;
         let dataCache = new Map(); // Cache for loaded data
 
+        // Helper function to get local date string in YYYY-MM-DD format
+        function getLocalDateString(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         // Dynamic file names based on year
         function getFileNames(year) {
             return {
@@ -968,7 +976,7 @@
             let date = 1;
             let nextMonthDate = 1;
             const today = new Date();
-            const todayStr = today.toISOString().split('T')[0];
+            const todayStr = getLocalDateString(today); // Fixed: Use local date string
             
             // Calculate summary stats for current month
             updateSummaryStats(currentYear, month);
@@ -985,19 +993,19 @@
                     if (week === 0 && day < firstDay) {
                         // Previous month days
                         cellDate = daysInPrevMonth - firstDay + day + 1;
-                        dateStr = new Date(currentYear, month - 1, cellDate).toISOString().split('T')[0];
+                        dateStr = getLocalDateString(new Date(currentYear, month - 1, cellDate)); // Fixed: Use local date string
                         isCurrentMonth = false;
                         cell.classList.add('other-month');
                     } else if (date > daysInMonth) {
                         // Next month days
                         cellDate = nextMonthDate++;
-                        dateStr = new Date(currentYear, month + 1, cellDate).toISOString().split('T')[0];
+                        dateStr = getLocalDateString(new Date(currentYear, month + 1, cellDate)); // Fixed: Use local date string
                         isCurrentMonth = false;
                         cell.classList.add('other-month');
                     } else {
                         // Current month days
                         cellDate = date++;
-                        dateStr = new Date(currentYear, month, cellDate).toISOString().split('T')[0];
+                        dateStr = getLocalDateString(new Date(currentYear, month, cellDate)); // Fixed: Use local date string
                     }
                     
                     // Add day number
@@ -1174,8 +1182,8 @@
         }
 
         function updateSummaryStats(year, month) {
-            const monthStart = new Date(year, month, 1).toISOString().split('T')[0];
-            const monthEnd = new Date(year, month + 1, 0).toISOString().split('T')[0];
+            const monthStart = getLocalDateString(new Date(year, month, 1));
+            const monthEnd = getLocalDateString(new Date(year, month + 1, 0));
             
             // Get all approved requests that overlap with this month
             const monthlyRequests = holidayRequestsData.filter(req => 
