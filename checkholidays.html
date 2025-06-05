@@ -284,6 +284,37 @@
             z-index: 2;
         }
         
+        .day-info-button {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #718096;
+            color: white;
+            border: none;
+            font-size: 0.50rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        
+        .day-info-button:hover {
+            background: #e53e3e;
+            transform: scale(1.1);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .day-info-button.no-holidays {
+            display: none;
+        }
+        
         .other-month {
             background: #f7fafc !important;
         }
@@ -552,6 +583,124 @@
             line-height: 1.4;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+
+        .popover {
+            position: fixed;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            z-index: 1001;
+            max-width: 280px;
+            min-width: 220px;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .popover-header {
+            background: #667eea;
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 12px 12px 0 0;
+            font-weight: 600;
+            text-align: center;
+            position: relative;
+            font-size: 0.875rem;
+        }
+
+        .popover-close {
+            position: absolute;
+            top: 0.375rem;
+            right: 0.5rem;
+            background: none;
+            border: none;
+            color: red;
+            font-size: 1.1rem;
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s ease;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .popover-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .popover-content {
+            padding: 0.75rem;
+        }
+
+        .popover-employee {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 0.375rem;
+            background: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .popover-employee:hover {
+            background: #edf2f7;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .popover-employee:last-child {
+            margin-bottom: 0;
+        }
+
+        .popover-employee-name {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 0.8125rem;
+        }
+
+        .popover-employee-type {
+            font-size: 0.625rem;
+            padding: 0.1875rem 0.375rem;
+            border-radius: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .popover-employee-type.full-day {
+            background: #667eea;
+            color: white;
+        }
+
+        .popover-employee-type.half-day {
+            background: #ed8936;
+            color: white;
+        }
+
+        .popover-no-employees {
+            text-align: center;
+            color: #718096;
+            font-style: italic;
+            padding: 1.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .popover-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.1);
+        }
         
         @media (max-width: 1400px) {
             .main-layout {
@@ -615,6 +764,17 @@
             
             .employee-stats {
                 grid-template-columns: 1fr;
+            }
+
+            .day-info-button {
+                width: 18px;
+                height: 18px;
+                font-size: 0.625rem;
+            }
+
+            .popover {
+                max-width: 90vw;
+                min-width: 280px;
             }
         }
     </style>
@@ -733,6 +893,7 @@
         let availableYears = [];
         let tooltip = null;
         let dataCache = new Map(); // Cache for loaded data
+        let currentPopover = null; // Track current popover
 
         // Helper function to get local date string in YYYY-MM-DD format
         function getLocalDateString(date) {
@@ -818,6 +979,124 @@
                 option.textContent = employee.name;
                 employeeSelect.appendChild(option);
             });
+        }
+
+        // Close popover
+        function closePopover() {
+            if (currentPopover) {
+                if (currentPopover.backdrop) {
+                    currentPopover.backdrop.remove();
+                }
+                if (currentPopover.popover) {
+                    currentPopover.popover.remove();
+                }
+                currentPopover = null;
+            }
+        }
+
+        // Show popover with employees for a specific date
+        function showDayPopover(event, dateStr, employeesOnHoliday) {
+            // Close any existing popover
+            closePopover();
+
+            // Create backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'popover-backdrop';
+            backdrop.addEventListener('click', closePopover);
+
+            // Create popover
+            const popover = document.createElement('div');
+            popover.className = 'popover';
+
+            // Format date for display
+            const date = new Date(dateStr);
+            const formattedDate = date.toLocaleDateString('en-GB', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            // Create header
+            const header = document.createElement('div');
+            header.className = 'popover-header';
+            header.innerHTML = `
+                ${formattedDate}
+                <button class="popover-close">×</button>
+            `;
+
+            // Add event listener to close button
+            const closeButton = header.querySelector('.popover-close');
+            closeButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closePopover();
+            });
+
+            // Create content
+            const content = document.createElement('div');
+            content.className = 'popover-content';
+
+            if (employeesOnHoliday.length === 0) {
+                content.innerHTML = `
+                    <div class="popover-no-employees">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">😊</div>
+                        <p>No employees on holiday</p>
+                    </div>
+                `;
+            } else {
+                employeesOnHoliday.forEach(holiday => {
+                    const employeeDiv = document.createElement('div');
+                    employeeDiv.className = 'popover-employee';
+                    employeeDiv.addEventListener('click', () => {
+                        selectEmployee(holiday.employeeId);
+                        document.getElementById('employee-select').value = holiday.employeeId;
+                        closePopover();
+                    });
+
+                    const typeClass = holiday.isHalfDay ? 'half-day' : 'full-day';
+                    const typeText = holiday.isHalfDay ? `${holiday.halfDayPeriod} Half` : 'Full Day';
+
+                    employeeDiv.innerHTML = `
+                        <div class="popover-employee-name">${holiday.employeeName}</div>
+                        <div class="popover-employee-type ${typeClass}">${typeText}</div>
+                    `;
+
+                    content.appendChild(employeeDiv);
+                });
+            }
+
+            popover.appendChild(header);
+            popover.appendChild(content);
+
+            // Position popover
+            const buttonRect = event.target.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            // Initial positioning (top-right of button)
+            let left = buttonRect.right + 10;
+            let top = buttonRect.top;
+
+            // Adjust if popover would go off-screen horizontally
+            if (left + 300 > viewportWidth) {
+                left = buttonRect.left - 310; // Position to the left of button
+            }
+
+            // Adjust if popover would go off-screen vertically
+            if (top + 200 > viewportHeight) {
+                top = viewportHeight - 210; // Position near bottom of viewport
+            }
+
+            popover.style.left = Math.max(10, left) + 'px';
+            popover.style.top = Math.max(10, top) + 'px';
+
+            // Add to DOM
+            document.body.appendChild(backdrop);
+            document.body.appendChild(popover);
+            currentPopover = { popover, backdrop };
+
+            // Prevent event bubbling
+            event.stopPropagation();
         }
 
         // Initialize the app
@@ -947,6 +1226,19 @@
             
             // Hide tooltip when mouse leaves the document
             document.addEventListener('mouseleave', hideTooltip);
+
+            // Close popover when clicking outside or pressing escape
+            document.addEventListener('click', (e) => {
+                if (currentPopover && !e.target.closest('.popover') && !e.target.closest('.day-info-button')) {
+                    closePopover();
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && currentPopover) {
+                    closePopover();
+                }
+            });
         }
 
         function renderCalendar() {
@@ -976,7 +1268,7 @@
             let date = 1;
             let nextMonthDate = 1;
             const today = new Date();
-            const todayStr = getLocalDateString(today); // Fixed: Use local date string
+            const todayStr = getLocalDateString(today);
             
             // Calculate summary stats for current month
             updateSummaryStats(currentYear, month);
@@ -993,19 +1285,19 @@
                     if (week === 0 && day < firstDay) {
                         // Previous month days
                         cellDate = daysInPrevMonth - firstDay + day + 1;
-                        dateStr = getLocalDateString(new Date(currentYear, month - 1, cellDate)); // Fixed: Use local date string
+                        dateStr = getLocalDateString(new Date(currentYear, month - 1, cellDate));
                         isCurrentMonth = false;
                         cell.classList.add('other-month');
                     } else if (date > daysInMonth) {
                         // Next month days
                         cellDate = nextMonthDate++;
-                        dateStr = getLocalDateString(new Date(currentYear, month + 1, cellDate)); // Fixed: Use local date string
+                        dateStr = getLocalDateString(new Date(currentYear, month + 1, cellDate));
                         isCurrentMonth = false;
                         cell.classList.add('other-month');
                     } else {
                         // Current month days
                         cellDate = date++;
-                        dateStr = getLocalDateString(new Date(currentYear, month, cellDate)); // Fixed: Use local date string
+                        dateStr = getLocalDateString(new Date(currentYear, month, cellDate));
                     }
                     
                     // Add day number
@@ -1013,6 +1305,25 @@
                     dayNumber.className = 'day-number';
                     dayNumber.textContent = cellDate;
                     cell.appendChild(dayNumber);
+
+                    // Get employees on holiday for this date
+                    const employeesOnHoliday = getEmployeesOnHoliday(dateStr);
+
+                    // Add info button (only if there are holidays or it's current month)
+                    if (isCurrentMonth) {
+                        const infoButton = document.createElement('button');
+                        infoButton.className = `day-info-button ${employeesOnHoliday.length === 0 ? 'no-holidays' : ''}`;
+                        infoButton.textContent = employeesOnHoliday.length || 'i';
+                        infoButton.title = employeesOnHoliday.length > 0 ? 
+                            `${employeesOnHoliday.length} employee${employeesOnHoliday.length !== 1 ? 's' : ''} on holiday` : 
+                            'View day info';
+                        
+                        infoButton.addEventListener('click', (e) => {
+                            showDayPopover(e, dateStr, employeesOnHoliday);
+                        });
+
+                        cell.appendChild(infoButton);
+                    }
                     
                     // Check if it's today
                     if (dateStr === todayStr) {
@@ -1028,8 +1339,6 @@
                     // Add holidays for this date
                     const holidaysContainer = document.createElement('div');
                     holidaysContainer.className = 'holidays-container';
-                    
-                    const employeesOnHoliday = getEmployeesOnHoliday(dateStr);
                     
                     if (employeesOnHoliday.length > 0) {
                         employeesOnHoliday.forEach(holiday => {
