@@ -344,6 +344,27 @@
             background: #f7fafc;
         }
         
+        /* Weekend holiday styling - grey out with lower opacity */
+        .weekend .employee-chip {
+            opacity: 0.5;
+            filter: grayscale(20%);
+        }
+        
+        .weekend .employee-chip:hover {
+            opacity: 0.7;
+            transform: translateY(-1px);
+        }
+        
+        /* Keep selected employee chips more visible on weekends */
+        .weekend .employee-chip.selected {
+            opacity: 0.7;
+            filter: grayscale(10%);
+        }
+        
+        .weekend .employee-chip.selected:hover {
+            opacity: 0.85;
+        }
+        
         .holidays-container {
             position: absolute;
             top: 2rem;
@@ -949,655 +970,654 @@
             return available.sort((a, b) => a - b);
         }
 
-        // Populate year dropdown
         function populateYearDropdown(years) {
-            const yearSelect = document.getElementById('year-select');
-            yearSelect.innerHTML = '';
-            
-            years.forEach(year => {
-                const option = document.createElement('option');
-                option.value = year;
-                option.textContent = year;
-                if (year === currentYear) {
-                    option.selected = true;
-                }
-                yearSelect.appendChild(option);
-            });
+    const yearSelect = document.getElementById('year-select');
+    yearSelect.innerHTML = '';
+    
+    years.forEach(year => {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        if (year === currentYear) {
+            option.selected = true;
         }
+        yearSelect.appendChild(option);
+    });
+}
 
-        // Populate employee dropdown
-        function populateEmployeeDropdown() {
-            const employeeSelect = document.getElementById('employee-select');
-            employeeSelect.innerHTML = '<option value="">Select an employee...</option>';
-            
-            // Sort employees alphabetically
-            const sortedEmployees = [...employeesData].sort((a, b) => a.name.localeCompare(b.name));
-            
-            sortedEmployees.forEach(employee => {
-                const option = document.createElement('option');
-                option.value = employee.id;
-                option.textContent = employee.name;
-                employeeSelect.appendChild(option);
-            });
+// Populate employee dropdown
+function populateEmployeeDropdown() {
+    const employeeSelect = document.getElementById('employee-select');
+    employeeSelect.innerHTML = '<option value="">Select an employee...</option>';
+    
+    // Sort employees alphabetically
+    const sortedEmployees = [...employeesData].sort((a, b) => a.name.localeCompare(b.name));
+    
+    sortedEmployees.forEach(employee => {
+        const option = document.createElement('option');
+        option.value = employee.id;
+        option.textContent = employee.name;
+        employeeSelect.appendChild(option);
+    });
+}
+
+// Close popover
+function closePopover() {
+    if (currentPopover) {
+        if (currentPopover.backdrop) {
+            currentPopover.backdrop.remove();
         }
-
-        // Close popover
-        function closePopover() {
-            if (currentPopover) {
-                if (currentPopover.backdrop) {
-                    currentPopover.backdrop.remove();
-                }
-                if (currentPopover.popover) {
-                    currentPopover.popover.remove();
-                }
-                if (currentPopover.closeButton) {
-                    currentPopover.closeButton.remove();
-                }
-                currentPopover = null;
-            }
+        if (currentPopover.popover) {
+            currentPopover.popover.remove();
         }
+        if (currentPopover.closeButton) {
+            currentPopover.closeButton.remove();
+        }
+        currentPopover = null;
+    }
+}
 
-        // Show popover with employees for a specific date
-        function showDayPopover(event, dateStr, employeesOnHoliday) {
-            // Close any existing popover
-            closePopover();
+// Show popover with employees for a specific date
+function showDayPopover(event, dateStr, employeesOnHoliday) {
+    // Close any existing popover
+    closePopover();
 
-            // Create backdrop
-            const backdrop = document.createElement('div');
-            backdrop.className = 'popover-backdrop';
-            backdrop.addEventListener('click', closePopover);
+    // Create backdrop
+    const backdrop = document.createElement('div');
+    backdrop.className = 'popover-backdrop';
+    backdrop.addEventListener('click', closePopover);
 
-            // Create popover
-            const popover = document.createElement('div');
-            popover.className = 'popover';
+    // Create popover
+    const popover = document.createElement('div');
+    popover.className = 'popover';
 
-            // Format date for display
-            const date = new Date(dateStr);
-            const formattedDate = date.toLocaleDateString('en-GB', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
+    // Format date for display
+    const date = new Date(dateStr);
+    const formattedDate = date.toLocaleDateString('en-GB', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
 
-            // Create header
-            const header = document.createElement('div');
-            header.className = 'popover-header';
-            header.innerHTML = `
-                ${formattedDate}
-                <button class="popover-close">×</button>
-            `;
+    // Create header
+    const header = document.createElement('div');
+    header.className = 'popover-header';
+    header.innerHTML = `
+        ${formattedDate}
+        <button class="popover-close">×</button>
+    `;
 
-            // Add event listener to close button
-            const closeButton = header.querySelector('.popover-close');
-            closeButton.addEventListener('click', (e) => {
-                e.stopPropagation();
+    // Add event listener to close button
+    const closeButton = header.querySelector('.popover-close');
+    closeButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closePopover();
+    });
+
+    // Create content
+    const content = document.createElement('div');
+    content.className = 'popover-content';
+
+    if (employeesOnHoliday.length === 0) {
+        content.innerHTML = `
+            <div class="popover-no-employees">
+                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">😊</div>
+                <p>No employees on holiday</p>
+            </div>
+        `;
+    } else {
+        employeesOnHoliday.forEach(holiday => {
+            const employeeDiv = document.createElement('div');
+            employeeDiv.className = 'popover-employee';
+            employeeDiv.addEventListener('click', () => {
+                selectEmployee(holiday.employeeId);
+                document.getElementById('employee-select').value = holiday.employeeId;
                 closePopover();
             });
 
-            // Create content
-            const content = document.createElement('div');
-            content.className = 'popover-content';
+            const typeClass = holiday.isHalfDay ? 'half-day' : 'full-day';
+            const typeText = holiday.isHalfDay ? `${holiday.halfDayPeriod} Half` : 'Full Day';
 
-            if (employeesOnHoliday.length === 0) {
-                content.innerHTML = `
-                    <div class="popover-no-employees">
-                        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">😊</div>
-                        <p>No employees on holiday</p>
-                    </div>
-                `;
-            } else {
-                employeesOnHoliday.forEach(holiday => {
-                    const employeeDiv = document.createElement('div');
-                    employeeDiv.className = 'popover-employee';
-                    employeeDiv.addEventListener('click', () => {
-                        selectEmployee(holiday.employeeId);
-                        document.getElementById('employee-select').value = holiday.employeeId;
-                        closePopover();
-                    });
+            employeeDiv.innerHTML = `
+                <div class="popover-employee-name">${holiday.employeeName}</div>
+                <div class="popover-employee-type ${typeClass}">${typeText}</div>
+            `;
 
-                    const typeClass = holiday.isHalfDay ? 'half-day' : 'full-day';
-                    const typeText = holiday.isHalfDay ? `${holiday.halfDayPeriod} Half` : 'Full Day';
+            content.appendChild(employeeDiv);
+        });
+    }
 
-                    employeeDiv.innerHTML = `
-                        <div class="popover-employee-name">${holiday.employeeName}</div>
-                        <div class="popover-employee-type ${typeClass}">${typeText}</div>
-                    `;
+    popover.appendChild(header);
+    popover.appendChild(content);
 
-                    content.appendChild(employeeDiv);
-                });
-            }
+    // Position popover
+    const buttonRect = event.target.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
 
-            popover.appendChild(header);
-            popover.appendChild(content);
+    // Initial positioning (top-right of button)
+    let left = buttonRect.right + 10;
+    let top = buttonRect.top;
 
-            // Position popover
-            const buttonRect = event.target.getBoundingClientRect();
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
+    // Adjust if popover would go off-screen horizontally
+    if (left + 300 > viewportWidth) {
+        left = buttonRect.left - 310; // Position to the left of button
+    }
 
-            // Initial positioning (top-right of button)
-            let left = buttonRect.right + 10;
-            let top = buttonRect.top;
+    // Adjust if popover would go off-screen vertically
+    if (top + 200 > viewportHeight) {
+        top = viewportHeight - 210; // Position near bottom of viewport
+    }
 
-            // Adjust if popover would go off-screen horizontally
-            if (left + 300 > viewportWidth) {
-                left = buttonRect.left - 310; // Position to the left of button
-            }
+    popover.style.left = Math.max(10, left) + 'px';
+    popover.style.top = Math.max(10, top) + 'px';
 
-            // Adjust if popover would go off-screen vertically
-            if (top + 200 > viewportHeight) {
-                top = viewportHeight - 210; // Position near bottom of viewport
-            }
+    // Position close button relative to popover
+    const popoverRect = popover.getBoundingClientRect();
+    closeButton.style.left = (left + 280 - 12) + 'px'; // Adjust based on popover width
+    closeButton.style.top = (top - 12) + 'px';
 
-            popover.style.left = Math.max(10, left) + 'px';
-            popover.style.top = Math.max(10, top) + 'px';
+    // Add to DOM
+    document.body.appendChild(backdrop);
+    document.body.appendChild(popover);
+    currentPopover = { popover, backdrop };
 
-            // Position close button relative to popover
-            const popoverRect = popover.getBoundingClientRect();
-            closeButton.style.left = (left + 280 - 12) + 'px'; // Adjust based on popover width
-            closeButton.style.top = (top - 12) + 'px';
+    // Prevent event bubbling
+    event.stopPropagation();
+}
 
-            // Add to DOM
-            document.body.appendChild(backdrop);
-            document.body.appendChild(popover);
-            currentPopover = { popover, backdrop };
-
-            // Prevent event bubbling
-            event.stopPropagation();
+// Initialize the app
+async function init() {
+    try {
+        // Find available years first
+        availableYears = await findAvailableYears();
+        if (availableYears.length === 0) {
+            throw new Error('No holiday data files found');
         }
+        
+        // Set current year to latest available if current year not available
+        if (!availableYears.includes(currentYear)) {
+            currentYear = availableYears[availableYears.length - 1];
+        }
+        
+        populateYearDropdown(availableYears);
+        
+        await loadDataFromGitHub();
+        populateEmployeeDropdown();
+        setupEventListeners();
+        renderCalendar();
+        
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('calendar-section').classList.remove('hidden');
+    } catch (error) {
+        console.error('Error loading data:', error);
+        document.getElementById('loading').classList.add('hidden');
+        showError(`Failed to load holiday data. ${error.message}`);
+    }
+}
 
-        // Initialize the app
-        async function init() {
+// Load data from GitHub with caching
+async function loadDataFromGitHub() {
+    try {
+        const cacheKey = `data-${currentYear}`;
+        
+        // Check if data is already cached
+        if (dataCache.has(cacheKey)) {
+            const cachedData = dataCache.get(cacheKey);
+            employeesData = cachedData.employees;
+            holidayRequestsData = cachedData.holidayRequests;
+            console.log(`Data loaded from cache for ${currentYear}`);
+            return;
+        }
+        
+        const fileNames = getFileNames(currentYear);
+        
+        // Load employees
+        const employeesResponse = await fetch(GITHUB_RAW_BASE + fileNames.employees);
+        if (!employeesResponse.ok) {
+            throw new Error(`Failed to fetch employees for ${currentYear}: ${employeesResponse.statusText}`);
+        }
+        employeesData = await employeesResponse.json();
+
+        // Load holiday requests
+        const requestsResponse = await fetch(GITHUB_RAW_BASE + fileNames.holidayRequests);
+        if (!requestsResponse.ok) {
+            throw new Error(`Failed to fetch holiday requests for ${currentYear}: ${requestsResponse.statusText}`);
+        }
+        holidayRequestsData = await requestsResponse.json();
+
+        // Cache the data
+        dataCache.set(cacheKey, {
+            employees: employeesData,
+            holidayRequests: holidayRequestsData
+        });
+
+        console.log(`Data loaded and cached for ${currentYear}`);
+    } catch (error) {
+        console.error('Error loading from GitHub:', error);
+        throw error;
+    }
+}
+
+function setupEventListeners() {
+    document.getElementById('prev-month').addEventListener('click', () => {
+        currentDate.setMonth(currentDate.getMonth() - 1);
+        renderCalendar();
+    });
+    
+    document.getElementById('next-month').addEventListener('click', () => {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        renderCalendar();
+    });
+    
+    document.getElementById('year-select').addEventListener('change', async (e) => {
+        const newYear = parseInt(e.target.value);
+        if (newYear !== currentYear) {
+            currentYear = newYear;
+            selectedEmployeeId = null;
+            
+            // Update employee dropdown to show loading
+            const employeeSelect = document.getElementById('employee-select');
+            employeeSelect.innerHTML = '<option value="">Loading employees...</option>';
+            
+            // Show loading
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('calendar-section').classList.add('hidden');
+            
             try {
-                // Find available years first
-                availableYears = await findAvailableYears();
-                if (availableYears.length === 0) {
-                    throw new Error('No holiday data files found');
-                }
-                
-                // Set current year to latest available if current year not available
-                if (!availableYears.includes(currentYear)) {
-                    currentYear = availableYears[availableYears.length - 1];
-                }
-                
-                populateYearDropdown(availableYears);
-                
                 await loadDataFromGitHub();
                 populateEmployeeDropdown();
-                setupEventListeners();
                 renderCalendar();
-                
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('calendar-section').classList.remove('hidden');
             } catch (error) {
-                console.error('Error loading data:', error);
+                console.error('Error loading new year data:', error);
                 document.getElementById('loading').classList.add('hidden');
-                showError(`Failed to load holiday data. ${error.message}`);
+                showError(`Failed to load data for ${currentYear}. Please try again later.`);
             }
         }
-
-        // Load data from GitHub with caching
-        async function loadDataFromGitHub() {
-            try {
-                const cacheKey = `data-${currentYear}`;
-                
-                // Check if data is already cached
-                if (dataCache.has(cacheKey)) {
-                    const cachedData = dataCache.get(cacheKey);
-                    employeesData = cachedData.employees;
-                    holidayRequestsData = cachedData.holidayRequests;
-                    console.log(`Data loaded from cache for ${currentYear}`);
-                    return;
-                }
-                
-                const fileNames = getFileNames(currentYear);
-                
-                // Load employees
-                const employeesResponse = await fetch(GITHUB_RAW_BASE + fileNames.employees);
-                if (!employeesResponse.ok) {
-                    throw new Error(`Failed to fetch employees for ${currentYear}: ${employeesResponse.statusText}`);
-                }
-                employeesData = await employeesResponse.json();
-
-                // Load holiday requests
-                const requestsResponse = await fetch(GITHUB_RAW_BASE + fileNames.holidayRequests);
-                if (!requestsResponse.ok) {
-                    throw new Error(`Failed to fetch holiday requests for ${currentYear}: ${requestsResponse.statusText}`);
-                }
-                holidayRequestsData = await requestsResponse.json();
-
-                // Cache the data
-                dataCache.set(cacheKey, {
-                    employees: employeesData,
-                    holidayRequests: holidayRequestsData
-                });
-
-                console.log(`Data loaded and cached for ${currentYear}`);
-            } catch (error) {
-                console.error('Error loading from GitHub:', error);
-                throw error;
-            }
+    });
+    
+    document.getElementById('employee-select').addEventListener('change', (e) => {
+        const employeeId = parseInt(e.target.value);
+        if (employeeId) {
+            selectEmployee(employeeId);
+        } else {
+            selectedEmployeeId = null;
+            renderCalendar();
+            showNoSelection();
         }
+    });
+    
+    tooltip = document.getElementById('tooltip');
+    
+    // Hide tooltip when mouse leaves the document
+    document.addEventListener('mouseleave', hideTooltip);
 
-        function setupEventListeners() {
-            document.getElementById('prev-month').addEventListener('click', () => {
-                currentDate.setMonth(currentDate.getMonth() - 1);
-                renderCalendar();
-            });
-            
-            document.getElementById('next-month').addEventListener('click', () => {
-                currentDate.setMonth(currentDate.getMonth() + 1);
-                renderCalendar();
-            });
-            
-            document.getElementById('year-select').addEventListener('change', async (e) => {
-                const newYear = parseInt(e.target.value);
-                if (newYear !== currentYear) {
-                    currentYear = newYear;
-                    selectedEmployeeId = null;
-                    
-                    // Update employee dropdown to show loading
-                    const employeeSelect = document.getElementById('employee-select');
-                    employeeSelect.innerHTML = '<option value="">Loading employees...</option>';
-                    
-                    // Show loading
-                    document.getElementById('loading').classList.remove('hidden');
-                    document.getElementById('calendar-section').classList.add('hidden');
-                    
-                    try {
-                        await loadDataFromGitHub();
-                        populateEmployeeDropdown();
-                        renderCalendar();
-                        document.getElementById('loading').classList.add('hidden');
-                        document.getElementById('calendar-section').classList.remove('hidden');
-                    } catch (error) {
-                        console.error('Error loading new year data:', error);
-                        document.getElementById('loading').classList.add('hidden');
-                        showError(`Failed to load data for ${currentYear}. Please try again later.`);
-                    }
-                }
-            });
-            
-            document.getElementById('employee-select').addEventListener('change', (e) => {
-                const employeeId = parseInt(e.target.value);
-                if (employeeId) {
-                    selectEmployee(employeeId);
-                } else {
-                    selectedEmployeeId = null;
-                    renderCalendar();
-                    showNoSelection();
-                }
-            });
-            
-            tooltip = document.getElementById('tooltip');
-            
-            // Hide tooltip when mouse leaves the document
-            document.addEventListener('mouseleave', hideTooltip);
-
-            // Close popover when clicking outside or pressing escape
-            document.addEventListener('click', (e) => {
-                if (currentPopover && !e.target.closest('.popover') && !e.target.closest('.day-info-button')) {
-                    closePopover();
-                }
-            });
-
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && currentPopover) {
-                    closePopover();
-                }
-            });
+    // Close popover when clicking outside or pressing escape
+    document.addEventListener('click', (e) => {
+        if (currentPopover && !e.target.closest('.popover') && !e.target.closest('.day-info-button')) {
+            closePopover();
         }
+    });
 
-        function renderCalendar() {
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-            
-            // Update current date to match selected year if needed
-            if (year !== currentYear) {
-                currentDate.setFullYear(currentYear);
-            }
-            
-            // Update month/year display
-            document.getElementById('current-month-year').textContent = 
-                new Date(currentYear, month).toLocaleDateString('en-GB', { 
-                    month: 'long', 
-                    year: 'numeric' 
-                });
-            
-            // Calculate calendar grid
-            const firstDay = new Date(currentYear, month, 1).getDay();
-            const daysInMonth = new Date(currentYear, month + 1, 0).getDate();
-            const daysInPrevMonth = new Date(currentYear, month, 0).getDate();
-            
-            const calendarBody = document.getElementById('calendar-body');
-            calendarBody.innerHTML = '';
-            
-            let date = 1;
-            let nextMonthDate = 1;
-            const today = new Date();
-            const todayStr = getLocalDateString(today);
-            
-            // Calculate summary stats for current month
-            updateSummaryStats(currentYear, month);
-            
-            // Create 6 weeks (rows)
-            for (let week = 0; week < 6; week++) {
-                const row = calendarBody.insertRow();
-                
-                // Create 7 days (columns)
-                for (let day = 0; day < 7; day++) {
-                    const cell = row.insertCell();
-                    let cellDate, dateStr, isCurrentMonth = true;
-                    
-                    if (week === 0 && day < firstDay) {
-                        // Previous month days
-                        cellDate = daysInPrevMonth - firstDay + day + 1;
-                        dateStr = getLocalDateString(new Date(currentYear, month - 1, cellDate));
-                        isCurrentMonth = false;
-                        cell.classList.add('other-month');
-                    } else if (date > daysInMonth) {
-                        // Next month days
-                        cellDate = nextMonthDate++;
-                        dateStr = getLocalDateString(new Date(currentYear, month + 1, cellDate));
-                        isCurrentMonth = false;
-                        cell.classList.add('other-month');
-                    } else {
-                        // Current month days
-                        cellDate = date++;
-                        dateStr = getLocalDateString(new Date(currentYear, month, cellDate));
-                    }
-                    
-                    // Add day number
-                    const dayNumber = document.createElement('div');
-                    dayNumber.className = 'day-number';
-                    dayNumber.textContent = cellDate;
-                    cell.appendChild(dayNumber);
-
-                    // Get employees on holiday for this date
-                    const employeesOnHoliday = getEmployeesOnHoliday(dateStr);
-
-                    // Add info button (only if there are holidays or it's current month)
-                    if (isCurrentMonth) {
-                        const infoButton = document.createElement('button');
-                        infoButton.className = `day-info-button ${employeesOnHoliday.length === 0 ? 'no-holidays' : ''}`;
-                        infoButton.textContent = employeesOnHoliday.length || 'i';
-                        infoButton.title = employeesOnHoliday.length > 0 ? 
-                            `${employeesOnHoliday.length} employee${employeesOnHoliday.length !== 1 ? 's' : ''} on holiday` : 
-                            'View day info';
-                        
-                        infoButton.addEventListener('click', (e) => {
-                            showDayPopover(e, dateStr, employeesOnHoliday);
-                        });
-
-                        cell.appendChild(infoButton);
-                    }
-                    
-                    // Check if it's today
-                    if (dateStr === todayStr) {
-                        cell.classList.add('today');
-                    }
-                    
-                    // Check if it's weekend
-                    const dayOfWeek = new Date(dateStr).getDay();
-                    if (dayOfWeek === 0 || dayOfWeek === 6) {
-                        cell.classList.add('weekend');
-                    }
-                    
-                    // Add holidays for this date
-                    const holidaysContainer = document.createElement('div');
-                    holidaysContainer.className = 'holidays-container';
-                    
-                    if (employeesOnHoliday.length > 0) {
-                        employeesOnHoliday.forEach(holiday => {
-                            const chip = document.createElement('div');
-                            chip.className = `employee-chip ${holiday.isHalfDay ? 'half-day' : ''}`;
-                            if (holiday.employeeId === selectedEmployeeId) {
-                                chip.classList.add('selected');
-                            }
-                            chip.textContent = holiday.employeeName;
-                            chip.title = `${holiday.employeeName} - ${holiday.isHalfDay ? holiday.halfDayPeriod + ' half-day' : 'Full day'}`;
-                            
-                            // Add click functionality
-                            chip.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                selectEmployee(holiday.employeeId);
-                                // Update dropdown to match selection
-                                document.getElementById('employee-select').value = holiday.employeeId;
-                            });
-                            
-                            // Add tooltip functionality
-                            chip.addEventListener('mouseenter', (e) => showTooltip(e, holiday));
-                            chip.addEventListener('mouseleave', hideTooltip);
-                            
-                            holidaysContainer.appendChild(chip);
-                        });
-                    }
-                    
-                    cell.appendChild(holidaysContainer);
-                }
-            }
-            
-            // Update employee details if someone is selected
-            if (selectedEmployeeId) {
-                displayEmployeeDetails(selectedEmployeeId);
-            }
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && currentPopover) {
+            closePopover();
         }
+    });
+}
 
-        function getEmployeesOnHoliday(date) {
-            const approvedRequests = holidayRequestsData.filter(req => 
-                req.status === 'approved' && 
-                req.startDate <= date && 
-                req.endDate >= date
-            );
+function renderCalendar() {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    
+    // Update current date to match selected year if needed
+    if (year !== currentYear) {
+        currentDate.setFullYear(currentYear);
+    }
+    
+    // Update month/year display
+    document.getElementById('current-month-year').textContent = 
+        new Date(currentYear, month).toLocaleDateString('en-GB', { 
+            month: 'long', 
+            year: 'numeric' 
+        });
+    
+    // Calculate calendar grid
+    const firstDay = new Date(currentYear, month, 1).getDay();
+    const daysInMonth = new Date(currentYear, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(currentYear, month, 0).getDate();
+    
+    const calendarBody = document.getElementById('calendar-body');
+    calendarBody.innerHTML = '';
+    
+    let date = 1;
+    let nextMonthDate = 1;
+    const today = new Date();
+    const todayStr = getLocalDateString(today);
+    
+    // Calculate summary stats for current month
+    updateSummaryStats(currentYear, month);
+    
+    // Create 6 weeks (rows)
+    for (let week = 0; week < 6; week++) {
+        const row = calendarBody.insertRow();
+        
+        // Create 7 days (columns)
+        for (let day = 0; day < 7; day++) {
+            const cell = row.insertCell();
+            let cellDate, dateStr, isCurrentMonth = true;
             
-            return approvedRequests.map(request => {
-                const employee = employeesData.find(emp => emp.id === request.employeeId);
-                return {
-                    employeeId: request.employeeId,
-                    employeeName: employee ? employee.name : 'Unknown Employee',
-                    requestId: request.id,
-                    isHalfDay: request.isHalfDay,
-                    halfDayPeriod: request.halfDayPeriod,
-                    reason: request.reason
-                };
-            }).sort((a, b) => a.employeeName.localeCompare(b.employeeName));
-        }
-
-        function selectEmployee(employeeId) {
-            selectedEmployeeId = employeeId;
-            renderCalendar(); // Re-render to update selected state
-            displayEmployeeDetails(employeeId);
-        }
-
-        function displayEmployeeDetails(employeeId) {
-            const employee = employeesData.find(emp => emp.id === employeeId);
-            const employeeRequests = holidayRequestsData.filter(req => req.employeeId === employeeId);
-            
-            if (!employee) {
-                document.getElementById('employee-info').innerHTML = `
-                    <div class="no-selection">
-                        <div class="no-selection-icon">❌</div>
-                        <p>Employee not found.</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            const approvedRequests = employeeRequests.filter(req => req.status === 'approved');
-            const pendingRequests = employeeRequests.filter(req => req.status === 'pending');
-            const rejectedRequests = employeeRequests.filter(req => req.status === 'rejected');
-            
-            const usedDays = approvedRequests.reduce((sum, req) => sum + req.days, 0);
-            const remainingDays = employee.totalAllowance - usedDays;
-            
-            // Sort requests by start date (newest first)
-            const sortedRequests = [...employeeRequests].sort((a, b) => 
-                new Date(b.startDate) - new Date(a.startDate)
-            );
-            
-            const requestsHtml = sortedRequests.map(request => {
-                const dateRange = request.startDate === request.endDate ? 
-                    formatDate(request.startDate) : 
-                    `${formatDate(request.startDate)} to ${formatDate(request.endDate)}`;
-                
-                const dayText = request.isHalfDay ? 
-                    `${request.days} day (${request.halfDayPeriod} half-day)` : 
-                    `${request.days} days`;
-                
-                return `
-                    <div class="request-item ${request.status}">
-                        <div class="request-dates">${dateRange}</div>
-                        <div class="request-details">
-                            <strong>Duration:</strong> ${dayText}<br>
-                            <strong>Reason:</strong> ${request.reason || 'Not specified'}<br>
-                            <strong>Submitted:</strong> ${formatDate(request.submittedDate)}
-                        </div>
-                        <span class="request-status status-${request.status}">
-                            ${request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                        </span>
-                    </div>
-                `;
-            }).join('');
-            
-            document.getElementById('employee-info').innerHTML = `
-                <div class="selected-employee">
-                    <div class="employee-name">${employee.name}</div>
-                    <div class="employee-stats">
-                        <div class="employee-stat">
-                            <span class="employee-stat-number">${employee.totalAllowance}</span>
-                            <div class="employee-stat-label">Total Allowance</div>
-                        </div>
-                        <div class="employee-stat">
-                            <span class="employee-stat-number">${usedDays}</span>
-                            <div class="employee-stat-label">Days Used</div>
-                        </div>
-                        <div class="employee-stat">
-                            <span class="employee-stat-number">${remainingDays}</span>
-                            <div class="employee-stat-label">Remaining</div>
-                        </div>
-                        <div class="employee-stat">
-                            <span class="employee-stat-number">${employeeRequests.length}</span>
-                            <div class="employee-stat-label">Total Requests</div>
-                        </div>
-                    </div>
-                    <div class="requests-header">Holiday Requests (${currentYear})</div>
-                    <div class="employee-requests">
-                        ${requestsHtml || '<p style="text-align: center; color: #718096; font-style: italic; padding: 2rem;">No holiday requests found</p>'}
-                    </div>
-                </div>
-            `;
-        }
-
-        function showNoSelection() {
-            document.getElementById('employee-info').innerHTML = `
-                <div class="no-selection">
-                    <div class="no-selection-icon">👆</div>
-                    <p>Select an employee from the dropdown above or click on a name in the calendar to view their holiday details.</p>
-                </div>
-            `;
-        }
-
-        function updateSummaryStats(year, month) {
-            const monthStart = getLocalDateString(new Date(year, month, 1));
-            const monthEnd = getLocalDateString(new Date(year, month + 1, 0));
-            
-            // Get all approved requests that overlap with this month
-            const monthlyRequests = holidayRequestsData.filter(req => 
-                req.status === 'approved' && 
-                req.startDate <= monthEnd && 
-                req.endDate >= monthStart
-            );
-            
-            // Count unique employees on holiday this month
-            const uniqueEmployees = new Set(monthlyRequests.map(req => req.employeeId));
-            
-            // Count total holiday days in this month
-            let totalHolidayDays = 0;
-            monthlyRequests.forEach(req => {
-                const requestStart = new Date(Math.max(new Date(req.startDate), new Date(monthStart)));
-                const requestEnd = new Date(Math.min(new Date(req.endDate), new Date(monthEnd)));
-                const days = Math.ceil((requestEnd - requestStart) / (1000 * 60 * 60 * 24)) + 1;
-                totalHolidayDays += req.isHalfDay ? days * 0.5 : days;
-            });
-            
-            // Count pending requests for this month
-            const pendingRequests = holidayRequestsData.filter(req => 
-                req.status === 'pending' && 
-                req.startDate <= monthEnd && 
-                req.endDate >= monthStart
-            );
-            
-            const statsHtml = `
-                <div class="stat-item">
-                    <span class="stat-number">${uniqueEmployees.size}</span>
-                    <div class="stat-label">Employees on Holiday</div>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">${monthlyRequests.length}</span>
-                    <div class="stat-label">Holiday Periods</div>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">${totalHolidayDays}</span>
-                    <div class="stat-label">Total Holiday Days</div>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">${pendingRequests.length}</span>
-                    <div class="stat-label">Pending Requests</div>
-                </div>
-            `;
-            
-            document.getElementById('summary-stats').innerHTML = statsHtml;
-        }
-
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-GB', {
-                weekday: 'short',
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        }
-
-        function showTooltip(event, holiday) {
-            let content = `<strong>${holiday.employeeName}</strong>`;
-            
-            if (holiday.details) {
-                content += `<br>${holiday.details}`;
+            if (week === 0 && day < firstDay) {
+                // Previous month days
+                cellDate = daysInPrevMonth - firstDay + day + 1;
+                dateStr = getLocalDateString(new Date(currentYear, month - 1, cellDate));
+                isCurrentMonth = false;
+                cell.classList.add('other-month');
+            } else if (date > daysInMonth) {
+                // Next month days
+                cellDate = nextMonthDate++;
+                dateStr = getLocalDateString(new Date(currentYear, month + 1, cellDate));
+                isCurrentMonth = false;
+                cell.classList.add('other-month');
             } else {
-                content += `<br>${holiday.isHalfDay ? holiday.halfDayPeriod + ' half-day' : 'Full day'}`;
-                if (holiday.reason) {
-                    content += `<br>Reason: ${holiday.reason}`;
-                }
+                // Current month days
+                cellDate = date++;
+                dateStr = getLocalDateString(new Date(currentYear, month, cellDate));
             }
             
-            tooltip.innerHTML = content;
-            tooltip.classList.remove('hidden');
-            
-            // Position tooltip
-            const rect = tooltip.getBoundingClientRect();
-            const x = event.clientX + 10;
-            const y = event.clientY - rect.height - 10;
-            
-            tooltip.style.left = x + 'px';
-            tooltip.style.top = Math.max(10, y) + 'px';
-        }
+            // Add day number
+            const dayNumber = document.createElement('div');
+            dayNumber.className = 'day-number';
+            dayNumber.textContent = cellDate;
+            cell.appendChild(dayNumber);
 
-        function hideTooltip() {
-            if (tooltip) {
-                tooltip.classList.add('hidden');
+            // Get employees on holiday for this date
+            const employeesOnHoliday = getEmployeesOnHoliday(dateStr);
+
+            // Add info button (only if there are holidays or it's current month)
+            if (isCurrentMonth) {
+                const infoButton = document.createElement('button');
+                infoButton.className = `day-info-button ${employeesOnHoliday.length === 0 ? 'no-holidays' : ''}`;
+                infoButton.textContent = employeesOnHoliday.length || 'i';
+                infoButton.title = employeesOnHoliday.length > 0 ? 
+                    `${employeesOnHoliday.length} employee${employeesOnHoliday.length !== 1 ? 's' : ''} on holiday` : 
+                    'View day info';
+                
+                infoButton.addEventListener('click', (e) => {
+                    showDayPopover(e, dateStr, employeesOnHoliday);
+                });
+
+                cell.appendChild(infoButton);
             }
+            
+            // Check if it's today
+            if (dateStr === todayStr) {
+                cell.classList.add('today');
+            }
+            
+            // Check if it's weekend
+            const dayOfWeek = new Date(dateStr).getDay();
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                cell.classList.add('weekend');
+            }
+            
+            // Add holidays for this date
+            const holidaysContainer = document.createElement('div');
+            holidaysContainer.className = 'holidays-container';
+            
+            if (employeesOnHoliday.length > 0) {
+                employeesOnHoliday.forEach(holiday => {
+                    const chip = document.createElement('div');
+                    chip.className = `employee-chip ${holiday.isHalfDay ? 'half-day' : ''}`;
+                    if (holiday.employeeId === selectedEmployeeId) {
+                        chip.classList.add('selected');
+                    }
+                    chip.textContent = holiday.employeeName;
+                    chip.title = `${holiday.employeeName} - ${holiday.isHalfDay ? holiday.halfDayPeriod + ' half-day' : 'Full day'}`;
+                    
+                    // Add click functionality
+                    chip.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        selectEmployee(holiday.employeeId);
+                        // Update dropdown to match selection
+                        document.getElementById('employee-select').value = holiday.employeeId;
+                    });
+                    
+                    // Add tooltip functionality
+                    chip.addEventListener('mouseenter', (e) => showTooltip(e, holiday));
+                    chip.addEventListener('mouseleave', hideTooltip);
+                    
+                    holidaysContainer.appendChild(chip);
+                });
+            }
+            
+            cell.appendChild(holidaysContainer);
         }
+    }
+    
+    // Update employee details if someone is selected
+    if (selectedEmployeeId) {
+        displayEmployeeDetails(selectedEmployeeId);
+    }
+}
 
-        function showError(message) {
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.textContent = message;
-            errorDiv.classList.remove('hidden');
+function getEmployeesOnHoliday(date) {
+    const approvedRequests = holidayRequestsData.filter(req => 
+        req.status === 'approved' && 
+        req.startDate <= date && 
+        req.endDate >= date
+    );
+    
+    return approvedRequests.map(request => {
+        const employee = employeesData.find(emp => emp.id === request.employeeId);
+        return {
+            employeeId: request.employeeId,
+            employeeName: employee ? employee.name : 'Unknown Employee',
+            requestId: request.id,
+            isHalfDay: request.isHalfDay,
+            halfDayPeriod: request.halfDayPeriod,
+            reason: request.reason
+        };
+    }).sort((a, b) => a.employeeName.localeCompare(b.employeeName));
+}
+
+function selectEmployee(employeeId) {
+    selectedEmployeeId = employeeId;
+    renderCalendar(); // Re-render to update selected state
+    displayEmployeeDetails(employeeId);
+}
+
+function displayEmployeeDetails(employeeId) {
+    const employee = employeesData.find(emp => emp.id === employeeId);
+    const employeeRequests = holidayRequestsData.filter(req => req.employeeId === employeeId);
+    
+    if (!employee) {
+        document.getElementById('employee-info').innerHTML = `
+            <div class="no-selection">
+                <div class="no-selection-icon">❌</div>
+                <p>Employee not found.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const approvedRequests = employeeRequests.filter(req => req.status === 'approved');
+    const pendingRequests = employeeRequests.filter(req => req.status === 'pending');
+    const rejectedRequests = employeeRequests.filter(req => req.status === 'rejected');
+    
+    const usedDays = approvedRequests.reduce((sum, req) => sum + req.days, 0);
+    const remainingDays = employee.totalAllowance - usedDays;
+    
+    // Sort requests by start date (newest first)
+    const sortedRequests = [...employeeRequests].sort((a, b) => 
+        new Date(b.startDate) - new Date(a.startDate)
+    );
+    
+    const requestsHtml = sortedRequests.map(request => {
+        const dateRange = request.startDate === request.endDate ? 
+            formatDate(request.startDate) : 
+            `${formatDate(request.startDate)} to ${formatDate(request.endDate)}`;
+        
+        const dayText = request.isHalfDay ? 
+            `${request.days} day (${request.halfDayPeriod} half-day)` : 
+            `${request.days} days`;
+        
+        return `
+            <div class="request-item ${request.status}">
+                <div class="request-dates">${dateRange}</div>
+                <div class="request-details">
+                    <strong>Duration:</strong> ${dayText}<br>
+                    <strong>Reason:</strong> ${request.reason || 'Not specified'}<br>
+                    <strong>Submitted:</strong> ${formatDate(request.submittedDate)}
+                </div>
+                <span class="request-status status-${request.status}">
+                    ${request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                </span>
+            </div>
+        `;
+    }).join('');
+    
+    document.getElementById('employee-info').innerHTML = `
+        <div class="selected-employee">
+            <div class="employee-name">${employee.name}</div>
+            <div class="employee-stats">
+                <div class="employee-stat">
+                    <span class="employee-stat-number">${employee.totalAllowance}</span>
+                    <div class="employee-stat-label">Total Allowance</div>
+                </div>
+                <div class="employee-stat">
+                    <span class="employee-stat-number">${usedDays}</span>
+                    <div class="employee-stat-label">Days Used</div>
+                </div>
+                <div class="employee-stat">
+                    <span class="employee-stat-number">${remainingDays}</span>
+                    <div class="employee-stat-label">Remaining</div>
+                </div>
+                <div class="employee-stat">
+                    <span class="employee-stat-number">${employeeRequests.length}</span>
+                    <div class="employee-stat-label">Total Requests</div>
+                </div>
+            </div>
+            <div class="requests-header">Holiday Requests (${currentYear})</div>
+            <div class="employee-requests">
+                ${requestsHtml || '<p style="text-align: center; color: #718096; font-style: italic; padding: 2rem;">No holiday requests found</p>'}
+            </div>
+        </div>
+    `;
+}
+
+function showNoSelection() {
+    document.getElementById('employee-info').innerHTML = `
+        <div class="no-selection">
+            <div class="no-selection-icon">👆</div>
+            <p>Select an employee from the dropdown above or click on a name in the calendar to view their holiday details.</p>
+        </div>
+    `;
+}
+
+function updateSummaryStats(year, month) {
+    const monthStart = getLocalDateString(new Date(year, month, 1));
+    const monthEnd = getLocalDateString(new Date(year, month + 1, 0));
+    
+    // Get all approved requests that overlap with this month
+    const monthlyRequests = holidayRequestsData.filter(req => 
+        req.status === 'approved' && 
+        req.startDate <= monthEnd && 
+        req.endDate >= monthStart
+    );
+    
+    // Count unique employees on holiday this month
+    const uniqueEmployees = new Set(monthlyRequests.map(req => req.employeeId));
+    
+    // Count total holiday days in this month
+    let totalHolidayDays = 0;
+    monthlyRequests.forEach(req => {
+        const requestStart = new Date(Math.max(new Date(req.startDate), new Date(monthStart)));
+        const requestEnd = new Date(Math.min(new Date(req.endDate), new Date(monthEnd)));
+        const days = Math.ceil((requestEnd - requestStart) / (1000 * 60 * 60 * 24)) + 1;
+        totalHolidayDays += req.isHalfDay ? days * 0.5 : days;
+    });
+    
+    // Count pending requests for this month
+    const pendingRequests = holidayRequestsData.filter(req => 
+        req.status === 'pending' && 
+        req.startDate <= monthEnd && 
+        req.endDate >= monthStart
+    );
+    
+    const statsHtml = `
+        <div class="stat-item">
+            <span class="stat-number">${uniqueEmployees.size}</span>
+            <div class="stat-label">Employees on Holiday</div>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">${monthlyRequests.length}</span>
+            <div class="stat-label">Holiday Periods</div>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">${totalHolidayDays}</span>
+            <div class="stat-label">Total Holiday Days</div>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">${pendingRequests.length}</span>
+            <div class="stat-label">Pending Requests</div>
+        </div>
+    `;
+    
+    document.getElementById('summary-stats').innerHTML = statsHtml;
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
+function showTooltip(event, holiday) {
+    let content = `<strong>${holiday.employeeName}</strong>`;
+    
+    if (holiday.details) {
+        content += `<br>${holiday.details}`;
+    } else {
+        content += `<br>${holiday.isHalfDay ? holiday.halfDayPeriod + ' half-day' : 'Full day'}`;
+        if (holiday.reason) {
+            content += `<br>Reason: ${holiday.reason}`;
         }
+    }
+    
+    tooltip.innerHTML = content;
+    tooltip.classList.remove('hidden');
+    
+    // Position tooltip
+    const rect = tooltip.getBoundingClientRect();
+    const x = event.clientX + 10;
+    const y = event.clientY - rect.height - 10;
+    
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = Math.max(10, y) + 'px';
+}
 
-        // Initialize app when page loads
-        document.addEventListener('DOMContentLoaded', init);
+function hideTooltip() {
+    if (tooltip) {
+        tooltip.classList.add('hidden');
+    }
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('error-message');
+    errorDiv.textContent = message;
+    errorDiv.classList.remove('hidden');
+}
+
+// Initialize app when page loads
+document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
