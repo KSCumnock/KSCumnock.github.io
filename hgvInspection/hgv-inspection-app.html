@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HGV Safety Inspection</title>
+
+    <!-- Keep original bundle (some code may expect it) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Explicit, known-good libraries so globals are always defined -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #333;
+        }
+
+        .logo-container {
+            flex: 1;
+        }
+
+        .logo-upload {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .logo-upload input {
+            display: none;
+        }
+
+        .logo-preview {
+            margin-top: 10px;
+            max-height: 80px;
+        }
+
+        .title {
+            flex: 2;
+            text-align: center;
+        }
+
+        .title h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .title p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            background: #333;
+            color: white;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        /* UPDATED: give inputs/selects more breathing room vertically */
+        .form-group input,
+        .form-group select {
+            padding: 10px 12px;
+            border: 10px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.5;
+            height: auto;
+        }
+
+        .inspection-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .inspection-table th,
+        .inspection-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .inspection-table th {
+            background: #f0f0f0;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .inspection-table td {
+            font-size: 13px;
+        }
+
+        .status-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .status-btn {
+            padding: 6px 12px;
+            border: 2px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .status-btn.active-ok {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+
+        .status-btn.active-defect {
+            background: #f44336;
+            color: white;
+            border-color: #f44336;
+        }
+
+        .status-btn.active-repair {
+            background: #FF9800;
+            color: white;
+            border-color: #FF9800;
+        }
+
+        .status-btn.active-na {
+            background: #9E9E9E;
+            color: white;
+            border-color: #9E9E9E;
+        }
+
+        .status-btn.active-monitor {
+            background: #2196F3;
+            color: white;
+            border-color: #2196F3;
+        }
+
+        .brake-grid {
+            display: grid;
+            grid-template-columns: auto repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .brake-cell {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .brake-cell.header {
+            background: #f0f0f0;
+            font-weight: bold;
+        }
+
+        .brake-cell input {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            text-align: center;
+            line-height: 1.4;
+            height: auto;
+        }
+
+        .tyre-table {
+            margin-bottom: 20px;
+        }
+
+        .comments-section {
+            margin-top: 20px;
+        }
+
+        .comment-row {
+            display: grid;
+            grid-template-columns: 80px 80px 1fr 50px;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: start;
+        }
+
+        .comment-row input,
+        .comment-row textarea {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.4;
+            height: auto;
+        }
+
+        .comment-row textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .add-comment-btn {
+            padding: 8px 16px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .add-comment-btn:hover {
+            background: #1976D2;
+        }
+
+        .signature-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #ddd;
+        }
+
+        .signature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .signature-box {
+            border: 2px solid #333;
+            padding: 15px;
+            min-height: 100px;
+            background: #fafafa;
+        }
+
+        .signature-box label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+
+        /* UPDATED: give signature inputs same fix */
+        .signature-box input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 16px;
+            line-height: 1.4;
+            height: auto;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+        }
+
+        .btn-secondary {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #1976D2;
+        }
+
+        .btn-upload {
+            background: #FF9800;
+            color: white;
+        }
+
+        .btn-upload:hover {
+            background: #F57C00;
+        }
+
+        .btn-back {
+            background: #9E9E9E;
+            color: white;
+        }
+
+        .btn-back:hover {
+            background: #757575;
+        }
+
+        .status-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+        }
+
+        .status-message.success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .status-message.error {
+            background: #f44336;
+            color: white;
+        }
+
+        .status-message.info {
+            background: #2196F3;
+            color: white;
+        }
+
+        .legend {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .legend-items {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .legend-badge {
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        .emissions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        @media print {
+            @page {
+                size: A4;
+            margin: 10mm;
+            }
+            
+            body {
+                padding: 0;
+                margin: 0;
+                font-size: 10pt;
+            }
+            
+            .container {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+                margin: 0;
+            }
+            
+            .action-buttons,
+            .logo-upload,
+            .add-comment-btn {
+                display: none !important;
+            }
+            
+            .comment-row button {
+                display: none !important;
+            }
+            
+            .section {
+                page-break-inside: avoid;
+                margin-bottom: 10px;
+            }
+            
+            .header {
+                page-break-after: avoid;
+                margin-bottom: 15px;
+            }
+            
+            .inspection-table {
+                page-break-inside: auto;
+                width: 100%;
+                font-size: 9pt;
+            }
+            
+            .inspection-table thead {
+                display: table-header-group;
+            }
+            
+            .inspection-table tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+            
+            .inspection-table th,
+            .inspection-table td {
+                padding: 4px;
+            }
+            
+            .section:has(.brake-grid) {
+                page-break-inside: avoid;
+            }
+            
+            .signature-section {
+                page-break-inside: avoid;
+            }
+            
+            .form-grid {
+                font-size: 9pt;
+            }
+            
+            input[type="text"],
+            input[type="date"],
+            input[type="number"],
+            select,
+            textarea {
+                border: 1px solid #999 !important;
+                font-size: 9pt;
+            }
+            
+            .status-btn {
+                font-size: 8pt;
+                padding: 3px 6px;
+            }
+            
+            .section > div[style*="grid-template-columns: 1fr 1fr"] {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+        }
+        
+        /* PDF clone specific layout */
+        .pdf-generating {
+            width: 210mm;
+            padding: 10mm;
+        }
+        
+        .pdf-generating .section {
+            page-break-inside: avoid;
+            margin-bottom: 10px;
+        }
+        
+        .pdf-generating .inspection-table {
+            font-size: 9px;
+        }
+        
+        .pdf-generating button:not(.status-btn) {
+            display: none;
+        }
+
+        /* NEW: make sure html2canvas doesn't clip baseline in PDF snapshot */
+        .pdf-generating input,
+        .pdf-generating select,
+        .pdf-generating textarea {
+            line-height: 1.4 !important;
+            padding: 10px 12px !important;
+            height: auto !important;
+            font-size: 14px;
+        }
+
+        .overall-result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 2px solid #333;
+            background: #f9f9f9;
+        }
+
+        .overall-result label {
+            font-weight: bold;
+            margin-right: 20px;
+        }
+
+        .overall-result select {
+            padding: 8px 15px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .note-box {
+            background: #fff9c4;
+            border-left: 4px solid #FFC107;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 13px;
+        }
+
+        .note-box strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="inspectionForm">
+        <div class="header">
+            <div class="logo-container">
+                <label class="logo-upload">
+                    <input type="file" id="logoInput" accept="image/*">
+                    Upload Logo
+                </label>
+                <img id="logoPreview" class="logo-preview" style="display: none;" alt="Company Logo">
+            </div>
+            <div class="title">
+                <h1>HGV & Trailer Safety Inspection Record</h1>
+                <p>Maintaining road worthiness with Kerr & Smith Cumnock</p>
+            </div>
+            <div style="flex: 1;"></div>
+        </div>
+
+        <!-- Vehicle Information -->
+        <div class="section">
+            <div class="section-title">Vehicle Information</div>
+            <table class="inspection-table" style="margin-bottom: 0;">
+                <tr>
+                    <td style="width: 50%; padding: 10px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">Vehicle Reg Mark / ID No:</label>
+                        <input type="text" id="regMark" placeholder="e.g. AB12 CDE" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                    </td>
+                    <td style="width: 50%; padding: 10px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">Odometer Reading:</label>
+                        <input type="text" id="odometer" placeholder="e.g. 125000" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">Make and Model Type:</label>
+                        <input type="text" id="makeModel" placeholder="e.g. Mercedes Actros" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                    </td>
+                    <td style="padding: 10px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">VIN:</label>
+                        <input type="text" id="vin" placeholder="Vehicle Identification Number" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">Date of Inspection:</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="date" id="inspectionDate" style="flex: 1; border: 1px solid #ddd; border-radius: 3px;">
+                            <div style="width: 120px;">
+                                <label style="font-weight: bold; display: block; margin-bottom: 5px; font-size: 12px;">ISO Wk No.:</label>
+                                <input type="text" id="isoWeek" placeholder="W42" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                            </div>
+                        </div>
+                    </td>
+                    <td style="padding: 10px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">Inspection organisation:</label>
+                        <input type="text" id="inspectionOrg" placeholder="Testing Station" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">Operator:</label>
+                        <input type="text" id="operator" placeholder="Company Name" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                    </td>
+                    <td style="padding: 10px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">Location of inspection:</label>
+                        <input type="text" id="location" placeholder="City/Address" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-title">Status Codes</div>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <span class="legend-badge" style="background: #4CAF50; color: white;">✓</span>
+                    <span>Satisfactory</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-badge" style="background: #f44336; color: white;">✗</span>
+                    <span>Safety Item Defect</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-badge" style="background: #FF9800; color: white;">R</span>
+                    <span>Repair Required</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-badge" style="background: #9E9E9E; color: white;">N/A</span>
+                    <span>Not Applicable</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-badge" style="background: #2196F3; color: white;">M</span>
+                    <span>Monitor (maintenance required before next SI)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Part 1A -->
+        <div class="section">
+            <div class="section-title">Part 1A - Inside Vehicle (items marked * do not apply to trailers)</div>
+            <table class="inspection-table" id="insideVehicleTable">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">Check No.</th>
+                        <th style="width: 60px;">IM Ref</th>
+                        <th>Item Inspected</th>
+                        <th style="width: 200px;">Status</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Part 1B -->
+        <div class="section">
+            <div class="section-title">Part 1B - Ground Level and Under Vehicle</div>
+            <table class="inspection-table" id="groundLevelTable">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">Check No.</th>
+                        <th style="width: 60px;">IM Ref</th>
+                        <th>Item Inspected</th>
+                        <th style="width: 200px;">Status</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Tyres -->
+        <div class="section">
+            <div class="section-title">IM8 - Condition of Tyres as Presented (enter N/A if not applicable)</div>
+            <table class="inspection-table" style="margin-bottom: 20px;">
+                <thead>
+                    <tr>
+                        <th style="width: 120px;">Ck 51</th>
+                        <th>Axle 1</th>
+                        <th>Axle 2</th>
+                        <th>Axle 3</th>
+                        <th>Axle 4</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>o/s out</strong></td>
+                        <td>
+                            <input type="text" placeholder="mm" id="tyre_os_out_tread_1" style="width: 100%; margin-bottom: 3px;">
+                            <input type="text" placeholder="psi" id="tyre_os_out_psi_1" style="width: 100%;">
+                        </td>
+                        <td>
+                            <input type="text" placeholder="mm" id="tyre_os_out_tread_2" style="width: 100%; margin-bottom: 3px;">
+                            <input type="text" placeholder="psi" id="tyre_os_out_psi_2" style="width: 100%;">
+                        </td>
+                        <td>
+                            <input type="text" placeholder="mm" id="tyre_os_out_tread_3" style="width: 100%; margin-bottom: 3px;">
+                            <input type="text" placeholder="psi" id="tyre_os_out_psi_3" style="width: 100%;">
+                        </td>
+                        <td>
+                            <input type="text" placeholder="mm" id="tyre_os_out_tread_4" style="width: 100%; margin-bottom: 3px;">
+                            <input type="text" placeholder="psi" id="tyre_os_out_psi_4" style="width: 100%;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>o/s in</strong></td>
+                        <td>
+                            <input type="text" placeholder="mm" id="tyre_os_in_tread_1" style="width: 100%; margin-bottom: 3px;">
+                            <input type="text" placeholder="psi" id="tyre_os_in_psi_1" style="width: 100%;">
+                        </td>
+                        <td>
+                            <input type="text" placeholder="mm" id="tyre_os_in_tread_2" style="width: 100%; margin-bottom: 3px;">
+                            <input type="text" placeholder="psi" id="tyre_os_in_psi_2" style="width: 100%;">
+                        </td>
+                        <td>
+                            <input type="text" placeholder="mm" id="tyre_os_in_tread_3" style="width: 100%; margin-bottom: 3px;">
+                            <input type="text" placeholder="psi" id="tyre_os_in_psi_3" style="width: 100%;">
+                        </td>
+                        <td>
+                            <input type="text" placeholder="mm" id="tyre_os_in_tread_4" style="width: 100%; margin-bottom: 3px;">
+                            <input type="text" placeholder="psi" id="tyre_os_in_psi_4" style="width: 100%;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>n/s in</strong></td>
+                        <td>
+                            <input type="text" placeholder="mm" id="tyre_ns_in_tread_1" style="width: 100%; margin-bottom: 3px;">
+                            <input type="text" placeholder="psi" id="tyre_ns_in_psi_1" style="width: 100%;">
+                        </td>
+                        <td>
+                            <input type="text" placeholder="mm" id="tyre_ns_in_tread_2" style="width: 100%; margin-bottom: 3px;">
+                            <input type="text" placeholder="psi" id="tyre_ns_in_psi_2" style="width: 100%;">
+                        </td>
+                        <td>
+                            <input type="text" placeholder="mm" id="tyre_ns_in_tread_3" style="width: 100%; margin-bottom: 3px;">
+                            <input type="text" placeholder="psi" id="tyre_ns_in_psi_3" style="width: 100%;">
+                        </td>
+                        <td>
+                            <input type="text" placeholder="mm" id="tyre_ns_in_tread_4" style="width: 100%; margin-bottom: 3px;">
+                            <input type="text" placeholder="psi" id="tyre_ns_in_psi_4" style="width: 100%;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>n/s out</strong></td>
+                        <td>
+                            <input type="text" placeholder="mm" id="tyre_ns_out_tread_1" style="width: 100%; margin-bottom: 3px;">
+                            <input type="text" placeholder="psi" id="tyre_ns_out_psi_1" style="width: 100%;">
+                        </td>
+                        <td>
+                            <input type="text" placeholder="mm" id="tyre_ns_out_tread_2" style="width: 100%; margin-bottom: 3px;">
+                            <input type="text" placeholder="psi" id="tyre_ns_out_psi_2" style="width: 100%;">
+                        </td>
+                        <td>
+                            <input type="text" placeholder="mm" id="tyre_ns_out_tread_3" style="width: 100%; margin-bottom: 3px;">
+                            <input type="text" placeholder="psi" id="tyre_ns_out_psi_3" style="width: 100%;">
+                        </td>
+                        <td>
+                            <input type="text" placeholder="mm" id="tyre_ns_out_tread_4" style="width: 100%; margin-bottom: 3px;">
+                            <input type="text" placeholder="psi" id="tyre_ns_out_psi_4" style="width: 100%;">
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Brakes + Temp -->
+        <div class="section">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- Part C -->
+                <div>
+                    <div class="section-title" style="margin-bottom: 15px;">C: Braking performance assessment</div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="margin-bottom: 8px;">
+                            <label style="font-size: 13px; font-weight: bold;">Date of assessment:</label>
+                            <input type="date" id="brakeAssessmentDate" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <label style="font-size: 13px; font-weight: bold;">Laden – (measured weight) / unladen</label>
+                            <select id="ladenStatus" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                                <option value="laden">Laden (measured weight)</option>
+                                <option value="unladen">Unladen</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <label style="font-size: 13px; font-weight: bold;">(roller brake test* / decelerometer test + temp./ EBPMS**)</label>
+                            <select id="testMethod" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                                <option value="rbt">Roller Brake Test (RBT)</option>
+                                <option value="decelerometer">Decelerometer Test + Temp</option>
+                                <option value="ebpms">EBPMS</option>
+                            </select>
+                        </div>
+                        <div style="font-size: 11px; color: #666; margin-top: 10px; padding: 8px; background: #f9f9f9; border-left: 3px solid #999;">
+                            * RBT printout attached (yes/no) – If an RBT report is attached to the safety inspection form the RBT results table can be left blank<br>
+                            ** If EBPMS is used the report needs to be attached to the safety inspection
+                        </div>
+                    </div>
+
+                    <table class="inspection-table" style="margin-bottom: 10px; font-size: 12px;">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">Check No</th>
+                                <th style="width: 60px;">IM Ref</th>
+                                <th>Item inspected</th>
+                                <th style="width: 80px;">Efficiency</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>52</td>
+                                <td>71</td>
+                                <td>Service Brake Performance</td>
+                                <td><input type="text" id="serviceBrakeEff" placeholder="%" style="width: 100%; padding: 4px; line-height:1.4; height:auto;"></td>
+                            </tr>
+                            <tr>
+                                <td>53</td>
+                                <td>72</td>
+                                <td>Secondary Brake Performance</td>
+                                <td><input type="text" id="secondaryBrakeEff" placeholder="%" style="width: 100%; padding: 4px; line-height:1.4; height:auto;"></td>
+                            </tr>
+                            <tr>
+                                <td>54</td>
+                                <td>73</td>
+                                <td>Parking Brake Performance</td>
+                                <td><input type="text" id="parkingBrakeEff" placeholder="%" style="width: 100%; padding: 4px; line-height:1.4; height:auto;"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div>
+                            <label style="font-size: 12px; font-weight: bold;">EBPMS Braking performance value:</label>
+                            <input type="text" id="ebpms_value" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; font-weight: bold;">Assessment period:</label>
+                            <input type="text" id="ebpms_period" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Part D -->
+                <div>
+                    <div class="section-title" style="margin-bottom: 15px;">D: Brake temperature assessment</div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-size: 13px; font-weight: bold;">Ambient air temperature:</label>
+                        <input type="text" id="ambientTemp" placeholder="°C" style="width: 150px; border: 1px solid #ddd; border-radius: 3px;">
+                    </div>
+
+                    <table class="inspection-table" style="font-size: 12px;">
+                        <thead>
+                            <tr>
+                                <th>Side</th>
+                                <th>Axle 1</th>
+                                <th>Axle 2</th>
+                                <th>Axle 3</th>
+                                <th>Axle 4</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>N/S</strong></td>
+                                <td><input type="text" id="temp_ns_1" placeholder="°C" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                                <td><input type="text" id="temp_ns_2" placeholder="°C" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                                <td><input type="text" id="temp_ns_3" placeholder="°C" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                                <td><input type="text" id="temp_ns_4" placeholder="°C" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td><input type="text" id="temp_ns_1b" placeholder="°C" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                                <td><input type="text" id="temp_ns_2b" placeholder="°C" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                                <td><input type="text" id="temp_ns_3b" placeholder="°C" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                                <td><input type="text" id="temp_ns_4b" placeholder="°C" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>O/S</strong></td>
+                                <td><input type="text" id="temp_os_1" placeholder="°C" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                                <td><input type="text" id="temp_os_2" placeholder="°C" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                                <td><input type="text" id="temp_os_3" placeholder="°C" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                                <td><input type="text" id="temp_os_4" placeholder="°C" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td><input type="text" id="temp_os_1b" placeholder="°C" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                                <td><input type="text" id="temp_os_2b" placeholder="°C" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                                <td><input type="text" id="temp_os_3b" placeholder="°C" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                                <td><input type="text" id="temp_os_4b" placeholder="°C" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- RBT Results -->
+            <div style="margin-top: 20px;">
+                <table class="inspection-table" style="font-size: 11px;">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">Axle RBT results*</th>
+                            <th rowspan="2">Imbalance<br>kg</th>
+                            <th colspan="2">Time Lag<br>(pass / fail)</th>
+                            <th rowspan="2">Ovality<br>(Front steer)</th>
+                            <th rowspan="2">Bind kg</th>
+                            <th>Max Force kg<br>(Indicate if locked)</th>
+                            <th>Parking kg<br>(Indicate if locked)</th>
+                        </tr>
+                        <tr>
+                            <th>N/S</th>
+                            <th>O/S</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Axle 1 - weight</strong></td>
+                            <td><input type="text" id="brake_imbalance_1" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                            <td colspan="2" style="padding: 2px;">
+                                <div style="margin-bottom: 2px;"><input type="text" id="brake_ns_timelag_1" placeholder="N/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                                <div><input type="text" id="brake_os_timelag_1" placeholder="O/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                            </td>
+                            <td><input type="text" id="brake_ovality_1" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                            <td><input type="text" id="brake_bind_1" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                            <td style="padding: 2px;">
+                                <div style="margin-bottom: 2px;"><input type="text" id="brake_ns_maxforce_1" placeholder="N/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                                <div><input type="text" id="brake_os_maxforce_1" placeholder="O/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                            </td>
+                            <td style="padding: 2px;">
+                                <div style="margin-bottom: 2px;"><input type="text" id="brake_ns_parking_1" placeholder="N/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                                <div><input type="text" id="brake_os_parking_1" placeholder="O/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Axle 2 - weight</strong></td>
+                            <td><input type="text" id="brake_imbalance_2" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                            <td colspan="2" style="padding: 2px;">
+                                <div style="margin-bottom: 2px;"><input type="text" id="brake_ns_timelag_2" placeholder="N/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                                <div><input type="text" id="brake_os_timelag_2" placeholder="O/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                            </td>
+                            <td><input type="text" id="brake_ovality_2" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                            <td><input type="text" id="brake_bind_2" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                            <td style="padding: 2px;">
+                                <div style="margin-bottom: 2px;"><input type="text" id="brake_ns_maxforce_2" placeholder="N/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                                <div><input type="text" id="brake_os_maxforce_2" placeholder="O/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                            </td>
+                            <td style="padding: 2px;">
+                                <div style="margin-bottom: 2px;"><input type="text" id="brake_ns_parking_2" placeholder="N/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                                <div><input type="text" id="brake_os_parking_2" placeholder="O/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Axle 3 - weight</strong></td>
+                            <td><input type="text" id="brake_imbalance_3" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                            <td colspan="2" style="padding: 2px;">
+                                <div style="margin-bottom: 2px;"><input type="text" id="brake_ns_timelag_3" placeholder="N/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                                <div><input type="text" id="brake_os_timelag_3" placeholder="O/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                            </td>
+                            <td><input type="text" id="brake_ovality_3" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                            <td><input type="text" id="brake_bind_3" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                            <td style="padding: 2px;">
+                                <div style="margin-bottom: 2px;"><input type="text" id="brake_ns_maxforce_3" placeholder="N/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                                <div><input type="text" id="brake_os_maxforce_3" placeholder="O/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                            </td>
+                            <td style="padding: 2px;">
+                                <div style="margin-bottom: 2px;"><input type="text" id="brake_ns_parking_3" placeholder="N/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                                <div><input type="text" id="brake_os_parking_3" placeholder="O/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Axle 4 - weight</strong></td>
+                            <td><input type="text" id="brake_imbalance_4" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                            <td colspan="2" style="padding: 2px;">
+                                <div style="margin-bottom: 2px;"><input type="text" id="brake_ns_timelag_4" placeholder="N/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                                <div><input type="text" id="brake_os_timelag_4" placeholder="O/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                            </td>
+                            <td><input type="text" id="brake_ovality_4" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                            <td><input type="text" id="brake_bind_4" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></td>
+                            <td style="padding: 2px;">
+                                <div style="margin-bottom: 2px;"><input type="text" id="brake_ns_maxforce_4" placeholder="N/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                                <div><input type="text" id="brake_os_maxforce_4" placeholder="O/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                            </td>
+                            <td style="padding: 2px;">
+                                <div style="margin-bottom: 2px;"><input type="text" id="brake_ns_parking_4" placeholder="N/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                                <div><input type="text" id="brake_os_parking_4" placeholder="O/S" style="width: 100%; padding:4px; line-height:1.4; height:auto;"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- duplicate EBPMS block (kept so we don't remove existing fields) -->
+                <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label style="font-size: 12px; font-weight: bold;">EBPMS Braking performance value:</label>
+                        <input type="text" id="ebpms_value_dup" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; font-weight: bold;">Assessment period:</label>
+                        <input type="text" id="ebpms_period_dup" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overall Result -->
+            <div style="margin-top: 20px; border: 2px solid #333; padding: 15px; background: #f9f9f9;">
+                <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                    <label style="font-weight: bold; margin-right: 20px; font-size: 14px;">Overall Result:</label>
+                    <select id="overallResult" style="padding: 8px 15px; font-size: 14px; font-weight: bold; border: 1px solid #333;">
+                        <option value="satisfactory">Satisfactory</option>
+                        <option value="unsatisfactory">Unsatisfactory</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: bold; display: block; margin-bottom: 5px;">Inspector comments:</label>
+                    <textarea id="inspectorComments" style="width: 100%; min-height: 60px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 3px; font-family: Arial, sans-serif; line-height:1.4; height:auto;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emissions -->
+        <div class="section">
+            <div class="section-title">Exhaust Emissions Testing</div>
+            <div class="emissions-grid">
+                <div class="form-group">
+                    <label>Smoke Opacity (m⁻¹):</label>
+                    <input type="number" step="0.01" id="smokeOpacity" placeholder="Max varies by Euro standard">
+                </div>
+                <div class="form-group">
+                    <label>Plate Value (m⁻¹):</label>
+                    <input type="number" step="0.01" id="plateValue" placeholder="If available">
+                </div>
+                <div class="form-group">
+                    <label>Pass/Fail:</label>
+                    <select id="emissionsResult">
+                        <option value="pass">Pass</option>
+                        <option value="fail">Fail</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>DPF Present:</label>
+                    <select id="dpfPresent">
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                        <option value="na">N/A</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Visible Smoke:</label>
+                    <select id="visibleSmoke">
+                        <option value="none">None</option>
+                        <option value="present">Present</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>MIL (Warning Light):</label>
+                    <select id="milStatus">
+                        <option value="off">Off</option>
+                        <option value="on">On</option>
+                    </select>
+                </div>
+            </div>
+            <div class="note-box">
+                <strong>Note:</strong>
+                Euro 6 vehicles: Default limit 0.7 m⁻¹ (unless plate value higher)<br>
+                Pre-July 2008: Use default or plate value (whichever lower)<br>
+                Post-July 2008: Use plate value where present
+            </div>
+        </div>
+
+        <!-- Tachograph & Documentation -->
+        <div class="section">
+            <div class="section-title">Tachograph & Documentation</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Tachograph Calibration Due Date:</label>
+                    <input type="date" id="tachoCalibDate">
+                </div>
+                <div class="form-group">
+                    <label>Tachograph Seal Intact:</label>
+                    <select id="tachoSeal">
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                        <option value="na">N/A</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Speed Limiter Calibration:</label>
+                    <input type="date" id="speedLimiterDate">
+                </div>
+                <div class="form-group">
+                    <label>Next MOT Due:</label>
+                    <input type="date" id="motDueDate">
+                </div>
+            </div>
+        </div>
+
+        <!-- Fault comments -->
+        <div class="section comments-section">
+            <div class="section-title">Part 2 - Comments on Faults Found</div>
+            <div id="commentsContainer"></div>
+            <button class="add-comment-btn" onclick="addComment()">+ Add Fault Comment</button>
+        </div>
+
+        <!-- Declarations / Signatures -->
+        <div class="signature-section">
+            <div class="section-title">Part 4 - Declaration & Signature</div>
+            <div class="note-box">
+                <strong>Declaration:</strong> "I consider that the above defects have been rectified satisfactorily and this vehicle or trailer is now in a safe and roadworthy condition."
+            </div>
+            <div class="signature-grid">
+                <div class="signature-box">
+                    <label>Inspector Details</label>
+                    <input type="text" id="inspectorName" placeholder="Inspector Name">
+                    <input type="text" id="inspectorPosition" placeholder="Position">
+                    <input type="date" id="inspectorDate">
+                    <div style="margin-top: 15px; padding-top: 30px; border-top: 2px solid #999; font-size:18px;">
+                        Signature
+                    </div>
+                </div>
+                <div class="signature-box">
+                    <label>Technician Details (Defects Rectified By)</label>
+                    <input type="text" id="technicianName" placeholder="Technician Name">
+                    <input type="text" id="technicianPosition" placeholder="Position">
+                    <input type="date" id="technicianDate">
+                    <div style="margin-top: 15px; padding-top: 30px; border-top: 2px solid #999; font-size:18px;">
+                        Signature
+                    </div>
+                </div>
+            </div>
+            <div class="note-box" style="margin-top: 20px;">
+                <strong>Important Note:</strong>
+                It is always the responsibility of the operator to ensure that the vehicle or trailer is in a roadworthy condition before being used on the road.
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="btn btn-back" onclick="goBack()">← Back to Home</button>
+            <button class="btn btn-primary" onclick="generateAndDownloadPDF()">Save as PDF</button>
+            <button class="btn btn-upload" onclick="uploadToGitHub()">Upload to Server</button>
+            <button class="btn btn-secondary" onclick="window.print()">Print Report</button>
+        </div>
+
+        <!-- Status Message -->
+        <div id="statusMessage" class="status-message"></div>
+    </div>
+
+    <script>
+        // ---------------- CONFIG ----------------
+        const CLOUDFLARE_WORKER_URL = 'https://hgv-inspection-token.ske-d03.workers.dev';
+        const GITHUB_OWNER = 'KSCumnock';
+        const GITHUB_REPO = 'HGV_Inspections';
+        const GITHUB_PATH = 'Inspections';
+
+        // A4 constants
+        const A4_WIDTH_MM = 210;
+        const A4_HEIGHT_MM = 297;
+
+        const A4_WIDTH_PX = 794;
+        const A4_HEIGHT_PX = Math.round(A4_WIDTH_PX * (A4_HEIGHT_MM / A4_WIDTH_MM)); // ~1123px
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = `status-message ${type}`;
+            statusDiv.style.display = 'block';
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        // ---------------- TABLE SETUP ----------------
+        const insideVehicleItems = [
+            { checkNo: 1, imRef: 18, item: "Seats*" },
+            { checkNo: 2, imRef: 3, item: "Seat Belts and Supplementary Restraint Systems*" },
+            { checkNo: 3, imRef: 22, item: "Mirrors and Indirect Vision Devices*" },
+            { checkNo: 4, imRef: 23, item: "Glass and View of the Road*" },
+            { checkNo: 5, imRef: 25, item: "Windscreen Washers and Wipers*" },
+            { checkNo: 6, imRef: 26, item: "Speedometer / Tachograph*" },
+            { checkNo: 7, imRef: 27, item: "Horn*" },
+            { checkNo: 8, imRef: 28, item: "Driving Controls / Warning Lamps (Inc ADAS)*" },
+            { checkNo: 9, imRef: 30, item: "Steering Control*" },
+            { checkNo: 10, imRef: 37, item: "Service Brake Pedal*" },
+            { checkNo: 11, imRef: 38, item: "Service Brake Operation (inc ABS/EBS, ESC & ISO 7638 cable)" },
+            { checkNo: 12, imRef: 34, item: "Pressure / Vacuum Warning and Build Up*" },
+            { checkNo: 13, imRef: 36, item: "Hand Lever Operating Mechanical Park Brakes and Electronic Park Brake Control*" },
+            { checkNo: 14, imRef: 39, item: "Hand Operated Brake Control Valves" },
+            { checkNo: 15, imRef: 17, item: "Cab Floors and Steps*" },
+            { checkNo: 16, imRef: "", item: "OBD - Diagnostic trouble code (DTC) check" }
+        ];
+
+        const groundLevelItems = [
+            { checkNo: 17, imRef: 16, item: "Cab Doors*" },
+            { checkNo: 18, imRef: 1, item: "Registration Plates*" },
+            { checkNo: 19, imRef: 15, item: "Cab Security*" },
+            { checkNo: 20, imRef: 19, item: "Security of Body, Containers and Crane Support Legs" },
+            { checkNo: 21, imRef: 20, item: "Condition of Body" },
+            { checkNo: 22, imRef: 5, item: "Exhaust Emissions* / MIL" },
+            { checkNo: 23, imRef: 6, item: "Road Wheels and Hubs" },
+            { checkNo: 24, imRef: 7, item: "Size and Type of Tyres" },
+            { checkNo: 25, imRef: 8, item: "Condition of Tyres (including age and date code)" },
+            { checkNo: 26, imRef: 9, item: "Sideguards, Rear Under-Run Devices and Bumper Bars" },
+            { checkNo: 27, imRef: 10, item: "Spare Wheel and Carrier" },
+            { checkNo: 28, imRef: 41, item: "Condition of Chassis" },
+            { checkNo: 29, imRef: 11, item: "Vehicle to Trailer Coupling" },
+            { checkNo: 30, imRef: 12, item: "Trailer Parking and Emergency Brake and Air Line Connections" },
+            { checkNo: 31, imRef: 13, item: "Trailer Landing Legs" },
+            { checkNo: 32, imRef: 14, item: "Spray Suppression, Wings and Wheel Arches" },
+            { checkNo: 33, imRef: 33, item: "Speed Limiter*" },
+            { checkNo: 34, imRef: 42, item: "Electrical Wiring and Equipment" },
+            { checkNo: 35, imRef: 43, item: "Engine and Transmission Mountings*" },
+            { checkNo: 36, imRef: 44, item: "Oil Leaks" },
+            { checkNo: 37, imRef: 45, item: "Fuel Tanks and System" },
+            { checkNo: 38, imRef: 46, item: "Exhaust Systems and Nuisance*" },
+            { checkNo: 39, imRef: 54, item: "Steering" },
+            { checkNo: 40, imRef: 48, item: "Suspension" },
+            { checkNo: 41, imRef: 53, item: "Axles, Stub Axles and Wheel Bearings" },
+            { checkNo: 42, imRef: 57, item: "Transmission" },
+            { checkNo: 43, imRef: 58, item: "Additional Braking Devices" },
+            { checkNo: 44, imRef: 59, item: "Brake Systems and Components" },
+            { checkNo: 45, imRef: 62, item: "Markers and Reflectors" },
+            { checkNo: 46, imRef: 63, item: "Lamps" },
+            { checkNo: 47, imRef: 66, item: "Direction Indicators and Hazard Warning Lamps" },
+            { checkNo: 48, imRef: 67, item: "Aim of Headlamps*" },
+            { checkNo: 49, imRef: 74, item: "Other dangerous defects" },
+            { checkNo: 50, imRef: "", item: "Safety recall check" }
+        ];
+
+        function createInspectionRow(item) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.checkNo}</td>
+                <td>${item.imRef}</td>
+                <td>${item.item}</td>
+                <td>
+                    <div class="status-buttons">
+                        <button class="status-btn" onclick="setStatus(this, 'ok', ${item.checkNo})" title="Satisfactory">✓</button>
+                        <button class="status-btn" onclick="setStatus(this, 'defect', ${item.checkNo})" title="Safety Defect">✗</button>
+                        <button class="status-btn" onclick="setStatus(this, 'repair', ${item.checkNo})" title="Repair Required">R</button>
+                        <button class="status-btn" onclick="setStatus(this, 'na', ${item.checkNo})" title="Not Applicable">N/A</button>
+                        <button class="status-btn" onclick="setStatus(this, 'monitor', ${item.checkNo})" title="Monitor">M</button>
+                    </div>
+                </td>
+                <td>
+                    <input type="text" id="notes_${item.checkNo}" placeholder="Add notes..." style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                </td>
+            `;
+            return row;
+        }
+
+        function initializeTables() {
+            const insideTable = document.getElementById('insideVehicleTable').querySelector('tbody');
+            const groundTable = document.getElementById('groundLevelTable').querySelector('tbody');
+
+            insideVehicleItems.forEach(item => {
+                insideTable.appendChild(createInspectionRow(item));
+            });
+
+            groundLevelItems.forEach(item => {
+                groundTable.appendChild(createInspectionRow(item));
+            });
+
+            const today = new Date();
+            document.getElementById('inspectionDate').valueAsDate = today;
+            document.getElementById('brakeAssessmentDate').valueAsDate = today;
+            document.getElementById('inspectorDate').valueAsDate = today;
+            document.getElementById('technicianDate').valueAsDate = today;
+        }
+
+        // ---------------- STATUS & COMMENTS ----------------
+        const faultComments = new Map();
+        let commentCount = 0;
+
+        function setStatus(button, status, checkNo) {
+            const buttons = button.parentElement.querySelectorAll('.status-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('active-ok', 'active-defect', 'active-repair', 'active-na', 'active-monitor');
+            });
+
+            button.classList.add(`active-${status}`);
+            button.parentElement.setAttribute('data-status', status);
+
+            if (status === 'defect' || status === 'repair' || status === 'monitor') {
+                autoAddFaultComment(checkNo, status, button);
+            } else {
+                removeFaultComment(checkNo);
+            }
+        }
+
+        function autoAddFaultComment(checkNo, status, button) {
+            if (faultComments.has(checkNo)) {
+                const existingComment = faultComments.get(checkNo);
+                const faultNoInput = existingComment.querySelector(`[id^="comment_fault_"]`);
+                if (faultNoInput) {
+                    let faultType = '';
+                    if (status === 'defect') faultType = 'SD';
+                    else if (status === 'repair') faultType = 'R';
+                    else if (status === 'monitor') faultType = 'M';
+                    faultNoInput.value = faultType;
+                }
+                return;
+            }
+
+            const row = button.closest('tr');
+            const itemName = row.querySelector('td:nth-child(3)').textContent;
+
+            let faultType = '';
+            if (status === 'defect') faultType = 'SD';
+            else if (status === 'repair') faultType = 'R';
+            else if (status === 'monitor') faultType = 'M';
+
+            commentCount++;
+            const container = document.getElementById('commentsContainer');
+            const commentRow = document.createElement('div');
+            commentRow.className = 'comment-row';
+            commentRow.setAttribute('data-check-no', checkNo);
+            commentRow.innerHTML = `
+                <input type="text" placeholder="Check No." id="comment_check_${commentCount}" value="${checkNo}" readonly style="background: #f0f0f0;">
+                <input type="text" placeholder="Fault No." id="comment_fault_${commentCount}" value="${faultType}">
+                <textarea placeholder="Fault details for: ${itemName}" id="comment_details_${commentCount}"></textarea>
+                <button onclick="removeCommentRow(this, ${checkNo})" style="padding: 8px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">✕</button>
+            `;
+            container.appendChild(commentRow);
+
+            faultComments.set(checkNo, commentRow);
+
+            setTimeout(() => {
+                document.getElementById(`comment_details_${commentCount}`).focus();
+            }, 100);
+        }
+
+        function removeFaultComment(checkNo) {
+            if (faultComments.has(checkNo)) {
+                const commentRow = faultComments.get(checkNo);
+                commentRow.remove();
+                faultComments.delete(checkNo);
+            }
+        }
+
+        function removeCommentRow(button, checkNo) {
+            const row = button.parentElement;
+            row.remove();
+            if (checkNo) {
+                faultComments.delete(checkNo);
+            }
+        }
+
+        function addComment() {
+            commentCount++;
+            const container = document.getElementById('commentsContainer');
+            const commentRow = document.createElement('div');
+            commentRow.className = 'comment-row';
+            commentRow.innerHTML = `
+                <input type="text" placeholder="Check No." id="comment_check_${commentCount}">
+                <input type="text" placeholder="Fault No." id="comment_fault_${commentCount}">
+                <textarea placeholder="Fault details..." id="comment_details_${commentCount}"></textarea>
+                <button onclick="removeManualComment(this)" style="padding: 8px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">✕</button>
+            `;
+            container.appendChild(commentRow);
+        }
+
+        function removeManualComment(button) {
+            button.parentElement.remove();
+        }
+
+        // ---------------- LOGO PREVIEW ----------------
+        document.getElementById('logoInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const logoPreview = document.getElementById('logoPreview');
+                    logoPreview.src = event.target.result;
+                    logoPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // ---------------- PDF GENERATION ----------------
+        async function buildPDFCloneAndGetCanvas() {
+            const original = document.getElementById('inspectionForm');
+
+            const clone = original.cloneNode(true);
+            clone.id = 'inspectionForm_pdfClone';
+            clone.classList.add('pdf-generating');
+
+            clone.style.position = 'absolute';
+            clone.style.left = '-9999px';
+            clone.style.top = '0';
+            clone.style.width = A4_WIDTH_PX + 'px';
+            clone.style.maxWidth = A4_WIDTH_PX + 'px';
+            clone.style.boxShadow = 'none';
+            clone.style.borderRadius = '0';
+            clone.style.background = '#ffffff';
+            clone.style.padding = '20px';
+            clone.style.margin = '0';
+
+            const hideSelectors = [
+                '.action-buttons',
+                '.logo-upload',
+                '.add-comment-btn',
+                '#statusMessage',
+                '.comment-row button'
+            ];
+            hideSelectors.forEach(sel => {
+                clone.querySelectorAll(sel).forEach(el => {
+                    el.style.display = 'none';
+                });
+            });
+
+            document.body.appendChild(clone);
+
+            const canvas = await window.html2canvas(clone, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff',
+                width: clone.offsetWidth,
+                windowWidth: clone.offsetWidth
+            });
+
+            function cleanup() {
+                if (clone && clone.parentNode) {
+                    clone.parentNode.removeChild(clone);
+                }
+            }
+
+            return { canvas, cleanup };
+        }
+
+        async function renderCanvasToJsPDF() {
+            const { canvas, cleanup } = await buildPDFCloneAndGetCanvas();
+
+            try {
+                const jsPDFConstructor = window.jspdf.jsPDF;
+                const pdf = new jsPDFConstructor({
+                    unit: 'mm',
+                    format: 'a4',
+                    orientation: 'portrait'
+                });
+
+                const pageWidthMM = A4_WIDTH_MM;
+                const pageHeightMM = A4_HEIGHT_MM;
+
+                const pageWidthPX = A4_WIDTH_PX * 2;
+                const pageHeightPX = Math.round(A4_HEIGHT_PX * 2);
+
+                const fullCanvasWidthPX = canvas.width;
+                const fullCanvasHeightPX = canvas.height;
+
+                let currentY = 0;
+                let pageIndex = 0;
+
+                while (currentY < fullCanvasHeightPX) {
+                    const pageCanvas = document.createElement('canvas');
+                    pageCanvas.width = fullCanvasWidthPX;
+                    pageCanvas.height = Math.min(pageHeightPX, fullCanvasHeightPX - currentY);
+
+                    const pageCtx = pageCanvas.getContext('2d');
+                    pageCtx.drawImage(
+                        canvas,
+                        0, currentY,
+                        fullCanvasWidthPX, pageCanvas.height,
+                        0, 0,
+                        fullCanvasWidthPX, pageCanvas.height
+                    );
+
+                    const imgData = pageCanvas.toDataURL('image/jpeg', 0.95);
+
+                    if (pageIndex > 0) {
+                        pdf.addPage();
+                    }
+
+                    const sliceHeightMM = (pageCanvas.height / fullCanvasWidthPX) * pageWidthMM;
+
+                    pdf.addImage(
+                        imgData,
+                        'JPEG',
+                        0,
+                        0,
+                        pageWidthMM,
+                        sliceHeightMM
+                    );
+
+                    currentY += pageHeightPX;
+                    pageIndex++;
+                }
+
+                const pdfBlob = pdf.output('blob');
+                return { pdf, blob: pdfBlob };
+            } finally {
+                cleanup();
+            }
+        }
+
+        async function generateAndDownloadPDF() {
+            showStatus('Generating PDF...', 'info');
+            try {
+                const { pdf } = await renderCanvasToJsPDF();
+
+                const regMark = document.getElementById('regMark').value || 'Report';
+                const date = new Date().toISOString().split('T')[0];
+                const filename = `HGV_Inspection_${regMark}_${date}.pdf`;
+
+                pdf.save(filename);
+                showStatus('✓ PDF downloaded successfully!', 'success');
+            } catch (err) {
+                console.error('PDF generation error:', err);
+                showStatus('Error generating PDF. Please try Print instead.', 'error');
+            }
+        }
+
+        async function generatePDFBlob() {
+            const { blob } = await renderCanvasToJsPDF();
+            return blob;
+        }
+
+        // ---------------- GITHUB UPLOAD ----------------
+        async function uploadToGitHub() {
+            try {
+                showStatus('Preparing PDF for upload...', 'info');
+
+                const regMark = document.getElementById('regMark').value;
+                if (!regMark) {
+                    showStatus('Please enter Vehicle Registration Mark before uploading', 'error');
+                    return;
+                }
+
+                const pdfBlob = await generatePDFBlob();
+
+                showStatus('Converting PDF...', 'info');
+
+                const reader = new FileReader();
+                const base64Promise = new Promise((resolve, reject) => {
+                    reader.onloadend = () => {
+                        const base64String = reader.result.split(',')[1];
+                        resolve(base64String);
+                    };
+                    reader.onerror = reject;
+                });
+                reader.readAsDataURL(pdfBlob);
+
+                const base64Content = await base64Promise;
+
+                showStatus('Uploading to GitHub...', 'info');
+
+                const tokenResponse = await fetch(CLOUDFLARE_WORKER_URL);
+                if (!tokenResponse.ok) {
+                    throw new Error('Failed to fetch authentication token');
+                }
+                const tokenData = await tokenResponse.json();
+                const githubToken = tokenData.token;
+
+                const date = new Date().toISOString().split('T')[0];
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('.')[0];
+                const filename = `HGV_Inspection_${regMark}_${timestamp}.pdf`;
+
+                const uploadUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_PATH}/${filename}`;
+
+                const uploadResponse = await fetch(uploadUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${githubToken}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `Add inspection report for ${regMark} - ${date}`,
+                        content: base64Content,
+                        branch: 'main'
+                    })
+                });
+
+                if (!uploadResponse.ok) {
+                    const errorData = await uploadResponse.json();
+                    throw new Error(errorData.message || 'Upload failed');
+                }
+
+                showStatus(`✓ Successfully uploaded: ${filename}`, 'success');
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                showStatus(`Error uploading: ${error.message}`, 'error');
+            }
+        }
+
+        // ---------------- INIT ----------------
+        window.addEventListener('DOMContentLoaded', initializeTables);
+    </script>
+</body>
+</html>
