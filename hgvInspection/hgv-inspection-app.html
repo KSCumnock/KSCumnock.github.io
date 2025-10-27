@@ -704,11 +704,7 @@
     <div class="container" id="inspectionForm">
         <div class="header">
             <div class="logo-container">
-                <label class="logo-upload">
-                    <input type="file" id="logoInput" accept="image/*">
-                    Upload Logo
-                </label>
-                <img id="logoPreview" class="logo-preview" style="display: none;" alt="Company Logo">
+                <img src="kandslogo.png" class="logo-preview" alt="Kerr & Smith Cumnock Ltd Logo">
             </div>
             <div class="title">
                 <h1>HGV & Trailer Safety Inspection Record</h1>
@@ -1546,20 +1542,6 @@
             button.parentElement.remove();
         }
 
-        // ---------------- LOGO PREVIEW ----------------
-        document.getElementById('logoInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const logoPreview = document.getElementById('logoPreview');
-                    logoPreview.src = event.target.result;
-                    logoPreview.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
         // ---------------- PDF GENERATION ----------------
         async function buildPDFCloneAndGetCanvas() {
             const original = document.getElementById('inspectionForm');
@@ -1581,7 +1563,6 @@
 
             const hideSelectors = [
                 '.action-buttons',
-                '.logo-upload',
                 '.add-comment-btn',
                 '#statusMessage',
                 '.comment-row button'
