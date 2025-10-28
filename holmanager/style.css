@@ -56,6 +56,39 @@
             font-weight: 500;
             transition: all 0.3s ease;
             color: #333;
+            position: relative;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #dc3545;
+            color: white;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            min-width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+            animation: badge-pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes badge-pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+        
+        .notification-badge.hidden {
+            display: none !important;
         }
         
         .tab.active {

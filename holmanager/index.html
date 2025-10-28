@@ -33,7 +33,10 @@
             <button class="tab active" onclick="showTab('employee')">Employee Portal</button>
             <button class="tab" onclick="showTab('calendar')">Calendar View</button>
             <button class="tab" onclick="showTab('analytics')">Analytics</button>
-            <button class="tab" onclick="showTab('admin')">Admin Panel</button>
+            <button class="tab" onclick="showTab('admin')">
+                Admin Panel
+                <span id="admin-notification-badge" class="notification-badge hidden">0</span>
+            </button>
         </div>
         
         <!-- Employee Portal -->
@@ -274,15 +277,9 @@
             </div>
             
             <!-- Year Comparison -->
-            <div style="background: white; border-radius: 12px; padding: 25px; margin-bottom: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            <div style="background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
                 <h3 style="margin-bottom: 20px; color: #333;">Year-over-Year Comparison</h3>
                 <div id="year-comparison"></div>
-            </div>
-            
-            <!-- Sick Days Deep Dive -->
-            <div style="background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-                <h3 style="margin-bottom: 20px; color: #333;">🤒 Sick Days Deep Dive</h3>
-                <div id="sick-days-analysis"></div>
             </div>
         </div>
         
