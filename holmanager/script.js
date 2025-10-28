@@ -8,15 +8,13 @@ function filterEmployeeCards() {
     });
 }
 
-// Configuration - GitHub Integration
+// Configuration - GitHub Integration via Cloudflare Worker
 const GITHUB_CONFIG = {
     owner: 'KSCumnock',
     repo: 'Holidays',
     branch: 'main',
-    token: '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',
+    workerUrl: 'https://ks-holiday-manager.ske-d03.workers.dev/api/github'
 };
-
-const GITHUB_API_BASE = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/`;
 
 // Data storage with GitHub SHA tracking
 let employees = [];
@@ -44,14 +42,20 @@ function getHolidayRequestsFileName() {
     return `holiday-requests${currentYear}.json`;
 }
 
-// GitHub API Functions
+// GitHub API Functions via Cloudflare Worker
 async function getFileFromGitHub(filename) {
     try {
-        const response = await fetch(GITHUB_API_BASE + filename, {
+        const response = await fetch(GITHUB_CONFIG.workerUrl, {
+            method: 'POST',
             headers: {
-                'Authorization': `token ${GITHUB_CONFIG.token}`,
-                'Accept': 'application/vnd.github.v3+json'
-            }
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'get',
+                owner: GITHUB_CONFIG.owner,
+                repo: GITHUB_CONFIG.repo,
+                path: filename
+            })
         });
         
         if (!response.ok) {
@@ -62,18 +66,19 @@ async function getFileFromGitHub(filename) {
                     sha: null
                 };
             }
-            throw new Error(`Failed to fetch ${filename}: ${response.statusText}`);
+            const errorData = await response.json();
+            throw new Error(`Failed to fetch ${filename}: ${errorData.error || response.statusText}`);
         }
         
         const data = await response.json();
         return {
-            content: JSON.parse(atob(data.content)),
+            content: data.content,
             sha: data.sha
         };
     } catch (error) {
         console.error(`Error fetching ${filename}:`, error);
         // Return empty structure if file doesn't exist
-        if (error.message.includes('404')) {
+        if (error.message.includes('404') || error.message.includes('File not found')) {
             return {
                 content: [],
                 sha: null
@@ -85,28 +90,26 @@ async function getFileFromGitHub(filename) {
 
 async function saveFileToGitHub(filename, content, sha, commitMessage) {
     try {
-        const body = {
-            message: commitMessage,
-            content: btoa(JSON.stringify(content, null, 2)),
-            branch: GITHUB_CONFIG.branch
-        };
-        
-        if (sha) {
-            body.sha = sha;
-        }
-        
-        const response = await fetch(GITHUB_API_BASE + filename, {
-            method: 'PUT',
+        const response = await fetch(GITHUB_CONFIG.workerUrl, {
+            method: 'POST',
             headers: {
-                'Authorization': `token ${GITHUB_CONFIG.token}`,
-                'Accept': 'application/vnd.github.v3+json',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(body)
+            body: JSON.stringify({
+                action: 'update',
+                owner: GITHUB_CONFIG.owner,
+                repo: GITHUB_CONFIG.repo,
+                path: filename,
+                content: content,
+                sha: sha,
+                message: commitMessage,
+                branch: GITHUB_CONFIG.branch
+            })
         });
         
         if (!response.ok) {
-            throw new Error(`Failed to save ${filename}: ${response.statusText}`);
+            const errorData = await response.json();
+            throw new Error(`Failed to save ${filename}: ${errorData.error || response.statusText}`);
         }
         
         return await response.json();
@@ -2257,6 +2260,7 @@ function refreshAnalytics() {
     renderKeyInsights(analyticsYear);
     renderForecasting(analyticsYear);
     renderYearComparison(analyticsYear);
+    renderSickDaysAnalysis(analyticsYear);
 }
 
 function calculateKeyMetrics(year) {
@@ -2664,6 +2668,246 @@ function renderYearComparison(year) {
     html += '</div>';
     
     document.getElementById('year-comparison').innerHTML = html;
+}
+
+function renderSickDaysAnalysis(year) {
+    const sickRequests = holidayRequests.filter(req => {
+        const reqYear = new Date(req.startDate).getFullYear();
+        return reqYear === year && req.requestType === 'sick' && req.status === 'approved';
+    });
+    
+    if (sickRequests.length === 0) {
+        document.getElementById('sick-days-analysis').innerHTML = '<p style="color: #999;">No sick days recorded for this year</p>';
+        return;
+    }
+    
+    // Total sick days
+    const totalSickDays = sickRequests.reduce((sum, req) => sum + (req.days || 0), 0);
+    
+    // Sick days per employee
+    const sickByEmployee = {};
+    employees.forEach(emp => {
+        sickByEmployee[emp.id] = {
+            name: emp.name,
+            days: 0,
+            requests: 0
+        };
+    });
+    
+    sickRequests.forEach(req => {
+        if (sickByEmployee[req.employeeId]) {
+            sickByEmployee[req.employeeId].days += req.days || 0;
+            sickByEmployee[req.employeeId].requests += 1;
+        }
+    });
+    
+    // Sort by days taken
+    const sortedEmployees = Object.values(sickByEmployee)
+        .filter(emp => emp.days > 0)
+        .sort((a, b) => b.days - a.days);
+    
+    // Average sick days per employee
+    const avgSickDays = employees.length > 0 ? (totalSickDays / employees.length).toFixed(1) : 0;
+    
+    // Sick days by month
+    const monthlyData = new Array(12).fill(0);
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    sickRequests.forEach(req => {
+        const month = new Date(req.startDate).getMonth();
+        monthlyData[month] += req.days || 0;
+    });
+    
+    // Find peak month
+    const peakMonthIndex = monthlyData.indexOf(Math.max(...monthlyData));
+    const peakMonth = monthNames[peakMonthIndex];
+    const peakDays = monthlyData[peakMonthIndex];
+    
+    // Sick days by day of week
+    const dayOfWeekCounts = [0, 0, 0, 0, 0, 0, 0];
+    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    sickRequests.forEach(req => {
+        const dayOfWeek = new Date(req.startDate).getDay();
+        dayOfWeekCounts[dayOfWeek]++;
+    });
+    
+    const maxDayCount = Math.max(...dayOfWeekCounts);
+    const mostCommonDayIndex = dayOfWeekCounts.indexOf(maxDayCount);
+    
+    // Calculate deducted vs non-deducted
+    const deductedDays = sickRequests.filter(req => req.deductFromAllowance).reduce((sum, req) => sum + req.days, 0);
+    const nonDeductedDays = totalSickDays - deductedDays;
+    
+    // Average duration
+    const avgDuration = sickRequests.length > 0 ? (totalSickDays / sickRequests.length).toFixed(1) : 0;
+    
+    // Build HTML
+    let html = `
+        <!-- Summary Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
+            <div style="padding: 20px; background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); border-radius: 12px; color: white; box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);">
+                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Total Sick Days</div>
+                <div style="font-size: 32px; font-weight: 700;">${totalSickDays}</div>
+                <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">${sickRequests.length} requests</div>
+            </div>
+            
+            <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Average per Employee</div>
+                <div style="font-size: 32px; font-weight: 700;">${avgSickDays}</div>
+                <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">days</div>
+            </div>
+            
+            <div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; color: white; box-shadow: 0 4px 12px rgba(240, 147, 251, 0.3);">
+                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Average Duration</div>
+                <div style="font-size: 32px; font-weight: 700;">${avgDuration}</div>
+                <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">days per request</div>
+            </div>
+            
+            <div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 12px; color: white; box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);">
+                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Peak Month</div>
+                <div style="font-size: 32px; font-weight: 700;">${peakMonth}</div>
+                <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">${peakDays} days</div>
+            </div>
+        </div>
+        
+        <!-- Monthly Distribution Chart -->
+        <div style="margin-bottom: 30px;">
+            <h4 style="margin-bottom: 15px; color: #333; font-weight: 500;">📊 Monthly Distribution</h4>
+            <div style="display: flex; align-items: flex-end; justify-content: space-between; height: 180px; gap: 5px; background: #f8f9fa; padding: 20px; border-radius: 12px;">
+    `;
+    
+    const maxMonthDays = Math.max(...monthlyData, 1);
+    monthlyData.forEach((days, index) => {
+        const height = (days / maxMonthDays * 100);
+        const barColor = days === peakDays ? '#ffc107' : '#667eea';
+        html += `
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;">
+                <div style="width: 100%; background: ${barColor}; 
+                            border-radius: 4px 4px 0 0; transition: all 0.3s ease;
+                            height: ${height}%; position: relative;"
+                     onmouseover="this.style.opacity='0.7'"
+                     onmouseout="this.style.opacity='1'">
+                    ${days > 0 ? `<div style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); 
+                                            font-size: 11px; font-weight: 600; color: #333;">${days}</div>` : ''}
+                </div>
+                <div style="margin-top: 8px; font-size: 11px; color: #666; font-weight: 500;">${monthNames[index]}</div>
+            </div>
+        `;
+    });
+    
+    html += `
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
+            <!-- Day of Week Pattern -->
+            <div>
+                <h4 style="margin-bottom: 15px; color: #333; font-weight: 500;">📅 Day of Week Pattern</h4>
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 12px;">
+    `;
+    
+    dayOfWeekCounts.forEach((count, index) => {
+        const percentage = maxDayCount > 0 ? (count / maxDayCount * 100) : 0;
+        const isWeekend = index === 0 || index === 6;
+        const barColor = isWeekend ? '#6c757d' : '#667eea';
+        html += `
+            <div style="margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span style="font-size: 14px; font-weight: 500; color: #333;">${daysOfWeek[index]}</span>
+                    <span style="font-size: 14px; color: #666;">${count} requests</span>
+                </div>
+                <div style="background: #e9ecef; border-radius: 8px; height: 24px; overflow: hidden;">
+                    <div style="background: ${barColor}; height: 100%; width: ${percentage}%; transition: width 0.3s ease;"></div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `
+                </div>
+            </div>
+            
+            <!-- Deduction Analysis -->
+            <div>
+                <h4 style="margin-bottom: 15px; color: #333; font-weight: 500;">💳 Holiday Allowance Impact</h4>
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 12px;">
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-weight: 500; color: #333;">Deducted from Allowance</span>
+                            <span style="font-weight: 600; color: #dc3545;">${deductedDays} days</span>
+                        </div>
+                        <div style="background: #e9ecef; border-radius: 8px; height: 32px; overflow: hidden;">
+                            <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); height: 100%; width: ${totalSickDays > 0 ? (deductedDays / totalSickDays * 100) : 0}%; 
+                                        display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px;">
+                                ${totalSickDays > 0 ? ((deductedDays / totalSickDays * 100).toFixed(0)) : 0}%
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-weight: 500; color: #333;">Not Deducted</span>
+                            <span style="font-weight: 600; color: #28a745;">${nonDeductedDays} days</span>
+                        </div>
+                        <div style="background: #e9ecef; border-radius: 8px; height: 32px; overflow: hidden;">
+                            <div style="background: linear-gradient(135deg, #28a745 0%, #218838 100%); height: 100%; width: ${totalSickDays > 0 ? (nonDeductedDays / totalSickDays * 100) : 0}%; 
+                                        display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px;">
+                                ${totalSickDays > 0 ? ((nonDeductedDays / totalSickDays * 100).toFixed(0)) : 0}%
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 12px; background: white; border-radius: 8px; border-left: 3px solid #ffc107;">
+                        <div style="font-size: 13px; color: #666; margin-bottom: 3px;">Most Common Day</div>
+                        <div style="font-size: 18px; font-weight: 600; color: #333;">${daysOfWeek[mostCommonDayIndex]}</div>
+                        <div style="font-size: 12px; color: #999; margin-top: 3px;">${maxDayCount} sick leave requests started on ${daysOfWeek[mostCommonDayIndex]}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Employee Breakdown -->
+        <div>
+            <h4 style="margin-bottom: 15px; color: #333; font-weight: 500;">👥 Employee Breakdown</h4>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 12px;">
+    `;
+    
+    if (sortedEmployees.length === 0) {
+        html += '<p style="color: #999;">No sick days recorded</p>';
+    } else {
+        sortedEmployees.slice(0, 10).forEach((emp, index) => {
+            const percentage = totalSickDays > 0 ? (emp.days / totalSickDays * 100).toFixed(1) : 0;
+            const medals = ['🥇', '🥈', '🥉'];
+            const medal = index < 3 ? medals[index] : `${index + 1}.`;
+            
+            html += `
+                <div style="background: white; border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 3px solid #ffc107;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 500; color: #333; margin-bottom: 5px;">
+                                <span style="font-size: 18px; margin-right: 8px;">${medal}</span>
+                                ${emp.name}
+                            </div>
+                            <div style="font-size: 13px; color: #666;">
+                                ${emp.requests} ${emp.requests === 1 ? 'request' : 'requests'} • ${emp.days} ${emp.days === 1 ? 'day' : 'days'} • ${percentage}% of total
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 24px; font-weight: 700; color: #ffc107;">${emp.days}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('sick-days-analysis').innerHTML = html;
 }
 
 // ==================== END ANALYTICS FUNCTIONS ====================

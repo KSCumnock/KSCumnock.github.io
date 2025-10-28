@@ -41,9 +41,10 @@ export default {
         // GET request to fetch file
         const response = await fetch(githubApiUrl, {
           headers: {
-            'Authorization': `token ${githubToken}`,
+            'Authorization': `Bearer ${githubToken}`,
             'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'Cloudflare-Worker'
+            'User-Agent': 'Cloudflare-Worker',
+            'X-GitHub-Api-Version': '2022-11-28'
           }
         });
 
@@ -54,13 +55,16 @@ export default {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });
           }
+          const errorText = await response.text();
+          console.error('GitHub GET error:', response.status, response.statusText, errorText);
           throw new Error(`GitHub API error: ${response.statusText}`);
         }
 
         const data = await response.json();
         
-        // Decode base64 content
-        const decodedContent = JSON.parse(atob(data.content));
+        // Decode base64 content (remove line breaks first)
+        const base64Content = data.content.replace(/\n/g, '');
+        const decodedContent = JSON.parse(atob(base64Content));
         
         return new Response(JSON.stringify({
           content: decodedContent,
@@ -84,16 +88,18 @@ export default {
         const response = await fetch(githubApiUrl, {
           method: 'PUT',
           headers: {
-            'Authorization': `token ${githubToken}`,
+            'Authorization': `Bearer ${githubToken}`,
             'Accept': 'application/vnd.github.v3+json',
             'Content-Type': 'application/json',
-            'User-Agent': 'Cloudflare-Worker'
+            'User-Agent': 'Cloudflare-Worker',
+            'X-GitHub-Api-Version': '2022-11-28'
           },
           body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
           const errorText = await response.text();
+          console.error('GitHub PUT error:', response.status, response.statusText, errorText);
           throw new Error(`GitHub API error: ${response.statusText} - ${errorText}`);
         }
 

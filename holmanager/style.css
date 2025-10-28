@@ -849,6 +849,10 @@
             border-radius: 8px;
             margin-bottom: 20px;
         }
+        
+        .hidden {
+            display: none !important;
+        }
 
         .year-selector {
     background: rgba(255, 255, 255, 0.2);
