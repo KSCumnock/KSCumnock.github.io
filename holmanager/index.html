@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Holiday Management</title>
     <link href="style.css" rel="stylesheet"/>
-    <!-- EmailJS SDK for email notifications -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 
 <body>
@@ -35,7 +33,10 @@
             <button class="tab active" onclick="showTab('employee')">Employee Portal</button>
             <button class="tab" onclick="showTab('calendar')">Calendar View</button>
             <button class="tab" onclick="showTab('analytics')">Analytics</button>
-            <button class="tab" onclick="showTab('admin')">Admin Panel</button>
+            <button class="tab" onclick="showTab('admin')">
+                Admin Panel
+                <span id="admin-notification-badge" class="notification-badge hidden">0</span>
+            </button>
         </div>
         
         <!-- Employee Portal -->

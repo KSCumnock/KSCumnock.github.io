@@ -16,25 +16,6 @@ const GITHUB_CONFIG = {
     workerUrl: 'https://ks-holiday-manager.ske-d03.workers.dev/api/github'
 };
 
-// Email Configuration
-// You can use EmailJS (https://www.emailjs.com/) or any other email service
-// Instructions:
-// 1. Sign up for EmailJS (free tier available)
-// 2. Create an email service and template
-// 3. Replace the values below with your EmailJS credentials
-const EMAIL_CONFIG = {
-    serviceId: 'service_uhfejsl',  // Replace with your EmailJS service ID
-    templateId: 'template_i5sq3ci', // Replace with your EmailJS template ID
-    publicKey: 'cB2IeD1LQI51b-1sG'    // Replace with your EmailJS public key
-};
-
-// To setup EmailJS:
-// 1. Go to https://www.emailjs.com/
-// 2. Create a free account
-// 3. Add an email service (Gmail, Outlook, etc.)
-// 4. Create a template with these variables: {{employee_name}}, {{request_type}}, {{start_date}}, {{end_date}}, {{days}}, {{status}}, {{half_day_period}}
-// 5. Copy your Service ID, Template ID, and Public Key to the config above
-
 // Data storage with GitHub SHA tracking
 let employees = [];
 let holidayRequests = [];
@@ -51,6 +32,19 @@ let currentYear = 2025; // Add current year tracking
 let isBlockBooking = false;
 let selectedDates = [];
 let blockCalendarDate = new Date();
+
+// Function to update notification badge
+function updateNotificationBadge(count) {
+    const badge = document.getElementById('admin-notification-badge');
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+}
 
 // Dynamic file names based on selected year
 function getEmployeesFileName() {
@@ -250,6 +244,10 @@ async function changeYear() {
         populateEmployeeCards();
         renderCalendar();
         
+        // Update notification badge
+        const pendingCount = holidayRequests.filter(req => req.status === 'pending').length;
+        updateNotificationBadge(pendingCount);
+        
         // Refresh admin data if admin panel is active
         const adminTab = document.getElementById('admin-tab');
         if (adminTab && !adminTab.classList.contains('hidden')) {
@@ -287,6 +285,10 @@ async function init() {
         populateEmployeeCards();
         renderCalendar();
         showTab('employee');
+        
+        // Update notification badge on initial load
+        const pendingCount = holidayRequests.filter(req => req.status === 'pending').length;
+        updateNotificationBadge(pendingCount);
         
         document.getElementById('employee-loading').classList.add('hidden');
         document.getElementById('employee-content').classList.remove('hidden');
@@ -1530,6 +1532,9 @@ function loadPendingRequests() {
     const container = document.getElementById('pending-requests');
     const pendingRequests = holidayRequests.filter(req => req.status === 'pending');
     
+    // Update notification badge
+    updateNotificationBadge(pendingRequests.length);
+    
     if (pendingRequests.length === 0) {
         container.innerHTML = '<p>No pending requests.</p>';
         return;
@@ -1738,54 +1743,6 @@ function getConflictingEmployees(pendingRequest) {
     return conflictingEmployees;
 }
 
-// Email notification function
-async function sendEmailNotification(employee, request, status) {
-    // Check if EmailJS is configured
-    if (EMAIL_CONFIG.serviceId === 'YOUR_EMAILJS_SERVICE_ID') {
-        console.log('Email notifications not configured. Set up EmailJS credentials in EMAIL_CONFIG.');
-        return;
-    }
-    
-    try {
-        // Format dates
-        const startDate = new Date(request.startDate).toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-        });
-        const endDate = new Date(request.endDate).toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-        });
-        
-        // Prepare email parameters
-        const emailParams = {
-            employee_name: employee.name,
-            request_type: request.requestType.charAt(0).toUpperCase() + request.requestType.slice(1),
-            start_date: startDate,
-            end_date: endDate,
-            days: request.days,
-            status: status.toUpperCase(),
-            half_day_period: request.isHalfDay ? ` (${request.halfDayPeriod.toUpperCase()})` : '',
-            status_color: status === 'approved' ? '#28a745' : '#dc3545'
-        };
-        
-        // Send email using EmailJS
-        const response = await emailjs.send(
-            EMAIL_CONFIG.serviceId,
-            EMAIL_CONFIG.templateId,
-            emailParams,
-            EMAIL_CONFIG.publicKey
-        );
-        
-        console.log('Email notification sent successfully:', response);
-    } catch (error) {
-        console.error('Failed to send email notification:', error);
-        // Don't throw error - we don't want to break the approve/decline flow if email fails
-    }
-}
-
 async function approveRequest(requestId) {
     const request = holidayRequests.find(req => req.id === requestId);
     if (request) {
@@ -1799,9 +1756,6 @@ async function approveRequest(requestId) {
                 employee.usedDays += request.days;
                 await saveEmployees();
             }
-            
-            // Send email notification
-            await sendEmailNotification(employee, request, 'approved');
         }
         
         await saveHolidayRequests();
@@ -1813,10 +1767,9 @@ async function approveRequest(requestId) {
 async function rejectRequest(requestId) {
     const request = holidayRequests.find(req => req.id === requestId);
     if (request) {
-        const employee = employees.find(emp => emp.id === request.employeeId);
-        
         // If this was previously approved and deducted days, return them
         if (request.status === 'approved' && (request.requestType === 'holiday' || request.deductFromHoliday)) {
+            const employee = employees.find(emp => emp.id === request.employeeId);
             if (employee) {
                 employee.usedDays -= request.days;
                 await saveEmployees();
@@ -1825,12 +1778,6 @@ async function rejectRequest(requestId) {
         
         request.status = 'rejected';
         request.rejectedDate = new Date().toISOString().split('T')[0];
-        
-        // Send email notification
-        if (employee) {
-            await sendEmailNotification(employee, request, 'declined');
-        }
-        
         await saveHolidayRequests();
         loadAdminData();
     }
