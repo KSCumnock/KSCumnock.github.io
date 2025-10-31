@@ -17,23 +17,27 @@ const GITHUB_CONFIG = {
 };
 
 // Email Configuration
-// You can use EmailJS (https://www.emailjs.com/) or any other email service
-// Instructions:
-// 1. Sign up for EmailJS (free tier available)
-// 2. Create email services and templates
-// 3. Replace the values below with your EmailJS credentials
 const EMAIL_CONFIG = {
-    serviceId: 'service_uhfejsl',  // Replace with your EmailJS service ID
-    publicKey: 'cB2IeD1LQI51b-1sG',  // Replace with your EmailJS public key
+    serviceId: 'service_uhfejsl',
+    publicKey: 'cB2IeD1LQI51b-1sG',
     
     // Template IDs for different notification types
     templates: {
         employeeNotification: 'template_i5sq3ci',  // For approve/decline/cancel notifications to employees
-        adminNotification: 'template_79v1u6v'         // For new submission notifications to admins
+        adminNotification: 'template_79v1u6v'      // For new submission notifications to admins
     },
     
     // Admin email addresses (for new request notifications)
-    adminEmails: 'ske@kerrandsmith.co.uk, sar@kerrandsmith.co.uk, ake@kerrandsmith.co.uk, nde@kerrandsmith.co.uk, ksh@kerrandsmith.co.uk, dmc@kerrandsmith.co.uk, wsm@kerrandsmith.co.uk'
+    // Each admin will receive their own individual email
+    adminEmails: [
+        'ske@kerrandsmith.co.uk',
+        'sar@kerrandsmith.co.uk',
+        'ake@kerrandsmith.co.uk',
+        'nde@kerrandsmith.co.uk',
+        'ksh@kerrandsmith.co.uk',
+        'dmc@kerrandsmith.co.uk',
+        'wsm@kerrandsmith.co.uk'
+    ]
 };
 
 // To setup EmailJS:
@@ -1782,15 +1786,15 @@ async function sendEmailNotification(employee, request, notificationType) {
             year: 'numeric'
         });
         
-        let emailParams;
         let templateId;
+        let emailPromises = [];
         
         // Determine which template and parameters to use based on notification type
         if (notificationType === 'new_request') {
-            // Admin notification for new request
+            // Admin notification for new request - send to EACH admin individually
             templateId = EMAIL_CONFIG.templates.adminNotification;
-            emailParams = {
-                to_email: EMAIL_CONFIG.adminEmails,
+            
+            const baseParams = {
                 employee_name: employee.name,
                 request_type: request.requestType.charAt(0).toUpperCase() + request.requestType.slice(1),
                 start_date: startDate,
@@ -1801,8 +1805,30 @@ async function sendEmailNotification(employee, request, notificationType) {
                 is_block_booking: request.isBlockBooking ? 'Yes' : 'No',
                 year: currentYear
             };
+            
+            // Send individual email to each admin
+            for (const adminEmail of EMAIL_CONFIG.adminEmails) {
+                const emailParams = {
+                    ...baseParams,
+                    to_email: adminEmail  // Send to individual admin
+                };
+                
+                emailPromises.push(
+                    emailjs.send(
+                        EMAIL_CONFIG.serviceId,
+                        templateId,
+                        emailParams,
+                        EMAIL_CONFIG.publicKey
+                    )
+                );
+            }
+            
+            // Wait for all admin emails to send
+            await Promise.all(emailPromises);
+            console.log(`Sent ${emailPromises.length} admin notification emails successfully`);
+            
         } else {
-            // Employee notification for approve/decline/cancel
+            // Employee notification for approve/decline/cancel - single email
             templateId = EMAIL_CONFIG.templates.employeeNotification;
             
             // Determine status text and color
@@ -1819,7 +1845,7 @@ async function sendEmailNotification(employee, request, notificationType) {
                 statusColor = '#ffc107';
             }
             
-            emailParams = {
+            const emailParams = {
                 employee_name: employee.name,
                 request_type: request.requestType.charAt(0).toUpperCase() + request.requestType.slice(1),
                 start_date: startDate,
@@ -1829,21 +1855,24 @@ async function sendEmailNotification(employee, request, notificationType) {
                 half_day_period: request.isHalfDay ? ` (${request.halfDayPeriod.toUpperCase()})` : '',
                 status_color: statusColor
             };
+            
+            // Send single email to employee
+            await emailjs.send(
+                EMAIL_CONFIG.serviceId,
+                templateId,
+                emailParams,
+                EMAIL_CONFIG.publicKey
+            );
+            
+            console.log(`Email notification sent successfully to ${employee.name}`);
         }
-        
-        // Send email using EmailJS
-        const response = await emailjs.send(
-            EMAIL_CONFIG.serviceId,
-            templateId,
-            emailParams,
-            EMAIL_CONFIG.publicKey
-        );
-        
-        console.log(`Email notification sent successfully (${notificationType}):`, response);
         
         // Remove sending toast and show success
         removeToast(toastId);
-        showEmailToast('Email sent!', `${notificationType === 'new_request' ? 'Admins notified' : employee.name + ' notified'}`, 'success', 3000);
+        const successMessage = notificationType === 'new_request' 
+            ? `All ${EMAIL_CONFIG.adminEmails.length} admins notified` 
+            : `${employee.name} notified`;
+        showEmailToast('Email sent!', successMessage, 'success', 3000);
         
     } catch (error) {
         console.error('Failed to send email notification:', error);
