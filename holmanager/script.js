@@ -29,7 +29,7 @@ const EMAIL_CONFIG = {
     
     // Admin email - Use Office 365 group/distribution list
     // Set this up in Office 365 and add all admins as members
-    adminEmail: 'holidays@kerrandsmith.co.uk'  // Replace with your actual group email
+    adminEmail: 'holidayrequest@kerrandsmith.co.uk'  // Replace with your actual group email
 };
 
 // To setup EmailJS:
