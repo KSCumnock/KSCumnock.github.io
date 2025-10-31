@@ -27,17 +27,9 @@ const EMAIL_CONFIG = {
         adminNotification: 'template_79v1u6v'      // For new submission notifications to admins
     },
     
-    // Admin email addresses (for new request notifications)
-    // Each admin will receive their own individual email
-    adminEmails: [
-        'ske@kerrandsmith.co.uk',
-        'sar@kerrandsmith.co.uk',
-        'ake@kerrandsmith.co.uk',
-        'nde@kerrandsmith.co.uk',
-        'ksh@kerrandsmith.co.uk',
-        'dmc@kerrandsmith.co.uk',
-        'wsm@kerrandsmith.co.uk'
-    ]
+    // Admin email - Use Office 365 group/distribution list
+    // Set this up in Office 365 and add all admins as members
+    adminEmail: 'holidays@kerrandsmith.co.uk'  // Replace with your actual group email
 };
 
 // To setup EmailJS:
@@ -1787,14 +1779,17 @@ async function sendEmailNotification(employee, request, notificationType) {
         });
         
         let templateId;
-        let emailPromises = [];
+        let emailParams;
         
         // Determine which template and parameters to use based on notification type
         if (notificationType === 'new_request') {
-            // Admin notification for new request - send to EACH admin individually
+            // Admin notification for new request - send to group email
             templateId = EMAIL_CONFIG.templates.adminNotification;
             
-            const baseParams = {
+            emailParams = {
+                to_email: EMAIL_CONFIG.adminEmail,
+                to_name: 'Holiday Management Team',
+                email: 'noreply@kerrandsmith.co.uk',  // For reply-to field
                 employee_name: employee.name,
                 request_type: request.requestType.charAt(0).toUpperCase() + request.requestType.slice(1),
                 start_date: startDate,
@@ -1806,29 +1801,10 @@ async function sendEmailNotification(employee, request, notificationType) {
                 year: currentYear
             };
             
-            // Send individual email to each admin
-            for (const adminEmail of EMAIL_CONFIG.adminEmails) {
-                const emailParams = {
-                    ...baseParams,
-                    to_email: adminEmail  // Send to individual admin
-                };
-                
-                emailPromises.push(
-                    emailjs.send(
-                        EMAIL_CONFIG.serviceId,
-                        templateId,
-                        emailParams,
-                        EMAIL_CONFIG.publicKey
-                    )
-                );
-            }
-            
-            // Wait for all admin emails to send
-            await Promise.all(emailPromises);
-            console.log(`Sent ${emailPromises.length} admin notification emails successfully`);
+            console.log(`Sending admin notification to: ${EMAIL_CONFIG.adminEmail}`);
             
         } else {
-            // Employee notification for approve/decline/cancel - single email
+            // Employee notification for approve/decline/cancel
             templateId = EMAIL_CONFIG.templates.employeeNotification;
             
             // Determine status text and color
@@ -1845,7 +1821,9 @@ async function sendEmailNotification(employee, request, notificationType) {
                 statusColor = '#ffc107';
             }
             
-            const emailParams = {
+            emailParams = {
+                to_email: employee.email || 'employee@example.com',  // You'll need to add employee emails
+                to_name: employee.name,
                 employee_name: employee.name,
                 request_type: request.requestType.charAt(0).toUpperCase() + request.requestType.slice(1),
                 start_date: startDate,
@@ -1856,30 +1834,46 @@ async function sendEmailNotification(employee, request, notificationType) {
                 status_color: statusColor
             };
             
-            // Send single email to employee
-            await emailjs.send(
-                EMAIL_CONFIG.serviceId,
-                templateId,
-                emailParams,
-                EMAIL_CONFIG.publicKey
-            );
-            
-            console.log(`Email notification sent successfully to ${employee.name}`);
+            console.log(`Sending employee notification to: ${employee.name}`);
         }
+        
+        // Send email using EmailJS
+        await emailjs.send(
+            EMAIL_CONFIG.serviceId,
+            templateId,
+            emailParams,
+            EMAIL_CONFIG.publicKey
+        );
+        
+        console.log(`✓ Email sent successfully`);
         
         // Remove sending toast and show success
         removeToast(toastId);
         const successMessage = notificationType === 'new_request' 
-            ? `All ${EMAIL_CONFIG.adminEmails.length} admins notified` 
+            ? 'Admins notified' 
             : `${employee.name} notified`;
         showEmailToast('Email sent!', successMessage, 'success', 3000);
         
     } catch (error) {
         console.error('Failed to send email notification:', error);
+        console.error('Error details:', {
+            message: error.message,
+            text: error.text,
+            status: error.status
+        });
         
         // Remove sending toast and show error
         removeToast(toastId);
-        showEmailToast('Email failed', error.message || 'Could not send email notification', 'error', 5000);
+        
+        // Show more helpful error message
+        let errorMsg = 'Could not send email notification';
+        if (error.text) {
+            errorMsg = error.text;
+        } else if (error.message) {
+            errorMsg = error.message;
+        }
+        
+        showEmailToast('Email failed', errorMsg, 'error', 5000);
         
         // Don't throw error - we don't want to break the approve/decline/submit flow if email fails
     }
