@@ -16,6 +16,35 @@ const GITHUB_CONFIG = {
     workerUrl: 'https://ks-holiday-manager.ske-d03.workers.dev/api/github'
 };
 
+// Email Configuration
+// You can use EmailJS (https://www.emailjs.com/) or any other email service
+// Instructions:
+// 1. Sign up for EmailJS (free tier available)
+// 2. Create email services and templates
+// 3. Replace the values below with your EmailJS credentials
+const EMAIL_CONFIG = {
+    serviceId: 'service_uhfejsl',  // Replace with your EmailJS service ID
+    publicKey: 'cB2IeD1LQI51b-1sG',  // Replace with your EmailJS public key
+    
+    // Template IDs for different notification types
+    templates: {
+        employeeNotification: 'template_i5sq3ci',  // For approve/decline/cancel notifications to employees
+        adminNotification: 'template_79v1u6v'         // For new submission notifications to admins
+    },
+    
+    // Admin email addresses (for new request notifications)
+    adminEmails: 'ske@kerrandsmith.co.uk, sar@kerrandsmith.co.uk, ake@kerrandsmith.co.uk, nde@kerrandsmith.co.uk, ksh@kerrandsmith.co.uk, dmc@kerrandsmith.co.uk, wsm@kerrandsmith.co.uk'
+};
+
+// To setup EmailJS:
+// 1. Go to https://www.emailjs.com/
+// 2. Create a free account
+// 3. Add an email service (Gmail, Outlook, etc.)
+// 4. Create TWO templates:
+//    a) Employee notification template (for approve/decline/cancel)
+//    b) Admin notification template (for new submissions)
+// 5. Copy your Service ID, Template IDs, and Public Key to the config above
+
 // Data storage with GitHub SHA tracking
 let employees = [];
 let holidayRequests = [];
@@ -32,19 +61,6 @@ let currentYear = 2025; // Add current year tracking
 let isBlockBooking = false;
 let selectedDates = [];
 let blockCalendarDate = new Date();
-
-// Function to update notification badge
-function updateNotificationBadge(count) {
-    const badge = document.getElementById('admin-notification-badge');
-    if (badge) {
-        if (count > 0) {
-            badge.textContent = count;
-            badge.classList.remove('hidden');
-        } else {
-            badge.classList.add('hidden');
-        }
-    }
-}
 
 // Dynamic file names based on selected year
 function getEmployeesFileName() {
@@ -243,10 +259,7 @@ async function changeYear() {
         // Refresh displays
         populateEmployeeCards();
         renderCalendar();
-        
-        // Update notification badge
-        const pendingCount = holidayRequests.filter(req => req.status === 'pending').length;
-        updateNotificationBadge(pendingCount);
+        updatePendingBadge(); // Update badge count
         
         // Refresh admin data if admin panel is active
         const adminTab = document.getElementById('admin-tab');
@@ -284,11 +297,8 @@ async function init() {
         await loadHolidayRequests();
         populateEmployeeCards();
         renderCalendar();
+        updatePendingBadge(); // Add badge update
         showTab('employee');
-        
-        // Update notification badge on initial load
-        const pendingCount = holidayRequests.filter(req => req.status === 'pending').length;
-        updateNotificationBadge(pendingCount);
         
         document.getElementById('employee-loading').classList.add('hidden');
         document.getElementById('employee-content').classList.remove('hidden');
@@ -300,6 +310,26 @@ async function init() {
         document.getElementById('employee-loading').classList.add('hidden');
         document.getElementById('employee-error').textContent = 'Failed to load data: ' + error.message;
         document.getElementById('employee-error').classList.remove('hidden');
+    }
+}
+
+// Update pending badge function
+function updatePendingBadge() {
+    const pendingCount = holidayRequests.filter(req => req.status === 'pending').length;
+    const adminTab = document.querySelectorAll('.tab')[3]; // Admin Panel tab
+    
+    // Remove existing badge if any
+    const existingBadge = adminTab.querySelector('.badge');
+    if (existingBadge) {
+        existingBadge.remove();
+    }
+    
+    // Add badge if there are pending requests
+    if (pendingCount > 0) {
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.textContent = pendingCount;
+        adminTab.appendChild(badge);
     }
 }
 
@@ -943,14 +973,10 @@ async function submitHolidayRequest(event) {
         holidayRequests.push(...newRequests);
         await saveHolidayRequests();
         
-        // Send email notification
-        const typeText = requestType === 'holiday' ? 'Holiday' : 
-                        requestType === 'sick' ? 'Sick Leave' : 'Bereavement Leave';
-        const recipients = 'ske@kerrandsmith.co.uk; sar@kerrandsmith.co.uk; ake@kerrandsmith.co.uk; nde@kerrandsmith.co.uk; ksh@kerrandsmith.co.uk; dmc@kerrandsmith.co.uk; wsm@kerrandsmith.co.uk';
-        const subject = encodeURIComponent(`${typeText} Block Booking Request [${currentEmployee.name}] - ${currentYear}`);
-        const body = encodeURIComponent(`A ${typeText.toLowerCase()} block booking request for ${currentEmployee.name} has been submitted for ${currentYear} (${groups.length} separate bookings). Please log in to approve or decline the requests.`);
-        
-        window.location.href = `mailto:${recipients}?subject=${subject}&body=${body}`;
+        // Send email notification to admins for each request in the block
+        for (const request of newRequests) {
+            await sendEmailNotification(currentEmployee, request, 'new_request');
+        }
         
         alert(`${typeText} block booking submitted successfully! Created ${groups.length} separate request${groups.length !== 1 ? 's' : ''}.`);
         
@@ -994,28 +1020,11 @@ async function submitHolidayRequest(event) {
         holidayRequests.push(newRequest);
         await saveHolidayRequests();
         
-        // Send email notification
+        // Send email notification to admins
+        await sendEmailNotification(currentEmployee, newRequest, 'new_request');
+        
         const typeText = requestType === 'holiday' ? 'Holiday' : 
                         requestType === 'sick' ? 'Sick Leave' : 'Bereavement Leave';
-        const recipients = 'ske@kerrandsmith.co.uk; sar@kerrandsmith.co.uk; ake@kerrandsmith.co.uk; nde@kerrandsmith.co.uk; ksh@kerrandsmith.co.uk; dmc@kerrandsmith.co.uk; wsm@kerrandsmith.co.uk';
-        const subject = encodeURIComponent(`${typeText} Request [${currentEmployee.name}] - ${currentYear}`);
-      let bodyText;
-
-if (requestType === 'holiday') {
-    bodyText = `A holiday request for ${currentEmployee.name} has been submitted for ${currentYear} from ${startDate} to ${endDate}. Please log in to approve or decline this holiday request.`;
-} else if (requestType === 'sick') {
-    bodyText = `${currentEmployee.name} has reported sick leave starting ${startDate}${endDate !== startDate ? ` to ${endDate}` : ''}. Please log in to record or update this sickness period.`;
-} else if (requestType === 'bereavement') {
-    bodyText = `${currentEmployee.name} has submitted a bereavement leave request for ${currentYear}. Please log in to review and confirm the details.`;
-} else {
-    bodyText = `A leave request for ${currentEmployee.name} has been submitted for ${currentYear}. Please log in to review it.`;
-}
-
-const body = encodeURIComponent(bodyText);
-
-        
-        window.location.href = `mailto:${recipients}?subject=${subject}&body=${body}`;
-        
         alert(`${typeText} request submitted successfully!`);
         
         // Reset form
@@ -1032,6 +1041,7 @@ const body = encodeURIComponent(bodyText);
     loadEmployeeRequests();
     populateEmployeeCards();
     renderCalendar();
+    updatePendingBadge(); // Update badge count
 }
 
 function loadEmployeeRequests() {
@@ -1102,9 +1112,10 @@ async function cancelHolidayRequest(requestId) {
     
     const request = holidayRequests.find(req => req.id === requestId);
     if (request) {
+        const employee = employees.find(emp => emp.id === request.employeeId);
+        
         // If the request was approved and it's a holiday or deducts from holiday allowance, return the days
         if (request.status === 'approved' && (request.requestType === 'holiday' || request.deductFromHoliday)) {
-            const employee = employees.find(emp => emp.id === request.employeeId);
             if (employee) {
                 employee.usedDays -= request.days;
                 await saveEmployees();
@@ -1115,11 +1126,17 @@ async function cancelHolidayRequest(requestId) {
         request.cancelledDate = new Date().toISOString().split('T')[0];
         await saveHolidayRequests();
         
+        // Send email notification to employee
+        if (employee) {
+            await sendEmailNotification(employee, request, 'cancelled');
+        }
+        
         // Refresh displays
         if (currentEmployee && currentEmployee.id === request.employeeId) {
             loadEmployeeRequests();
         }
         renderCalendar();
+        updatePendingBadge(); // Update badge count
         
         alert('Request cancelled successfully!');
     }
@@ -1532,9 +1549,6 @@ function loadPendingRequests() {
     const container = document.getElementById('pending-requests');
     const pendingRequests = holidayRequests.filter(req => req.status === 'pending');
     
-    // Update notification badge
-    updateNotificationBadge(pendingRequests.length);
-    
     if (pendingRequests.length === 0) {
         container.innerHTML = '<p>No pending requests.</p>';
         return;
@@ -1743,6 +1757,149 @@ function getConflictingEmployees(pendingRequest) {
     return conflictingEmployees;
 }
 
+// Email notification function
+async function sendEmailNotification(employee, request, notificationType) {
+    // Check if EmailJS is configured
+    if (EMAIL_CONFIG.serviceId === 'YOUR_EMAILJS_SERVICE_ID') {
+        console.log('Email notifications not configured. Set up EmailJS credentials in EMAIL_CONFIG.');
+        showEmailToast('Email not configured', 'Set up EmailJS to enable email notifications', 'error');
+        return;
+    }
+    
+    // Show sending toast
+    const toastId = showEmailToast('Sending email...', `Notifying ${notificationType === 'new_request' ? 'admins' : employee.name}`, 'sending');
+    
+    try {
+        // Format dates
+        const startDate = new Date(request.startDate).toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+        const endDate = new Date(request.endDate).toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+        
+        let emailParams;
+        let templateId;
+        
+        // Determine which template and parameters to use based on notification type
+        if (notificationType === 'new_request') {
+            // Admin notification for new request
+            templateId = EMAIL_CONFIG.templates.adminNotification;
+            emailParams = {
+                to_email: EMAIL_CONFIG.adminEmails,
+                employee_name: employee.name,
+                request_type: request.requestType.charAt(0).toUpperCase() + request.requestType.slice(1),
+                start_date: startDate,
+                end_date: endDate,
+                days: request.days,
+                reason: request.reason || 'No reason provided',
+                half_day_period: request.isHalfDay ? ` (${request.halfDayPeriod.toUpperCase()})` : '',
+                is_block_booking: request.isBlockBooking ? 'Yes' : 'No',
+                year: currentYear
+            };
+        } else {
+            // Employee notification for approve/decline/cancel
+            templateId = EMAIL_CONFIG.templates.employeeNotification;
+            
+            // Determine status text and color
+            let statusText = notificationType.toUpperCase();
+            let statusColor = '#6c757d';
+            if (notificationType === 'approved') {
+                statusText = 'APPROVED';
+                statusColor = '#28a745';
+            } else if (notificationType === 'declined') {
+                statusText = 'DECLINED';
+                statusColor = '#dc3545';
+            } else if (notificationType === 'cancelled') {
+                statusText = 'CANCELLED';
+                statusColor = '#ffc107';
+            }
+            
+            emailParams = {
+                employee_name: employee.name,
+                request_type: request.requestType.charAt(0).toUpperCase() + request.requestType.slice(1),
+                start_date: startDate,
+                end_date: endDate,
+                days: request.days,
+                status: statusText,
+                half_day_period: request.isHalfDay ? ` (${request.halfDayPeriod.toUpperCase()})` : '',
+                status_color: statusColor
+            };
+        }
+        
+        // Send email using EmailJS
+        const response = await emailjs.send(
+            EMAIL_CONFIG.serviceId,
+            templateId,
+            emailParams,
+            EMAIL_CONFIG.publicKey
+        );
+        
+        console.log(`Email notification sent successfully (${notificationType}):`, response);
+        
+        // Remove sending toast and show success
+        removeToast(toastId);
+        showEmailToast('Email sent!', `${notificationType === 'new_request' ? 'Admins notified' : employee.name + ' notified'}`, 'success', 3000);
+        
+    } catch (error) {
+        console.error('Failed to send email notification:', error);
+        
+        // Remove sending toast and show error
+        removeToast(toastId);
+        showEmailToast('Email failed', error.message || 'Could not send email notification', 'error', 5000);
+        
+        // Don't throw error - we don't want to break the approve/decline/submit flow if email fails
+    }
+}
+
+// Toast notification functions
+let toastCounter = 0;
+
+function showEmailToast(title, message, type = 'success', duration = 0) {
+    const toastId = `toast-${toastCounter++}`;
+    const toast = document.createElement('div');
+    toast.id = toastId;
+    toast.className = `email-toast ${type}`;
+    
+    let icon = '';
+    if (type === 'sending') {
+        icon = '<div class="spinner"></div>';
+    } else if (type === 'success') {
+        icon = '<span style="font-size: 24px;">✓</span>';
+    } else if (type === 'error') {
+        icon = '<span style="font-size: 24px;">✕</span>';
+    }
+    
+    toast.innerHTML = `
+        ${icon}
+        <div class="email-toast-content">
+            <div class="email-toast-title">${title}</div>
+            <div class="email-toast-message">${message}</div>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto-remove after duration (if specified)
+    if (duration > 0) {
+        setTimeout(() => removeToast(toastId), duration);
+    }
+    
+    return toastId;
+}
+
+function removeToast(toastId) {
+    const toast = document.getElementById(toastId);
+    if (toast) {
+        toast.style.animation = 'slideIn 0.3s ease reverse';
+        setTimeout(() => toast.remove(), 300);
+    }
+}
+
 async function approveRequest(requestId) {
     const request = holidayRequests.find(req => req.id === requestId);
     if (request) {
@@ -1756,20 +1913,25 @@ async function approveRequest(requestId) {
                 employee.usedDays += request.days;
                 await saveEmployees();
             }
+            
+            // Send email notification
+            await sendEmailNotification(employee, request, 'approved');
         }
         
         await saveHolidayRequests();
         loadAdminData();
         renderCalendar();
+        updatePendingBadge(); // Update badge count
     }
 }
 
 async function rejectRequest(requestId) {
     const request = holidayRequests.find(req => req.id === requestId);
     if (request) {
+        const employee = employees.find(emp => emp.id === request.employeeId);
+        
         // If this was previously approved and deducted days, return them
         if (request.status === 'approved' && (request.requestType === 'holiday' || request.deductFromHoliday)) {
-            const employee = employees.find(emp => emp.id === request.employeeId);
             if (employee) {
                 employee.usedDays -= request.days;
                 await saveEmployees();
@@ -1778,8 +1940,15 @@ async function rejectRequest(requestId) {
         
         request.status = 'rejected';
         request.rejectedDate = new Date().toISOString().split('T')[0];
+        
+        // Send email notification
+        if (employee) {
+            await sendEmailNotification(employee, request, 'declined');
+        }
+        
         await saveHolidayRequests();
         loadAdminData();
+        updatePendingBadge(); // Update badge count
     }
 }
 

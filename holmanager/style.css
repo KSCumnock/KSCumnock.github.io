@@ -56,39 +56,6 @@
             font-weight: 500;
             transition: all 0.3s ease;
             color: #333;
-            position: relative;
-        }
-        
-        .notification-badge {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: #dc3545;
-            color: white;
-            border-radius: 12px;
-            padding: 2px 8px;
-            font-size: 12px;
-            font-weight: 600;
-            min-width: 20px;
-            height: 20px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
-            animation: badge-pulse 2s ease-in-out infinite;
-        }
-        
-        @keyframes badge-pulse {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.1);
-            }
-        }
-        
-        .notification-badge.hidden {
-            display: none !important;
         }
         
         .tab.active {
@@ -103,6 +70,104 @@
         
         .tab.active:hover {
             background: white;
+        }
+        
+        /* Notification Badge */
+        .tab {
+            position: relative;
+        }
+        
+        .tab .badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #dc3545;
+            color: white;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 12px;
+            font-weight: 700;
+            min-width: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+        
+        /* Email notification toast */
+        .email-toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+            max-width: 400px;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .email-toast.success {
+            border-left: 4px solid #28a745;
+        }
+        
+        .email-toast.error {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .email-toast.sending {
+            border-left: 4px solid #258bca;
+        }
+        
+        .email-toast .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #258bca;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .email-toast-content {
+            flex: 1;
+        }
+        
+        .email-toast-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .email-toast-message {
+            font-size: 14px;
+            color: #666;
         }
         
         .content {
