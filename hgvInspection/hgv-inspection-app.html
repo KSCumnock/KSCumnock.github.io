@@ -750,17 +750,17 @@
                     </td>
                     <td style="padding: 10px;">
                         <label style="font-weight: bold; display: block; margin-bottom: 5px;">Inspection organisation:</label>
-                        <input type="text" id="inspectionOrg" placeholder="Testing Station" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                        <input type="text" id="inspectionOrg" value="Kerr & Smith Cumnock Ltd" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
                     </td>
                 </tr>
                 <tr>
                     <td style="padding: 10px;">
-                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">Operator:</label>
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">Operator (Customer):</label>
                         <input type="text" id="operator" placeholder="Company Name" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
                     </td>
                     <td style="padding: 10px;">
                         <label style="font-weight: bold; display: block; margin-bottom: 5px;">Location of inspection:</label>
-                        <input type="text" id="location" placeholder="City/Address" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
+                        <input type="text" id="location" value="Riverside Garage, Ayr Road, Cumnock, KA18 1BJ" style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
                     </td>
                 </tr>
             </table>
@@ -803,7 +803,6 @@
                         <th style="width: 60px;">IM Ref</th>
                         <th>Item Inspected</th>
                         <th style="width: 200px;">Status</th>
-                        <th>Notes</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -820,7 +819,6 @@
                         <th style="width: 60px;">IM Ref</th>
                         <th>Item Inspected</th>
                         <th style="width: 200px;">Status</th>
-                        <th>Notes</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -1420,9 +1418,6 @@
                         <button class="status-btn" onclick="setStatus(this, 'monitor', ${item.checkNo})" title="Monitor">M</button>
                     </div>
                 </td>
-                <td>
-                    <input type="text" id="notes_${item.checkNo}" placeholder="Add notes..." style="width: 100%; border: 1px solid #ddd; border-radius: 3px;">
-                </td>
             `;
             return row;
         }
@@ -1503,8 +1498,21 @@
 
             faultComments.set(checkNo, commentRow);
 
+            // Improved scrolling for both PC and iPad
             setTimeout(() => {
-                document.getElementById(`comment_details_${commentCount}`).focus();
+                const detailsField = document.getElementById(`comment_details_${commentCount}`);
+                if (detailsField) {
+                    // Scroll the element into view with smooth behavior
+                    detailsField.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center',
+                        inline: 'nearest'
+                    });
+                    // Focus after a brief delay to ensure scroll completes
+                    setTimeout(() => {
+                        detailsField.focus();
+                    }, 300);
+                }
             }, 100);
         }
 
