@@ -944,6 +944,10 @@ async function submitHolidayRequest(event) {
                 }
             });
             
+            // Auto-approve sick leave requests (employee is already off sick)
+            // Holiday and bereavement requests still require approval
+            const initialStatus = requestType === 'sick' ? 'approved' : 'pending';
+            
             const newRequest = {
                 id: nextRequestId++,
                 employeeId: currentEmployee.id,
@@ -954,7 +958,7 @@ async function submitHolidayRequest(event) {
                 isHalfDay: false,
                 halfDayPeriod: null,
                 reason,
-                status: 'pending',
+                status: initialStatus,
                 submittedDate: new Date().toISOString().split('T')[0],
                 requestType: requestType,
                 deductFromHoliday: shouldDeductDays,
@@ -974,7 +978,15 @@ async function submitHolidayRequest(event) {
             await sendEmailNotification(currentEmployee, request, 'new_request');
         }
         
-        alert(`${typeText} block booking submitted successfully! Created ${groups.length} separate request${groups.length !== 1 ? 's' : ''}.`);
+        const typeText = requestType === 'holiday' ? 'Holiday' : 
+                        requestType === 'sick' ? 'Sick Leave' : 'Bereavement Leave';
+        
+        // Different message for sick leave (auto-approved)
+        if (requestType === 'sick') {
+            alert(`${typeText} block booking recorded successfully and automatically approved!\n\nSince this is sick leave, no approval is required. Admins have been notified.\n\nCreated ${groups.length} separate request${groups.length !== 1 ? 's' : ''}.`);
+        } else {
+            alert(`${typeText} block booking submitted successfully! Created ${groups.length} separate request${groups.length !== 1 ? 's' : ''} pending approval.`);
+        }
         
         // Reset block booking
         selectedDates = [];
@@ -997,6 +1009,10 @@ async function submitHolidayRequest(event) {
             return;
         }
         
+        // Auto-approve sick leave requests (employee is already off sick)
+        // Holiday and bereavement requests still require approval
+        const initialStatus = requestType === 'sick' ? 'approved' : 'pending';
+        
         const newRequest = {
             id: nextRequestId++,
             employeeId: currentEmployee.id,
@@ -1007,7 +1023,7 @@ async function submitHolidayRequest(event) {
             isHalfDay,
             halfDayPeriod,
             reason,
-            status: 'pending',
+            status: initialStatus,
             submittedDate: new Date().toISOString().split('T')[0],
             requestType: requestType,
             deductFromHoliday: shouldDeductDays
@@ -1017,11 +1033,19 @@ async function submitHolidayRequest(event) {
         await saveHolidayRequests();
         
         // Send email notification to admins
+        // For sick leave, this is informational (already approved)
+        // For holidays/bereavement, this is a request for approval
         await sendEmailNotification(currentEmployee, newRequest, 'new_request');
         
         const typeText = requestType === 'holiday' ? 'Holiday' : 
                         requestType === 'sick' ? 'Sick Leave' : 'Bereavement Leave';
-        alert(`${typeText} request submitted successfully!`);
+        
+        // Different message for sick leave (auto-approved)
+        if (requestType === 'sick') {
+            alert(`${typeText} recorded successfully and automatically approved!\n\nSince this is sick leave, no approval is required. Admins have been notified.`);
+        } else {
+            alert(`${typeText} request submitted successfully and pending approval!`);
+        }
         
         // Reset form
         document.getElementById('holiday-form').reset();
@@ -1786,6 +1810,12 @@ async function sendEmailNotification(employee, request, notificationType) {
             // Admin notification for new request - send to group email
             templateId = EMAIL_CONFIG.templates.adminNotification;
             
+            // Determine if this is a sick leave notification (informational) or a request (needs approval)
+            const isSickLeave = request.requestType === 'sick';
+            const notificationPurpose = isSickLeave 
+                ? 'NOTIFICATION: Employee off sick (already approved)' 
+                : 'NEW REQUEST: Requires approval';
+            
             emailParams = {
                 to_email: EMAIL_CONFIG.adminEmail,
                 to_name: 'Holiday Management Team',
@@ -1798,10 +1828,13 @@ async function sendEmailNotification(employee, request, notificationType) {
                 reason: request.reason || 'No reason provided',
                 half_day_period: request.isHalfDay ? ` (${request.halfDayPeriod.toUpperCase()})` : '',
                 is_block_booking: request.isBlockBooking ? 'Yes' : 'No',
-                year: currentYear
+                year: currentYear,
+                notification_purpose: notificationPurpose,  // New field for template
+                status: isSickLeave ? 'Approved (Automatic)' : 'Pending Approval'  // New field for template
             };
             
             console.log(`Sending admin notification to: ${EMAIL_CONFIG.adminEmail}`);
+            console.log(`Notification type: ${isSickLeave ? 'Sick Leave (Informational)' : 'Request (Approval Required)'}`);
             
         } else {
             // Employee notification for approve/decline/cancel
