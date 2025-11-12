@@ -2048,6 +2048,22 @@
         }
 
         function checkForLoadData() {
+            // First check localStorage (preferred method)
+            const storedData = localStorage.getItem('hgv_inspection_load');
+            if (storedData) {
+                try {
+                    const data = JSON.parse(storedData);
+                    // Clear the localStorage after loading
+                    localStorage.removeItem('hgv_inspection_load');
+                    loadAllFormData(data);
+                    return;
+                } catch (e) {
+                    console.error('Error loading data from localStorage:', e);
+                    localStorage.removeItem('hgv_inspection_load');
+                }
+            }
+            
+            // Fall back to URL parameter (for backwards compatibility)
             const urlParams = new URLSearchParams(window.location.search);
             const loadData = urlParams.get('loadData');
             if (loadData) {
