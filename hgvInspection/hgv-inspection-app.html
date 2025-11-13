@@ -1759,6 +1759,7 @@
 
         // ---------------- JSON DATA SAVE/LOAD FUNCTIONS ----------------
         let originalTimestamp = null;
+        let originalFilename = null; // Track the original filename for deletion on resave
 
         function collectAllFormData() {
             const data = {
@@ -1770,7 +1771,7 @@
                 },
                 allFormFields: {},
                 checklist: {},
-                comments: [],
+                faultComments: [],
                 signatures: {
                     inspector: { name: '', signature: null },
                     technician: { name: '', signature: null }
@@ -1815,14 +1816,24 @@
                 }
             });
 
-            // Collect comments
-            document.querySelectorAll('.comment-row').forEach(row => {
-                const item = row.querySelector('[data-comment-field="item"]')?.value || '';
-                const severity = row.querySelector('[data-comment-field="severity"]')?.value || '';
-                const description = row.querySelector('[data-comment-field="description"]')?.value || '';
-                if (item || description) {
-                    data.comments.push({ item, severity, description });
-                }
+            // Collect fault comments from Part 2 section
+            const commentRows = document.querySelectorAll('#commentsContainer .comment-row');
+            commentRows.forEach(row => {
+                // Find the inputs by ID pattern
+                const checkInput = row.querySelector('[id^="comment_check_"]');
+                const faultInput = row.querySelector('[id^="comment_fault_"]');
+                const detailsInput = row.querySelector('[id^="comment_details_"]');
+                
+                const checkNo = checkInput?.value || '';
+                const faultType = faultInput?.value || '';
+                const details = detailsInput?.value || '';
+                
+                // Save comment even if empty (to preserve the row structure)
+                data.faultComments.push({
+                    checkNo: checkNo,
+                    faultType: faultType,
+                    details: details
+                });
             });
 
             // Collect inspector signature as base64
@@ -1859,11 +1870,6 @@
             }
 
             try {
-                const data = collectAllFormData();
-                const jsonString = JSON.stringify(data, null, 2);
-
-                showStatus('Uploading to GitHub...', 'info');
-
                 const tokenResponse = await fetch(CLOUDFLARE_WORKER_URL);
                 if (!tokenResponse.ok) {
                     throw new Error('Failed to fetch authentication token');
@@ -1871,41 +1877,60 @@
                 const tokenData = await tokenResponse.json();
                 const githubToken = tokenData.token;
 
-                const timestamp = data.timestamp.replace(/[:.]/g, '-').split('.')[0];
-                const filename = `HGV_Inspection_${regMark}_${timestamp}.json`;
-
-                // Check if file exists (for overwriting)
-                const checkUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_PATH}/${filename}`;
-                let sha = null;
-
-                try {
-                    const checkResponse = await fetch(checkUrl, {
+                // If editing an existing file, delete it first
+                if (originalFilename) {
+                    showStatus('Deleting old version...', 'info');
+                    
+                    const deleteUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_PATH}/${originalFilename}`;
+                    
+                    // Get the SHA of the file to delete
+                    const getResponse = await fetch(deleteUrl, {
                         headers: {
                             'Authorization': `token ${githubToken}`,
                             'Accept': 'application/vnd.github.v3+json'
                         }
                     });
-                    if (checkResponse.ok) {
-                        const fileData = await checkResponse.json();
-                        sha = fileData.sha;
+                    
+                    if (getResponse.ok) {
+                        const fileData = await getResponse.json();
+                        
+                        // Delete the old file
+                        const deleteResponse = await fetch(deleteUrl, {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `token ${githubToken}`,
+                                'Accept': 'application/vnd.github.v3+json',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                message: `Delete old version of inspection for ${regMark}`,
+                                sha: fileData.sha,
+                                branch: 'main'
+                            })
+                        });
+                        
+                        if (!deleteResponse.ok) {
+                            console.warn('Failed to delete old file, continuing with save...');
+                        }
                     }
-                } catch (e) {
-                    // File doesn't exist, that's fine
+                    
+                    // Clear the original filename so we don't try to delete again
+                    originalFilename = null;
+                    originalTimestamp = null;
                 }
+
+                // Collect data with fresh timestamp
+                const data = collectAllFormData();
+                const jsonString = JSON.stringify(data, null, 2);
+
+                showStatus('Saving new version to GitHub...', 'info');
+
+                const timestamp = data.timestamp.replace(/[:.]/g, '-').split('.')[0];
+                const filename = `HGV_Inspection_${regMark}_${timestamp}.json`;
 
                 const base64Content = btoa(unescape(encodeURIComponent(jsonString)));
 
                 const uploadUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_PATH}/${filename}`;
-
-                const uploadBody = {
-                    message: sha ? `Update inspection data for ${regMark}` : `Add inspection data for ${regMark}`,
-                    content: base64Content,
-                    branch: 'main'
-                };
-
-                if (sha) {
-                    uploadBody.sha = sha;
-                }
 
                 const uploadResponse = await fetch(uploadUrl, {
                     method: 'PUT',
@@ -1914,7 +1939,11 @@
                         'Accept': 'application/vnd.github.v3+json',
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(uploadBody)
+                    body: JSON.stringify({
+                        message: `Add inspection data for ${regMark}`,
+                        content: base64Content,
+                        branch: 'main'
+                    })
                 });
 
                 if (!uploadResponse.ok) {
@@ -1992,21 +2021,33 @@
                 }
             }
 
-            // Load comments
-            if (data.comments && data.comments.length > 0) {
+            // Load fault comments into Part 2 section
+            if (data.faultComments && data.faultComments.length > 0) {
                 const container = document.getElementById('commentsContainer');
                 if (container) {
-                    container.innerHTML = '';
-                    data.comments.forEach(comment => {
-                        addCommentRow();
-                        const lastRow = container.lastElementChild;
-                        if (lastRow) {
-                            const itemInput = lastRow.querySelector('[data-comment-field="item"]');
-                            const severitySelect = lastRow.querySelector('[data-comment-field="severity"]');
-                            const descTextarea = lastRow.querySelector('[data-comment-field="description"]');
-                            if (itemInput) itemInput.value = comment.item || '';
-                            if (severitySelect) severitySelect.value = comment.severity || '';
-                            if (descTextarea) descTextarea.value = comment.description || '';
+                    container.innerHTML = ''; // Clear existing comments
+                    
+                    data.faultComments.forEach((comment, index) => {
+                        commentCount++; // Increment global counter
+                        const commentRow = document.createElement('div');
+                        commentRow.className = 'comment-row';
+                        if (comment.checkNo) {
+                            commentRow.setAttribute('data-check-no', comment.checkNo);
+                        }
+                        
+                        const isReadonly = comment.checkNo ? 'readonly style="background: #f0f0f0;"' : '';
+                        
+                        commentRow.innerHTML = `
+                            <input type="text" placeholder="Check No." id="comment_check_${commentCount}" value="${comment.checkNo || ''}" ${isReadonly}>
+                            <input type="text" placeholder="Fault No." id="comment_fault_${commentCount}" value="${comment.faultType || ''}">
+                            <textarea placeholder="Fault details..." id="comment_details_${commentCount}">${comment.details || ''}</textarea>
+                            <button onclick="removeCommentRow(this, ${comment.checkNo || 'null'})" style="padding: 8px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">✕</button>
+                        `;
+                        container.appendChild(commentRow);
+                        
+                        // Update faultComments map if checkNo exists
+                        if (comment.checkNo) {
+                            faultComments.set(parseInt(comment.checkNo), commentRow);
                         }
                     });
                 }
@@ -2050,16 +2091,22 @@
         function checkForLoadData() {
             // First check localStorage (preferred method)
             const storedData = localStorage.getItem('hgv_inspection_load');
+            const storedFilename = localStorage.getItem('hgv_inspection_filename');
+            
             if (storedData) {
                 try {
                     const data = JSON.parse(storedData);
+                    // Store the original filename for deletion on resave
+                    originalFilename = storedFilename;
                     // Clear the localStorage after loading
                     localStorage.removeItem('hgv_inspection_load');
+                    localStorage.removeItem('hgv_inspection_filename');
                     loadAllFormData(data);
                     return;
                 } catch (e) {
                     console.error('Error loading data from localStorage:', e);
                     localStorage.removeItem('hgv_inspection_load');
+                    localStorage.removeItem('hgv_inspection_filename');
                 }
             }
             
