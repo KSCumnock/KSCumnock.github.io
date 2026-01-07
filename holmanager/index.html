@@ -19,12 +19,7 @@
     <div class="year-selector">
         <label for="year-select">Select Year:</label>
         <select id="year-select" onchange="changeYear()">
-            <option value="2025">2025</option>
-            <option value="2026">2026</option>
-            <option value="2027">2027</option>
-             <option value="2028">2028</option>
-              <option value="2029">2029</option>
-               <option value="2030">2030</option>
+            <!-- Years will be dynamically populated by JavaScript -->
         </select>
         <span id="current-year-display">Current: 2025</span>
     </div>
@@ -197,10 +192,7 @@
             <div style="margin-bottom: 30px;">
                 <label for="analytics-year-select" style="font-weight: 500; margin-right: 10px;">Reporting Year:</label>
                 <select id="analytics-year-select" onchange="refreshAnalytics()" style="padding: 8px 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 16px;">
-                    <option value="2023">2023</option>
-                    <option value="2024">2024</option>
-                    <option value="2025" selected>2025</option>
-                    <option value="2026">2026</option>
+                    <!-- Years will be dynamically populated by JavaScript -->
                 </select>
             </div>
             
@@ -288,6 +280,22 @@
             <div id="admin-error" class="error hidden"></div>
             
             <div id="admin-content" class="hidden">
+                <!-- Admin Header with Logout -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e9ecef;">
+                    <div>
+                        <h2 style="margin: 0; color: #333;">Admin Panel</h2>
+                        <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">Manage employees, requests, and company holidays</p>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="openBulkHolidayModal()" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                            📅 Bulk Add Holidays
+                        </button>
+                        <button onclick="logoutAdmin()" style="background: #6c757d;">
+                            🔒 Logout
+                        </button>
+                    </div>
+                </div>
+                
                 <!-- Admin Navigation Tabs -->
                 <div class="tabs-container">
                     <button class="admin-tab-btn active" onclick="showAdminSection('pending')">Pending Requests</button>
@@ -406,6 +414,126 @@
                 <button class="close-btn" onclick="closeEmployeeModal()">×</button>
             </div>
             <div id="employee-modal-content"></div>
+        </div>
+    </div>
+
+    <!-- Edit Employee Modal -->
+    <div id="edit-employee-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Edit Employee</h3>
+                <button class="close-btn" onclick="closeEditEmployeeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-employee-id">
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 id="edit-employee-name-display" style="margin: 0 0 10px 0; color: #333;"></h4>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;">
+                        <div>
+                            <div style="font-size: 24px; font-weight: 600; color: #258bca;" id="edit-employee-current-allowance">0</div>
+                            <div style="font-size: 12px; color: #666;">Total Allowance</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 24px; font-weight: 600; color: #dc3545;" id="edit-employee-used-days">0</div>
+                            <div style="font-size: 12px; color: #666;">Used Days</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 24px; font-weight: 600; color: #28a745;" id="edit-employee-remaining">0</div>
+                            <div style="font-size: 12px; color: #666;">Remaining</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <form onsubmit="saveEmployeeEdit(event)">
+                    <div class="form-group">
+                        <label for="edit-allowance-adjustment">Adjust Allowance:</label>
+                        <input type="number" id="edit-allowance-adjustment" step="0.5" placeholder="e.g., 2 to add, -2 to deduct">
+                        <p style="font-size: 12px; color: #666; margin-top: 5px;">Enter a positive number to add days, negative to deduct</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-adjustment-reason">Reason for Adjustment (optional):</label>
+                        <textarea id="edit-adjustment-reason" rows="2" placeholder="e.g., Carry over from last year, Correction, etc."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="half-day-container">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="edit-saturday-deduction">
+                                <span class="checkbox-custom"></span>
+                                Include Saturday Deduction
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="submit">Save Changes</button>
+                        <button type="button" onclick="closeEditEmployeeModal()" style="background: #6c757d;">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Holiday Modal -->
+    <div id="bulk-holiday-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>📅 Bulk Add Holidays for All Employees</h3>
+                <button class="close-btn" onclick="closeBulkHolidayModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #666; margin-bottom: 20px;">
+                    Select dates to add as holidays for ALL employees (e.g., Christmas, Bank Holidays).
+                    These will be automatically approved.
+                </p>
+                
+                <!-- Calendar for selecting dates -->
+                <div class="block-calendar-container">
+                    <div class="block-calendar-header">
+                        <button type="button" class="calendar-nav" onclick="changeBulkMonth(-1)">❮</button>
+                        <h4 id="bulk-calendar-title"></h4>
+                        <button type="button" class="calendar-nav" onclick="changeBulkMonth(1)">❯</button>
+                    </div>
+                    <div class="block-calendar-grid" id="bulk-calendar-grid"></div>
+                </div>
+                
+                <!-- Selected dates summary -->
+                <div style="margin-top: 20px;">
+                    <h4 style="margin-bottom: 10px;">Selected Dates (<span id="bulk-dates-count">0</span>)</h4>
+                    <div id="bulk-selected-dates-list" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; background: #f8f9fa; padding: 10px; border-radius: 8px;"></div>
+                    <div id="bulk-preview"></div>
+                </div>
+                
+                <!-- Options -->
+                <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px;">
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label for="bulk-holiday-reason">Reason/Description:</label>
+                        <input type="text" id="bulk-holiday-reason" value="Company Holiday" placeholder="e.g., Christmas Day, Bank Holiday">
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <div class="half-day-container">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="bulk-deduct-allowance" checked>
+                                <span class="checkbox-custom"></span>
+                                Deduct from employee holiday allowance
+                            </label>
+                        </div>
+                        <p style="font-size: 12px; color: #856404; margin-top: 5px;">
+                            Uncheck if this is a company-provided holiday that shouldn't reduce employee allowances
+                        </p>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button onclick="submitBulkHolidays()" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                        Add Holidays for All Employees
+                    </button>
+                    <button type="button" onclick="closeBulkHolidayModal()" style="background: #6c757d;">Cancel</button>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -51,7 +51,8 @@ let nextRequestId = 1;
 let nextEmployeeId = 1;
 let currentDate = new Date();
 let currentPopover = null;
-let currentYear = 2025; // Add current year tracking
+let currentYear = new Date().getFullYear(); // Dynamic current year tracking
+let isAdminAuthenticated = false; // Track admin session
 
 // Block booking variables
 let isBlockBooking = false;
@@ -285,8 +286,28 @@ async function init() {
         pinModal.classList.add('hidden');
         pinModal.style.display = 'none';
         
-        // Set initial year
-        currentYear = parseInt(document.getElementById('year-select').value);
+        // Check for admin session
+        isAdminAuthenticated = sessionStorage.getItem('adminAuthenticated') === 'true';
+        
+        // Set initial year to current year
+        const currentActualYear = new Date().getFullYear();
+        const yearSelect = document.getElementById('year-select');
+        
+        // Check if current year exists in dropdown, if not add it
+        let currentYearExists = false;
+        for (let option of yearSelect.options) {
+            if (parseInt(option.value) === currentActualYear) {
+                currentYearExists = true;
+                break;
+            }
+        }
+        
+        // Dynamically populate year selector centered around current year
+        populateYearSelector();
+        
+        // Set the dropdown to current year
+        yearSelect.value = currentActualYear.toString();
+        currentYear = currentActualYear;
         document.getElementById('current-year-display').textContent = `Current: ${currentYear}`;
         
         await loadEmployees();
@@ -306,6 +327,33 @@ async function init() {
         document.getElementById('employee-loading').classList.add('hidden');
         document.getElementById('employee-error').textContent = 'Failed to load data: ' + error.message;
         document.getElementById('employee-error').classList.remove('hidden');
+    }
+}
+
+// Dynamically populate year selector
+function populateYearSelector() {
+    const yearSelect = document.getElementById('year-select');
+    const analyticsYearSelect = document.getElementById('analytics-year-select');
+    const currentActualYear = new Date().getFullYear();
+    
+    // Clear existing options
+    yearSelect.innerHTML = '';
+    if (analyticsYearSelect) analyticsYearSelect.innerHTML = '';
+    
+    // Add years from 2 years ago to 5 years in future
+    for (let year = currentActualYear - 2; year <= currentActualYear + 5; year++) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        if (year === currentActualYear) {
+            option.selected = true;
+        }
+        yearSelect.appendChild(option);
+        
+        if (analyticsYearSelect) {
+            const analyticsOption = option.cloneNode(true);
+            analyticsYearSelect.appendChild(analyticsOption);
+        }
     }
 }
 
@@ -335,8 +383,16 @@ function showTab(tabName) {
     document.querySelectorAll('.content').forEach(content => content.classList.add('hidden'));
     
     if (tabName === 'admin') {
-        document.getElementById('pin-modal').classList.remove('hidden');
-        document.getElementById('pin-modal').style.display = 'flex';
+        // Check if already authenticated in this session
+        if (isAdminAuthenticated) {
+            document.getElementById('admin-tab').classList.remove('hidden');
+            document.querySelectorAll('.tab')[3].classList.add('active');
+            loadAdminData();
+        } else {
+            document.getElementById('pin-modal').classList.remove('hidden');
+            document.getElementById('pin-modal').style.display = 'flex';
+            document.getElementById('pin-input').focus();
+        }
     } else if (tabName === 'calendar') {
         document.getElementById('calendar-tab').classList.remove('hidden');
         document.querySelectorAll('.tab')[1].classList.add('active');
@@ -358,14 +414,24 @@ function showTab(tabName) {
 async function checkPin() {
     const pin = document.getElementById('pin-input').value;
     if (pin === '4224') {
+        // Save admin session
+        isAdminAuthenticated = true;
+        sessionStorage.setItem('adminAuthenticated', 'true');
+        
         closePinModal();
         document.getElementById('admin-tab').classList.remove('hidden');
-        document.querySelectorAll('.tab')[2].classList.add('active');
+        document.querySelectorAll('.tab')[3].classList.add('active');
         await loadAdminData();
     } else {
         alert('Incorrect PIN. Please try again.');
         document.getElementById('pin-input').value = '';
     }
+}
+
+function logoutAdmin() {
+    isAdminAuthenticated = false;
+    sessionStorage.removeItem('adminAuthenticated');
+    showTab('employee');
 }
 
 function closePinModal() {
@@ -2077,9 +2143,73 @@ function loadEmployeeList() {
                 <h5>${employee.name}</h5>
                 <p style="font-size: 13px;">Total: ${employee.totalAllowance} | Used: ${employee.usedDays} | Remaining: ${employee.totalAllowance - employee.usedDays}</p>
             </div>
-            <button class="btn-danger btn-small" onclick="removeEmployee(${employee.id})">Remove</button>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn-edit btn-small" onclick="openEditEmployeeModal(${employee.id})">Edit</button>
+                <button class="btn-danger btn-small" onclick="removeEmployee(${employee.id})">Remove</button>
+            </div>
         </div>
     `).join('');
+}
+
+// Edit Employee Modal Functions
+function openEditEmployeeModal(employeeId) {
+    const employee = employees.find(emp => emp.id === employeeId);
+    if (!employee) return;
+    
+    document.getElementById('edit-employee-id').value = employee.id;
+    document.getElementById('edit-employee-name-display').textContent = employee.name;
+    document.getElementById('edit-employee-current-allowance').textContent = employee.totalAllowance;
+    document.getElementById('edit-employee-used-days').textContent = employee.usedDays;
+    document.getElementById('edit-employee-remaining').textContent = employee.totalAllowance - employee.usedDays;
+    document.getElementById('edit-allowance-adjustment').value = '';
+    document.getElementById('edit-adjustment-reason').value = '';
+    document.getElementById('edit-saturday-deduction').checked = employee.includeSaturdayDeduction || false;
+    
+    // Show the modal
+    const modal = document.getElementById('edit-employee-modal');
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+}
+
+function closeEditEmployeeModal() {
+    const modal = document.getElementById('edit-employee-modal');
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+}
+
+async function saveEmployeeEdit(event) {
+    event.preventDefault();
+    
+    const employeeId = parseInt(document.getElementById('edit-employee-id').value);
+    const adjustment = parseFloat(document.getElementById('edit-allowance-adjustment').value) || 0;
+    const includeSaturdayDeduction = document.getElementById('edit-saturday-deduction').checked;
+    
+    const employee = employees.find(emp => emp.id === employeeId);
+    if (!employee) return;
+    
+    // Apply adjustment to total allowance
+    if (adjustment !== 0) {
+        employee.totalAllowance = Math.max(0, employee.totalAllowance + adjustment);
+    }
+    
+    // Update Saturday deduction setting
+    employee.includeSaturdayDeduction = includeSaturdayDeduction;
+    
+    await saveEmployees();
+    
+    // Refresh displays
+    populateEmployeeCards();
+    loadEmployeeList();
+    
+    // Update employee info if this employee is currently selected
+    if (currentEmployee && currentEmployee.id === employeeId) {
+        selectEmployee(employeeId);
+    }
+    
+    closeEditEmployeeModal();
+    
+    const actionText = adjustment > 0 ? `Added ${adjustment} days` : adjustment < 0 ? `Deducted ${Math.abs(adjustment)} days` : 'Updated settings';
+    alert(`${actionText} for ${employee.name}. New allowance: ${employee.totalAllowance} days`);
 }
 
 function loadAllRequests() {
@@ -2146,6 +2276,236 @@ function loadAllRequests() {
         `;
     }).join('');
 }
+
+// ==================== BULK HOLIDAYS FUNCTIONS ====================
+
+let bulkSelectedDates = [];
+let bulkCalendarDate = new Date();
+
+function openBulkHolidayModal() {
+    bulkSelectedDates = [];
+    bulkCalendarDate = new Date();
+    renderBulkCalendar();
+    updateBulkSelectedDatesList();
+    
+    const modal = document.getElementById('bulk-holiday-modal');
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+}
+
+function closeBulkHolidayModal() {
+    const modal = document.getElementById('bulk-holiday-modal');
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+    bulkSelectedDates = [];
+}
+
+function renderBulkCalendar() {
+    const grid = document.getElementById('bulk-calendar-grid');
+    const title = document.getElementById('bulk-calendar-title');
+    
+    const year = bulkCalendarDate.getFullYear();
+    const month = bulkCalendarDate.getMonth();
+    
+    title.textContent = bulkCalendarDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startingDay = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let html = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => 
+        `<div class="block-calendar-day-header">${day}</div>`
+    ).join('');
+    
+    // Empty cells before first day
+    for (let i = 0; i < startingDay; i++) {
+        html += `<div class="block-calendar-day other-month"></div>`;
+    }
+    
+    // Days of month
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        const dateStr = date.toISOString().split('T')[0];
+        const isToday = date.toDateString() === today.toDateString();
+        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+        const isSelected = bulkSelectedDates.includes(dateStr);
+        
+        let classes = ['block-calendar-day'];
+        if (isToday) classes.push('today');
+        if (isWeekend) classes.push('weekend');
+        if (isSelected) classes.push('selected');
+        
+        html += `
+            <div class="${classes.join(' ')}" onclick="toggleBulkDate('${dateStr}')">
+                ${day}
+            </div>
+        `;
+    }
+    
+    grid.innerHTML = html;
+}
+
+function changeBulkMonth(delta) {
+    bulkCalendarDate.setMonth(bulkCalendarDate.getMonth() + delta);
+    renderBulkCalendar();
+}
+
+function toggleBulkDate(dateStr) {
+    const index = bulkSelectedDates.indexOf(dateStr);
+    if (index > -1) {
+        bulkSelectedDates.splice(index, 1);
+    } else {
+        bulkSelectedDates.push(dateStr);
+    }
+    bulkSelectedDates.sort();
+    renderBulkCalendar();
+    updateBulkSelectedDatesList();
+}
+
+function updateBulkSelectedDatesList() {
+    const container = document.getElementById('bulk-selected-dates-list');
+    const countEl = document.getElementById('bulk-dates-count');
+    const previewEl = document.getElementById('bulk-preview');
+    
+    countEl.textContent = bulkSelectedDates.length;
+    
+    if (bulkSelectedDates.length === 0) {
+        container.innerHTML = '<p style="color: #666; font-style: italic;">No dates selected</p>';
+        previewEl.innerHTML = '';
+        return;
+    }
+    
+    container.innerHTML = bulkSelectedDates.map(dateStr => {
+        const date = new Date(dateStr);
+        const formatted = date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+        return `<span class="selected-date-tag">${formatted} <span onclick="removeBulkDate('${dateStr}')" style="cursor: pointer; margin-left: 5px;">×</span></span>`;
+    }).join('');
+    
+    // Calculate working days
+    let workingDays = 0;
+    bulkSelectedDates.forEach(dateStr => {
+        const date = new Date(dateStr);
+        if (date.getDay() !== 0 && date.getDay() !== 6) {
+            workingDays++;
+        }
+    });
+    
+    previewEl.innerHTML = `
+        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 15px;">
+            <p style="margin: 0; color: #1976d2;"><strong>Preview:</strong> ${bulkSelectedDates.length} date(s) selected (${workingDays} working days)</p>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">This will create ${employees.length} holiday requests (one per employee)</p>
+        </div>
+    `;
+}
+
+function removeBulkDate(dateStr) {
+    const index = bulkSelectedDates.indexOf(dateStr);
+    if (index > -1) {
+        bulkSelectedDates.splice(index, 1);
+    }
+    renderBulkCalendar();
+    updateBulkSelectedDatesList();
+}
+
+async function submitBulkHolidays() {
+    if (bulkSelectedDates.length === 0) {
+        alert('Please select at least one date');
+        return;
+    }
+    
+    const reason = document.getElementById('bulk-holiday-reason').value || 'Company Holiday';
+    const deductFromAllowance = document.getElementById('bulk-deduct-allowance').checked;
+    
+    const confirmMsg = `This will add ${bulkSelectedDates.length} holiday date(s) for ALL ${employees.length} employees.\n\n` +
+        `Dates: ${bulkSelectedDates.map(d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })).join(', ')}\n\n` +
+        `${deductFromAllowance ? 'Days WILL be deducted from holiday allowance.' : 'Days will NOT be deducted from holiday allowance.'}\n\n` +
+        `Continue?`;
+    
+    if (!confirm(confirmMsg)) return;
+    
+    // Calculate working days for each date
+    let totalWorkingDays = 0;
+    bulkSelectedDates.forEach(dateStr => {
+        const date = new Date(dateStr);
+        if (date.getDay() !== 0 && date.getDay() !== 6) {
+            totalWorkingDays++;
+        }
+    });
+    
+    // Sort dates to get start and end
+    const sortedDates = [...bulkSelectedDates].sort();
+    const startDate = sortedDates[0];
+    const endDate = sortedDates[sortedDates.length - 1];
+    
+    // Create request for each employee
+    for (const employee of employees) {
+        // Calculate days based on employee's Saturday setting
+        let days = 0;
+        bulkSelectedDates.forEach(dateStr => {
+            const date = new Date(dateStr);
+            const dayOfWeek = date.getDay();
+            
+            // Skip Sundays
+            if (dayOfWeek === 0) return;
+            
+            // Handle Saturdays based on employee setting
+            if (dayOfWeek === 6) {
+                if (employee.includeSaturdayDeduction) {
+                    days += 1;
+                }
+                return;
+            }
+            
+            // Weekdays always count
+            days += 1;
+        });
+        
+        const newRequest = {
+            id: nextRequestId++,
+            employeeId: employee.id,
+            employeeName: employee.name,
+            requestType: 'holiday',
+            startDate: startDate,
+            endDate: endDate,
+            days: days,
+            reason: reason,
+            status: 'approved', // Auto-approve bulk holidays
+            submittedDate: new Date().toISOString().split('T')[0],
+            approvedDate: new Date().toISOString().split('T')[0],
+            isBlockBooking: bulkSelectedDates.length > 1,
+            selectedDates: bulkSelectedDates.length > 1 ? [...bulkSelectedDates] : null,
+            isBulkHoliday: true,
+            deductFromHoliday: deductFromAllowance
+        };
+        
+        holidayRequests.push(newRequest);
+        
+        // Update employee's used days if deducting from allowance
+        if (deductFromAllowance && days > 0) {
+            employee.usedDays += days;
+        }
+    }
+    
+    // Save everything
+    await saveHolidayRequests();
+    if (deductFromAllowance) {
+        await saveEmployees();
+    }
+    
+    // Refresh displays
+    populateEmployeeCards();
+    loadAdminData();
+    renderCalendar();
+    
+    closeBulkHolidayModal();
+    alert(`Successfully added holidays for all ${employees.length} employees!`);
+}
+
+// ==================== END BULK HOLIDAYS FUNCTIONS ====================
 
 // Report generation functions
 function loadReportsSection() {
