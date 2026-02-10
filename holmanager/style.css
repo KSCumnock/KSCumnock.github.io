@@ -1089,6 +1089,28 @@
     background: #258bca;
 }
 
+.block-calendar-day.already-booked {
+    background: #ffcdd2;
+    color: #c62828;
+    cursor: not-allowed;
+    position: relative;
+    opacity: 0.7;
+}
+
+.block-calendar-day.already-booked::after {
+    content: '●';
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 8px;
+    color: #c62828;
+}
+
+.block-calendar-day.already-booked:hover {
+    background: #ffcdd2;
+    transform: none;
+}
+
 .selected-dates-summary {
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(102, 126, 234, 0.05));
     border: 1px solid rgba(102, 126, 234, 0.2);

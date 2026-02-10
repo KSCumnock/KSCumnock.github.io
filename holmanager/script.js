@@ -693,13 +693,22 @@ function renderBlockCalendar() {
                 dayElement.classList.add('today');
             }
             
+            // Check if this date is already booked by this employee
+            const alreadyBooked = currentEmployee && getEmployeeOverlappingDates(currentEmployee.id, [dateStr]).length > 0;
+            if (alreadyBooked) {
+                dayElement.classList.add('already-booked');
+                dayElement.title = 'Already booked';
+            }
+            
             // Check if date is selected
             if (selectedDates.includes(dateStr)) {
                 dayElement.classList.add('selected');
             }
             
-            // Add click handler for selectable dates
-            dayElement.addEventListener('click', () => toggleDateSelection(dateStr));
+            // Add click handler for selectable dates (but not already booked ones)
+            if (!alreadyBooked) {
+                dayElement.addEventListener('click', () => toggleDateSelection(dateStr));
+            }
         }
         
         grid.appendChild(dayElement);
@@ -955,6 +964,49 @@ function updateDaysPreview() {
     }
 }
 
+// Check if the current employee already has existing (non-cancelled) bookings overlapping the given dates
+function getEmployeeOverlappingDates(employeeId, datesToCheck) {
+    // Get all active requests for this employee (pending or approved)
+    const existingRequests = holidayRequests.filter(req =>
+        req.employeeId === employeeId &&
+        req.status !== 'declined' &&
+        req.status !== 'cancelled'
+    );
+
+    const overlapping = new Set();
+
+    datesToCheck.forEach(dateStr => {
+        existingRequests.forEach(req => {
+            if (req.isBlockBooking && req.selectedDates) {
+                if (req.selectedDates.includes(dateStr)) {
+                    overlapping.add(dateStr);
+                }
+            } else {
+                const reqStart = new Date(req.startDate);
+                const reqEnd = new Date(req.endDate);
+                const check = new Date(dateStr);
+                if (check >= reqStart && check <= reqEnd) {
+                    overlapping.add(dateStr);
+                }
+            }
+        });
+    });
+
+    return Array.from(overlapping).sort();
+}
+
+// Build a list of all dates in a start→end range as YYYY-MM-DD strings
+function getDateRange(startDate, endDate) {
+    const dates = [];
+    const current = new Date(startDate);
+    const end = new Date(endDate);
+    while (current <= end) {
+        dates.push(formatDateForComparison(current));
+        current.setDate(current.getDate() + 1);
+    }
+    return dates;
+}
+
 async function submitHolidayRequest(event) {
     event.preventDefault();
     
@@ -972,6 +1024,17 @@ async function submitHolidayRequest(event) {
             return;
         }
         
+        // Check for duplicate/overlapping bookings for this employee
+        const overlappingDates = getEmployeeOverlappingDates(currentEmployee.id, selectedDates);
+        if (overlappingDates.length > 0) {
+            const formattedDates = overlappingDates.map(d => {
+                const date = new Date(d);
+                return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+            }).join(', ');
+            alert(`You already have existing bookings on the following date(s):\n\n${formattedDates}\n\nPlease remove those dates from your selection and try again.`);
+            return;
+        }
+
         const groups = groupConsecutiveDates(selectedDates);
         const remainingDays = currentEmployee.totalAllowance - currentEmployee.usedDays;
         
@@ -1072,6 +1135,18 @@ async function submitHolidayRequest(event) {
         // Check if employee has enough days only if it's a holiday or if deducting from allowance
         if (shouldDeductDays && days > remainingDays) {
             alert(`You don't have enough holiday days remaining. You have ${remainingDays} days left.`);
+            return;
+        }
+        
+        // Check for duplicate/overlapping bookings for this employee
+        const requestDates = getDateRange(startDate, isHalfDay ? startDate : endDate);
+        const overlappingDates = getEmployeeOverlappingDates(currentEmployee.id, requestDates);
+        if (overlappingDates.length > 0) {
+            const formattedDates = overlappingDates.map(d => {
+                const date = new Date(d);
+                return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+            }).join(', ');
+            alert(`You already have existing bookings on the following date(s):\n\n${formattedDates}\n\nPlease choose different dates and try again.`);
             return;
         }
         
@@ -2441,8 +2516,16 @@ async function submitBulkHolidays() {
     const startDate = sortedDates[0];
     const endDate = sortedDates[sortedDates.length - 1];
     
-    // Create request for each employee
+    // Create request for each employee (skip those with existing bookings on those dates)
+    const skippedEmployees = [];
     for (const employee of employees) {
+        // Check for existing bookings on the selected dates
+        const overlapping = getEmployeeOverlappingDates(employee.id, bulkSelectedDates);
+        if (overlapping.length > 0) {
+            skippedEmployees.push(employee.name);
+            continue;
+        }
+
         // Calculate days based on employee's Saturday setting
         let days = 0;
         bulkSelectedDates.forEach(dateStr => {
@@ -2502,7 +2585,13 @@ async function submitBulkHolidays() {
     renderCalendar();
     
     closeBulkHolidayModal();
-    alert(`Successfully added holidays for all ${employees.length} employees!`);
+    
+    const addedCount = employees.length - skippedEmployees.length;
+    let msg = `Successfully added holidays for ${addedCount} employee(s)!`;
+    if (skippedEmployees.length > 0) {
+        msg += `\n\nSkipped ${skippedEmployees.length} employee(s) who already had bookings on those dates:\n${skippedEmployees.join(', ')}`;
+    }
+    alert(msg);
 }
 
 // ==================== END BULK HOLIDAYS FUNCTIONS ====================
