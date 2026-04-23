@@ -47,6 +47,23 @@ let holidayRequests = [];
 let employeesSha = null;
 let holidayRequestsSha = null;
 let currentEmployee = null;
+
+// ==================== AUTHORISER HELPER ====================
+// Prompts the admin for their name before any authorisation action.
+// Returns the trimmed name string, or null if cancelled/empty (caller should abort).
+function promptAuthoriser(actionText) {
+    const name = prompt(
+        `Please enter your full name to ${actionText}.\n\n` +
+        `This will be recorded for audit purposes.`
+    );
+    if (name === null) return null;          // user cancelled
+    const trimmed = name.trim();
+    if (!trimmed) {
+        alert('A name is required for audit purposes. Action cancelled.');
+        return null;
+    }
+    return trimmed;
+}
 let nextRequestId = 1;
 let nextEmployeeId = 1;
 let currentDate = new Date();
@@ -1056,6 +1073,13 @@ async function submitHolidayRequest(event) {
             return;
         }
         
+        // Sick leave auto-approves — require authoriser for audit trail
+        let sickAuthoriser = null;
+        if (requestType === 'sick') {
+            sickAuthoriser = promptAuthoriser(`record this sick leave for ${currentEmployee.name}`);
+            if (!sickAuthoriser) return;
+        }
+
         // Create multiple requests for each group
         const newRequests = [];
         for (const group of groups) {
@@ -1094,7 +1118,13 @@ async function submitHolidayRequest(event) {
                 isBlockBooking: true,
                 selectedDates: group.dates
             };
-            
+
+            // Stamp authoriser for sick leave (auto-approved)
+            if (requestType === 'sick' && sickAuthoriser) {
+                newRequest.approvedBy = sickAuthoriser;
+                newRequest.approvedDate = new Date().toISOString().split('T')[0];
+            }
+
             newRequests.push(newRequest);
         }
         
@@ -1153,7 +1183,14 @@ async function submitHolidayRequest(event) {
         // Auto-approve sick leave requests (employee is already off sick)
         // Holiday and bereavement requests still require approval
         const initialStatus = requestType === 'sick' ? 'approved' : 'pending';
-        
+
+        // Sick leave auto-approves — require authoriser for audit trail
+        let sickAuthoriserSingle = null;
+        if (requestType === 'sick') {
+            sickAuthoriserSingle = promptAuthoriser(`record this sick leave for ${currentEmployee.name}`);
+            if (!sickAuthoriserSingle) return;
+        }
+
         const newRequest = {
             id: nextRequestId++,
             employeeId: currentEmployee.id,
@@ -1169,6 +1206,12 @@ async function submitHolidayRequest(event) {
             requestType: requestType,
             deductFromHoliday: shouldDeductDays
         };
+
+        // Stamp authoriser for sick leave (auto-approved)
+        if (requestType === 'sick' && sickAuthoriserSingle) {
+            newRequest.approvedBy = sickAuthoriserSingle;
+            newRequest.approvedDate = new Date().toISOString().split('T')[0];
+        }
         
         holidayRequests.push(newRequest);
         await saveHolidayRequests();
@@ -1246,7 +1289,10 @@ function loadEmployeeRequests() {
             
             blockBookingDetails = `<p><strong>Selected Dates:</strong> ${formattedDates}</p>`;
         }
-        
+
+        // Audit stamp showing who authorised / rejected / cancelled
+        const auditStamp = buildAuditStamp(request);
+
         return `
             <div class="holiday-request ${request.status}">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -1256,6 +1302,7 @@ function loadEmployeeRequests() {
                         ${blockBookingDetails}
                         <p><strong>Reason:</strong> ${request.reason || 'Not specified'}</p>
                         <p><strong>Submitted:</strong> ${request.submittedDate}</p>
+                        ${auditStamp}
                     </div>
                     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px; margin-left: 15px;">
                         <span class="status-badge status-${request.status}">${request.status}</span>
@@ -1273,6 +1320,9 @@ async function cancelHolidayRequest(requestId) {
     
     const request = holidayRequests.find(req => req.id === requestId);
     if (request) {
+        const authoriser = promptAuthoriser(`cancel this ${request.requestType || 'holiday'} request for ${request.employeeName}`);
+        if (!authoriser) return;
+
         const employee = employees.find(emp => emp.id === request.employeeId);
         
         // If the request was approved and it's a holiday or deducts from holiday allowance, return the days
@@ -1285,6 +1335,7 @@ async function cancelHolidayRequest(requestId) {
         
         request.status = 'cancelled';
         request.cancelledDate = new Date().toISOString().split('T')[0];
+        request.cancelledBy = authoriser;
         await saveHolidayRequests();
         
         // Send email notification to employee
@@ -2100,8 +2151,12 @@ function removeToast(toastId) {
 async function approveRequest(requestId) {
     const request = holidayRequests.find(req => req.id === requestId);
     if (request) {
+        const authoriser = promptAuthoriser(`approve ${request.employeeName}'s ${request.requestType || 'holiday'} request`);
+        if (!authoriser) return;
+
         request.status = 'approved';
         request.approvedDate = new Date().toISOString().split('T')[0];
+        request.approvedBy = authoriser;
         
         const employee = employees.find(emp => emp.id === request.employeeId);
         if (employee) {
@@ -2125,6 +2180,9 @@ async function approveRequest(requestId) {
 async function rejectRequest(requestId) {
     const request = holidayRequests.find(req => req.id === requestId);
     if (request) {
+        const authoriser = promptAuthoriser(`reject ${request.employeeName}'s ${request.requestType || 'holiday'} request`);
+        if (!authoriser) return;
+
         const employee = employees.find(emp => emp.id === request.employeeId);
         
         // If this was previously approved and deducted days, return them
@@ -2137,6 +2195,7 @@ async function rejectRequest(requestId) {
         
         request.status = 'rejected';
         request.rejectedDate = new Date().toISOString().split('T')[0];
+        request.rejectedBy = authoriser;
         
         // Send email notification
         if (employee) {
@@ -2342,6 +2401,7 @@ function loadAllRequests() {
                         <p><strong>Reason:</strong> ${request.reason || 'Not specified'}</p>
                         <p><strong>Submitted:</strong> ${request.submittedDate}</p>
                         ${request.deductFromHoliday && requestType !== 'holiday' ? '<p><em>Deducted from holiday allowance</em></p>' : ''}
+                        ${buildAuditStamp(request)}
                     </div>
                     <div style="margin-left: 15px;">
                         <span class="status-badge status-${request.status}">${request.status}</span>
@@ -2350,6 +2410,20 @@ function loadAllRequests() {
             </div>
         `;
     }).join('');
+}
+
+// Build an audit stamp HTML block for a request (used in admin All Requests & employee history)
+function buildAuditStamp(request) {
+    if (request.status === 'approved' && request.approvedBy) {
+        return `<p style="margin-top: 8px; padding: 6px 10px; background: #d4edda; border-left: 3px solid #28a745; color: #155724; font-size: 13px;">✅ <strong>Authorised by ${request.approvedBy}</strong>${request.approvedDate ? ` on ${request.approvedDate}` : ''}</p>`;
+    }
+    if (request.status === 'rejected' && request.rejectedBy) {
+        return `<p style="margin-top: 8px; padding: 6px 10px; background: #f8d7da; border-left: 3px solid #dc3545; color: #721c24; font-size: 13px;">❌ <strong>Rejected by ${request.rejectedBy}</strong>${request.rejectedDate ? ` on ${request.rejectedDate}` : ''}</p>`;
+    }
+    if (request.status === 'cancelled' && request.cancelledBy) {
+        return `<p style="margin-top: 8px; padding: 6px 10px; background: #e2e3e5; border-left: 3px solid #6c757d; color: #383d41; font-size: 13px;">🚫 <strong>Cancelled by ${request.cancelledBy}</strong>${request.cancelledDate ? ` on ${request.cancelledDate}` : ''}</p>`;
+    }
+    return '';
 }
 
 // ==================== BULK HOLIDAYS FUNCTIONS ====================
@@ -2501,6 +2575,10 @@ async function submitBulkHolidays() {
         `Continue?`;
     
     if (!confirm(confirmMsg)) return;
+
+    // Require authoriser name for audit trail
+    const bulkAuthoriser = promptAuthoriser('authorise this bulk holiday for all employees');
+    if (!bulkAuthoriser) return;
     
     // Calculate working days for each date
     let totalWorkingDays = 0;
@@ -2559,6 +2637,7 @@ async function submitBulkHolidays() {
             status: 'approved', // Auto-approve bulk holidays
             submittedDate: new Date().toISOString().split('T')[0],
             approvedDate: new Date().toISOString().split('T')[0],
+            approvedBy: bulkAuthoriser,
             isBlockBooking: bulkSelectedDates.length > 1,
             selectedDates: bulkSelectedDates.length > 1 ? [...bulkSelectedDates] : null,
             isBulkHoliday: true,
@@ -2809,6 +2888,7 @@ function generateEmployeeSectionHTML(data, isSection = true) {
                             <th>Reason</th>
                             <th>Block Booking</th>
                             <th>Deducted</th>
+                            <th>Authorised By</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -2826,6 +2906,10 @@ function generateEmployeeSectionHTML(data, isSection = true) {
             const typeText = requestType === 'holiday' ? 'Holiday' : 
                             requestType === 'sick' ? 'Sick Leave' : 'Bereavement Leave';
             
+            const authorisedByText = request.approvedBy
+                ? `${request.approvedBy}${request.approvedDate ? ` (${request.approvedDate})` : ''}`
+                : '—';
+
             html += `
                 <tr>
                     <td>${typeText}</td>
@@ -2835,6 +2919,7 @@ function generateEmployeeSectionHTML(data, isSection = true) {
                     <td>${request.reason || 'Not specified'}</td>
                     <td>${request.isBlockBooking ? 'Yes' : 'No'}</td>
                     <td>${request.deductFromHoliday ? 'Yes' : 'No'}</td>
+                    <td>${authorisedByText}</td>
                 </tr>
             `;
         });
@@ -2858,6 +2943,7 @@ function generateEmployeeSectionHTML(data, isSection = true) {
                             <th>Status</th>
                             <th>Block Booking</th>
                             <th>Deducted</th>
+                            <th>Action By</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -2874,7 +2960,16 @@ function generateEmployeeSectionHTML(data, isSection = true) {
             const requestType = request.requestType || 'holiday';
             const typeText = requestType === 'holiday' ? 'Holiday' : 
                             requestType === 'sick' ? 'Sick Leave' : 'Bereavement Leave';
-            
+
+            let actionByText = '—';
+            if (request.status === 'approved' && request.approvedBy) {
+                actionByText = `✅ ${request.approvedBy}${request.approvedDate ? ` (${request.approvedDate})` : ''}`;
+            } else if (request.status === 'rejected' && request.rejectedBy) {
+                actionByText = `❌ ${request.rejectedBy}${request.rejectedDate ? ` (${request.rejectedDate})` : ''}`;
+            } else if (request.status === 'cancelled' && request.cancelledBy) {
+                actionByText = `🚫 ${request.cancelledBy}${request.cancelledDate ? ` (${request.cancelledDate})` : ''}`;
+            }
+
             html += `
                 <tr>
                     <td>${request.submittedDate}</td>
@@ -2886,6 +2981,7 @@ function generateEmployeeSectionHTML(data, isSection = true) {
                     <td><span class="status ${request.status}">${request.status}</span></td>
                     <td>${request.isBlockBooking ? 'Yes' : 'No'}</td>
                     <td>${request.deductFromHoliday ? 'Yes' : 'No'}</td>
+                    <td>${actionByText}</td>
                 </tr>
             `;
         });
