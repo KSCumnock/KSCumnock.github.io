@@ -1733,8 +1733,8 @@ function loadData(startDate, endDate) {
                                 }
                             };
                         } else {
-                            hoursData = calculateDetailedHours(entries);
-                            
+                            hoursData = isToday ? calculateLiveHoursWorked(entries) : calculateDetailedHours(entries);
+
                             // Add employee's day to total hours
                             employeeTotalAttendance += hoursData.attendanceHours;
                             employeeTotalBreaks += hoursData.breakHours;
