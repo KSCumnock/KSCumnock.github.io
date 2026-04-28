@@ -1603,7 +1603,8 @@ function showAdminSection(section) {
             (section === 'employees' && index === 1) ||
             (section === 'all-requests' && index === 2) ||
             (section === 'employee-view' && index === 3) ||
-            (section === 'reports' && index === 4)) {
+            (section === 'attendance' && index === 4) ||
+            (section === 'reports' && index === 5)) {
             btn.classList.add('active');
         }
     });
@@ -1615,6 +1616,8 @@ function showAdminSection(section) {
         loadEmployeeQuickView();
     } else if (section === 'reports') {
         loadReportsSection();
+    } else if (section === 'attendance') {
+        loadAttendanceReview();
     }
 }
 
@@ -1631,6 +1634,7 @@ async function loadAdminData() {
         loadAllRequests();
         loadEmployeeQuickView();
         loadReportsSection();
+        loadAttendanceReview();
         
         document.getElementById('admin-loading').classList.add('hidden');
         document.getElementById('admin-content').classList.remove('hidden');
@@ -3506,3 +3510,743 @@ document.addEventListener('click', (e) => {
         closeEmployeeModal();
     }
 });
+// ==================== ATTENDANCE REVIEW ====================
+// Individual attendance review for 1-on-1 meetings.
+// Surfaces total days off, sick day patterns, short-notice bookings, and cancellations.
+
+let currentAttendanceEmployeeId = null;
+let attendanceReviewYear = null;
+
+function loadAttendanceReview() {
+    const yearSelect = document.getElementById('attendance-year-select');
+    if (!yearSelect) return;
+
+    // Populate year selector if not already
+    if (!yearSelect.dataset.populated) {
+        const currentActualYear = new Date().getFullYear();
+        for (let y = currentActualYear - 3; y <= currentActualYear + 1; y++) {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            if (y === currentYear) opt.selected = true;
+            yearSelect.appendChild(opt);
+        }
+        yearSelect.dataset.populated = 'true';
+        attendanceReviewYear = currentYear;
+    }
+
+    if (attendanceReviewYear === null) attendanceReviewYear = currentYear;
+
+    // Show list, hide detail
+    document.getElementById('attendance-list-view').classList.remove('hidden');
+    document.getElementById('attendance-detail-view').classList.add('hidden');
+    currentAttendanceEmployeeId = null;
+
+    renderAttendanceEmployeeList();
+}
+
+function changeAttendanceYear() {
+    attendanceReviewYear = parseInt(document.getElementById('attendance-year-select').value);
+    if (currentAttendanceEmployeeId) {
+        showAttendanceDetail(currentAttendanceEmployeeId);
+    } else {
+        renderAttendanceEmployeeList();
+    }
+}
+
+function filterAttendanceList() {
+    renderAttendanceEmployeeList();
+}
+
+function renderAttendanceEmployeeList() {
+    const container = document.getElementById('attendance-employee-grid');
+    if (!container) return;
+
+    const searchEl = document.getElementById('attendance-search');
+    const searchTerm = (searchEl?.value || '').toLowerCase();
+
+    const filtered = employees.filter(emp => emp.name.toLowerCase().includes(searchTerm));
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<p style="color:#6c757d;">No employees match.</p>';
+        return;
+    }
+
+    container.innerHTML = filtered.map(employee => {
+        const stats = getAttendanceStats(employee.id, attendanceReviewYear);
+
+        // Concern flags for at-a-glance triage
+        const flags = [];
+        if (stats.shortNoticeCount >= 3) flags.push(`<span class="att-flag flag-amber">${stats.shortNoticeCount} short notice</span>`);
+        if (stats.sameDayCount >= 1) flags.push(`<span class="att-flag flag-red">${stats.sameDayCount} same day</span>`);
+        if (stats.mondayFridaySickPercent >= 60 && stats.sickOccurrences >= 2) {
+            flags.push(`<span class="att-flag flag-amber">${stats.mondayFridaySickPercent}% Mon/Fri sick</span>`);
+        }
+        if (stats.sickDays >= 7) flags.push(`<span class="att-flag flag-red">${stats.sickDays} sick days</span>`);
+        if (stats.cancelledCount >= 3) flags.push(`<span class="att-flag flag-grey">${stats.cancelledCount} cancellations</span>`);
+
+        return `
+            <div class="att-card" onclick="showAttendanceDetail(${employee.id})">
+                <div class="att-card-top">
+                    <div class="att-card-name">${escapeAttHtml(employee.name)}</div>
+                    <button class="btn-small" onclick="event.stopPropagation(); showAttendanceDetail(${employee.id})">Review →</button>
+                </div>
+                <div class="att-card-stats">
+                    <div class="att-mini"><div class="att-mini-val">${stats.totalDaysOff}</div><div class="att-mini-lbl">Days off</div></div>
+                    <div class="att-mini"><div class="att-mini-val">${stats.holidayDays}</div><div class="att-mini-lbl">Holiday</div></div>
+                    <div class="att-mini"><div class="att-mini-val tone-red">${stats.sickDays}</div><div class="att-mini-lbl">Sick</div></div>
+                    <div class="att-mini"><div class="att-mini-val tone-red">${stats.sickOccurrences}</div><div class="att-mini-lbl">Sick occ.</div></div>
+                    <div class="att-mini"><div class="att-mini-val">${stats.bereavementDays}</div><div class="att-mini-lbl">Bereav.</div></div>
+                    <div class="att-mini"><div class="att-mini-val tone-amber">${stats.shortNoticeCount}</div><div class="att-mini-lbl">Short notice</div></div>
+                    <div class="att-mini"><div class="att-mini-val tone-grey">${stats.cancelledCount}</div><div class="att-mini-lbl">Cancelled</div></div>
+                </div>
+                ${flags.length ? `<div class="att-card-flags">${flags.join('')}</div>` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+function getAttendanceStats(employeeId, year) {
+    const employee = employees.find(emp => emp.id === employeeId);
+    const allReqs = holidayRequests.filter(req => req.employeeId === employeeId);
+
+    const yearRequests = allReqs.filter(req => {
+        return new Date(req.startDate).getFullYear() === year;
+    });
+
+    const approved = yearRequests.filter(r => r.status === 'approved');
+    const pending = yearRequests.filter(r => r.status === 'pending');
+    const cancelled = yearRequests.filter(r => r.status === 'cancelled');
+    const rejected = yearRequests.filter(r => r.status === 'rejected');
+
+    const holidayApproved = approved.filter(r => !r.requestType || r.requestType === 'holiday');
+    const sickApproved = approved.filter(r => r.requestType === 'sick');
+    const bereavementApproved = approved.filter(r => r.requestType === 'bereavement');
+
+    const holidayDays = holidayApproved.reduce((s, r) => s + (r.days || 0), 0);
+    const sickDays = sickApproved.reduce((s, r) => s + (r.days || 0), 0);
+    const bereavementDays = bereavementApproved.reduce((s, r) => s + (r.days || 0), 0);
+    const totalDaysOff = holidayDays + sickDays + bereavementDays;
+
+    // Sick day-of-week pattern
+    const sickByDayOfWeek = [0, 0, 0, 0, 0, 0, 0]; // Sun..Sat
+    let mondayFridaySickCount = 0;
+    sickApproved.forEach(r => {
+        const dow = new Date(r.startDate).getDay();
+        sickByDayOfWeek[dow]++;
+        if (dow === 1 || dow === 5) mondayFridaySickCount++;
+    });
+    const sickOccurrences = sickApproved.length;
+    const mondayFridaySickPercent = sickOccurrences > 0
+        ? Math.round((mondayFridaySickCount / sickOccurrences) * 100)
+        : 0;
+
+    // Short-notice analysis (holidays only — sick is by definition short notice)
+    const shortNoticeRequests = approved.filter(r => {
+        if (r.requestType === 'sick' || r.requestType === 'bereavement') return false;
+        const n = getDaysNotice(r);
+        return n !== null && n >= 0 && n < 7;
+    });
+    const sameDayRequests = approved.filter(r => {
+        if (r.requestType === 'sick' || r.requestType === 'bereavement') return false;
+        return getDaysNotice(r) === 0;
+    });
+
+    const holidayNotices = holidayApproved
+        .map(r => getDaysNotice(r))
+        .filter(n => n !== null && n >= 0);
+    const avgNoticeDays = holidayNotices.length > 0
+        ? Math.round(holidayNotices.reduce((s, n) => s + n, 0) / holidayNotices.length)
+        : null;
+
+    return {
+        employee,
+        year,
+        totalRequests: yearRequests.length,
+        approvedCount: approved.length,
+        pendingCount: pending.length,
+        cancelledCount: cancelled.length,
+        rejectedCount: rejected.length,
+        holidayDays,
+        sickDays,
+        bereavementDays,
+        totalDaysOff,
+        sickOccurrences,
+        sickByDayOfWeek,
+        mondayFridaySickCount,
+        mondayFridaySickPercent,
+        shortNoticeCount: shortNoticeRequests.length,
+        shortNoticeRequests,
+        sameDayCount: sameDayRequests.length,
+        sameDayRequests,
+        avgNoticeDays,
+        approvedRequests: approved,
+        sickApproved,
+        holidayApproved,
+        bereavementApproved,
+        cancelledRequests: cancelled,
+        pendingRequests: pending,
+        rejectedRequests: rejected
+    };
+}
+
+function getDaysNotice(request) {
+    if (!request.submittedDate || !request.startDate) return null;
+    const submitted = new Date(request.submittedDate + 'T00:00:00');
+    const start = new Date(request.startDate + 'T00:00:00');
+    return Math.round((start - submitted) / (1000 * 60 * 60 * 24));
+}
+
+function showAttendanceDetail(employeeId) {
+    currentAttendanceEmployeeId = employeeId;
+    const employee = employees.find(emp => emp.id === employeeId);
+    if (!employee) return;
+
+    document.getElementById('attendance-list-view').classList.add('hidden');
+    const detailView = document.getElementById('attendance-detail-view');
+    detailView.classList.remove('hidden');
+    detailView.innerHTML = renderAttendanceDetailHTML(employeeId, attendanceReviewYear);
+}
+
+function backToAttendanceList() {
+    currentAttendanceEmployeeId = null;
+    document.getElementById('attendance-list-view').classList.remove('hidden');
+    document.getElementById('attendance-detail-view').classList.add('hidden');
+    renderAttendanceEmployeeList();
+}
+
+function renderAttendanceDetailHTML(employeeId, year) {
+    const stats = getAttendanceStats(employeeId, year);
+    const employee = stats.employee;
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    // Discussion points / concerns banner
+    const concerns = buildConcernsList(stats);
+    const concernsBanner = concerns.length === 0 ? '' : `
+        <div class="att-concerns">
+            <h4 style="margin: 0 0 10px 0; color: #856404;">💬 Discussion Points</h4>
+            <ul style="margin: 0; padding-left: 20px;">
+                ${concerns.map(c => `<li>${c}</li>`).join('')}
+            </ul>
+        </div>
+    `;
+
+    // Sick day-of-week chart (weekdays only)
+    const maxSickDay = Math.max(...stats.sickByDayOfWeek, 1);
+    const sickDayChart = [1, 2, 3, 4, 5].map(idx => {
+        const count = stats.sickByDayOfWeek[idx];
+        const pct = (count / maxSickDay) * 100;
+        const isHotspot = (idx === 1 || idx === 5) && count > 0;
+        return `
+            <div class="sick-bar-row">
+                <div class="sick-bar-label">${dayNames[idx].substring(0,3)}</div>
+                <div class="sick-bar-track">
+                    <div class="sick-bar-fill ${isHotspot ? 'hotspot' : ''}" style="width:${Math.max(pct, 3)}%"></div>
+                </div>
+                <div class="sick-bar-count">${count}</div>
+            </div>
+        `;
+    }).join('');
+
+    // Short-notice list
+    const shortNoticeHtml = stats.shortNoticeRequests.length === 0
+        ? '<p style="color:#6c757d; margin: 0;">No short-notice holiday requests in this period.</p>'
+        : stats.shortNoticeRequests
+            .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
+            .map(r => {
+                const notice = getDaysNotice(r);
+                const dateRange = r.startDate === r.endDate ? formatAttDate(r.startDate) : `${formatAttDate(r.startDate)} → ${formatAttDate(r.endDate)}`;
+                const noticeLabel = notice === 0 ? 'Same day' : `${notice} day${notice === 1 ? '' : 's'} notice`;
+                const pillClass = notice === 0 ? 'pill-red' : 'pill-amber';
+                return `
+                    <div class="att-event-row">
+                        <div class="att-event-main">
+                            <div><strong>${dateRange}</strong> · ${r.days} day${r.days === 1 ? '' : 's'}</div>
+                            ${r.reason ? `<div class="att-muted">${escapeAttHtml(r.reason)}</div>` : ''}
+                        </div>
+                        <div class="att-event-meta">
+                            <div class="att-pill ${pillClass}">${noticeLabel}</div>
+                            <div class="att-muted att-small">Submitted ${formatAttDate(r.submittedDate)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+    // Sick events list
+    const sickEventsHtml = stats.sickApproved.length === 0
+        ? '<p style="color:#6c757d; margin: 0;">No sick leave recorded in this period.</p>'
+        : stats.sickApproved
+            .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
+            .map(r => {
+                const dateRange = r.startDate === r.endDate ? formatAttDate(r.startDate) : `${formatAttDate(r.startDate)} → ${formatAttDate(r.endDate)}`;
+                const dow = new Date(r.startDate).getDay();
+                const dayLabel = dayNames[dow];
+                const isMonFri = dow === 1 || dow === 5;
+                return `
+                    <div class="att-event-row">
+                        <div class="att-event-main">
+                            <div><strong>${dateRange}</strong> · ${r.days} day${r.days === 1 ? '' : 's'}</div>
+                            <div class="att-muted">${dayLabel}${r.reason ? ` · ${escapeAttHtml(r.reason)}` : ''}</div>
+                        </div>
+                        <div class="att-event-meta">
+                            ${isMonFri ? `<div class="att-pill pill-amber">${dayLabel}</div>` : ''}
+                            ${r.approvedBy ? `<div class="att-muted att-small">Recorded by ${escapeAttHtml(r.approvedBy)}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+    // Cancelled list
+    const cancelledHtml = stats.cancelledRequests.length === 0
+        ? ''
+        : `
+            <div class="att-section">
+                <h4>↺ Cancelled Requests (${stats.cancelledRequests.length})</h4>
+                ${stats.cancelledRequests
+                    .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
+                    .map(r => {
+                        const dateRange = r.startDate === r.endDate ? formatAttDate(r.startDate) : `${formatAttDate(r.startDate)} → ${formatAttDate(r.endDate)}`;
+                        const typeLabel = r.requestType === 'sick' ? 'Sick' : r.requestType === 'bereavement' ? 'Bereavement' : 'Holiday';
+                        return `
+                            <div class="att-event-row">
+                                <div class="att-event-main">
+                                    <div><strong>${dateRange}</strong> · ${r.days} day${r.days === 1 ? '' : 's'} · ${typeLabel}</div>
+                                    ${r.reason ? `<div class="att-muted">${escapeAttHtml(r.reason)}</div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+            </div>
+        `;
+
+    // Bereavement list
+    const bereavementHtml = stats.bereavementApproved.length === 0
+        ? ''
+        : `
+            <div class="att-section">
+                <h4>🕊️ Bereavement Leave (${stats.bereavementApproved.length})</h4>
+                ${stats.bereavementApproved
+                    .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
+                    .map(r => {
+                        const dateRange = r.startDate === r.endDate ? formatAttDate(r.startDate) : `${formatAttDate(r.startDate)} → ${formatAttDate(r.endDate)}`;
+                        return `
+                            <div class="att-event-row">
+                                <div class="att-event-main">
+                                    <div><strong>${dateRange}</strong> · ${r.days} day${r.days === 1 ? '' : 's'}</div>
+                                    ${r.reason ? `<div class="att-muted">${escapeAttHtml(r.reason)}</div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+            </div>
+        `;
+
+    // Full chronological record
+    const fullRecord = stats.approvedRequests.length === 0
+        ? '<p style="color:#6c757d; margin: 0;">No approved requests in this period.</p>'
+        : stats.approvedRequests
+            .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
+            .map(r => {
+                const dateRange = r.startDate === r.endDate ? formatAttDate(r.startDate) : `${formatAttDate(r.startDate)} → ${formatAttDate(r.endDate)}`;
+                const typeIcon = r.requestType === 'sick' ? '🏥' : r.requestType === 'bereavement' ? '🕊️' : '🏖️';
+                const typeLabel = r.requestType === 'sick' ? 'Sick' : r.requestType === 'bereavement' ? 'Bereavement' : 'Holiday';
+                const notice = getDaysNotice(r);
+                const showNotice = r.requestType !== 'sick' && notice !== null && notice >= 0;
+                return `
+                    <div class="att-event-row">
+                        <div class="att-event-main">
+                            <div>${typeIcon} <strong>${dateRange}</strong> · ${r.days} day${r.days === 1 ? '' : 's'} · ${typeLabel}</div>
+                            ${r.reason ? `<div class="att-muted">${escapeAttHtml(r.reason)}</div>` : ''}
+                        </div>
+                        <div class="att-event-meta">
+                            ${showNotice ? `<div class="att-muted att-small">${notice}d notice</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+    return `
+        <div class="att-detail-actions">
+            <button onclick="backToAttendanceList()" style="background: #6c757d;">← Back to list</button>
+            <button onclick="exportAttendanceReview(${employeeId})">📄 Export for Meeting</button>
+            <button onclick="printAttendanceReview(${employeeId})" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">🖨️ Print</button>
+        </div>
+
+        <div class="att-detail-header">
+            <h2 style="margin: 0;">${escapeAttHtml(employee.name)}</h2>
+            <p style="margin: 4px 0 0 0; color: #6c757d;">Attendance Review · ${year}</p>
+        </div>
+
+        ${concernsBanner}
+
+        <div class="att-tile-grid">
+            <div class="att-tile">
+                <div class="att-tile-label">Total days off</div>
+                <div class="att-tile-value">${stats.totalDaysOff}</div>
+                <div class="att-tile-sub">across ${stats.approvedCount} request${stats.approvedCount === 1 ? '' : 's'}</div>
+            </div>
+            <div class="att-tile tile-blue">
+                <div class="att-tile-label">Holiday</div>
+                <div class="att-tile-value">${stats.holidayDays}</div>
+                <div class="att-tile-sub">of ${employee.totalAllowance} allowance</div>
+            </div>
+            <div class="att-tile tile-red">
+                <div class="att-tile-label">Sick days</div>
+                <div class="att-tile-value">${stats.sickDays}</div>
+                <div class="att-tile-sub">${stats.sickOccurrences} occurrence${stats.sickOccurrences === 1 ? '' : 's'}</div>
+            </div>
+            <div class="att-tile tile-purple">
+                <div class="att-tile-label">Bereavement</div>
+                <div class="att-tile-value">${stats.bereavementDays}</div>
+                <div class="att-tile-sub">${stats.bereavementApproved.length} occurrence${stats.bereavementApproved.length === 1 ? '' : 's'}</div>
+            </div>
+            <div class="att-tile tile-amber">
+                <div class="att-tile-label">Short notice</div>
+                <div class="att-tile-value">${stats.shortNoticeCount}</div>
+                <div class="att-tile-sub">&lt; 7 days notice</div>
+            </div>
+            <div class="att-tile tile-grey">
+                <div class="att-tile-label">Cancelled</div>
+                <div class="att-tile-value">${stats.cancelledCount}</div>
+                <div class="att-tile-sub">${stats.rejectedCount} rejected · ${stats.pendingCount} pending</div>
+            </div>
+        </div>
+
+        <div class="att-section">
+            <h4>📅 Holiday Notice Pattern</h4>
+            <p style="color:#6c757d; margin: 0 0 12px 0;">
+                ${stats.avgNoticeDays !== null
+                    ? `Average notice given: <strong>${stats.avgNoticeDays} days</strong> across ${stats.holidayApproved.length} holiday request${stats.holidayApproved.length === 1 ? '' : 's'}.`
+                    : 'No approved holiday requests in this period.'}
+                ${stats.shortNoticeCount > 0 ? ` <strong>${stats.shortNoticeCount}</strong> request${stats.shortNoticeCount === 1 ? '' : 's'} below 7 days notice.` : ''}
+            </p>
+            ${shortNoticeHtml}
+        </div>
+
+        ${stats.sickOccurrences > 0 ? `
+        <div class="att-section">
+            <h4>🏥 Sick Leave Pattern</h4>
+            <p style="color:#6c757d; margin: 0 0 12px 0;">
+                <strong>${stats.sickOccurrences}</strong> sick leave occurrence${stats.sickOccurrences === 1 ? '' : 's'} totalling <strong>${stats.sickDays}</strong> day${stats.sickDays === 1 ? '' : 's'}.
+                ${stats.mondayFridaySickPercent > 0 ? ` <strong>${stats.mondayFridaySickPercent}%</strong> fell on a Monday or Friday.` : ''}
+            </p>
+            <div class="sick-day-chart">${sickDayChart}</div>
+            <h4 style="margin-top: 20px;">All Sick Leave Records</h4>
+            ${sickEventsHtml}
+        </div>
+        ` : `
+        <div class="att-section">
+            <h4>🏥 Sick Leave</h4>
+            <p style="color:#6c757d; margin: 0;">No sick leave recorded in ${year}.</p>
+        </div>
+        `}
+
+        ${bereavementHtml}
+
+        ${cancelledHtml}
+
+        <div class="att-section">
+            <h4>📋 Full Chronological Record</h4>
+            ${fullRecord}
+        </div>
+    `;
+}
+
+function buildConcernsList(stats) {
+    const concerns = [];
+    if (stats.shortNoticeCount >= 3) {
+        concerns.push(`<strong>${stats.shortNoticeCount}</strong> short-notice holiday requests (under 7 days notice).`);
+    }
+    if (stats.sameDayCount >= 1) {
+        concerns.push(`<strong>${stats.sameDayCount}</strong> same-day holiday request${stats.sameDayCount === 1 ? '' : 's'} — submitted on the day of the booked leave.`);
+    }
+    if (stats.mondayFridaySickPercent >= 60 && stats.sickOccurrences >= 2) {
+        concerns.push(`<strong>${stats.mondayFridaySickPercent}%</strong> of sick days fall on a Monday or Friday — pattern worth discussing.`);
+    }
+    if (stats.sickDays >= 7) {
+        concerns.push(`Sick days total <strong>${stats.sickDays}</strong> across ${stats.sickOccurrences} occurrence${stats.sickOccurrences === 1 ? '' : 's'} — review wellbeing and any underlying causes.`);
+    }
+    if (stats.cancelledCount >= 3) {
+        concerns.push(`<strong>${stats.cancelledCount}</strong> cancellations — may indicate planning issues or last-minute changes.`);
+    }
+    if (stats.avgNoticeDays !== null && stats.avgNoticeDays < 14 && stats.holidayApproved.length >= 3) {
+        concerns.push(`Average holiday notice is only <strong>${stats.avgNoticeDays} days</strong> — encourage longer-term planning.`);
+    }
+    return concerns;
+}
+
+function formatAttDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function escapeAttHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// ==================== ATTENDANCE EXPORT / PRINT ====================
+
+function exportAttendanceReview(employeeId) {
+    const stats = getAttendanceStats(employeeId, attendanceReviewYear);
+    const html = generateStandaloneAttendanceHTML(stats);
+    const filename = `${stats.employee.name.replace(/\s+/g, '_')}_Attendance_Review_${attendanceReviewYear}.html`;
+    downloadHTML(html, filename);
+}
+
+function printAttendanceReview(employeeId) {
+    const stats = getAttendanceStats(employeeId, attendanceReviewYear);
+    const html = generateStandaloneAttendanceHTML(stats);
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        alert('Pop-up blocked. Please allow pop-ups to print.');
+        return;
+    }
+    printWindow.document.write(html);
+    printWindow.document.close();
+    setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+    }, 400);
+}
+
+function generateStandaloneAttendanceHTML(stats) {
+    const employee = stats.employee;
+    const today = new Date().toLocaleDateString('en-GB');
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const concerns = buildConcernsList(stats);
+
+    const rowHtml = (r) => {
+        const dateRange = r.startDate === r.endDate ? formatAttDate(r.startDate) : `${formatAttDate(r.startDate)} → ${formatAttDate(r.endDate)}`;
+        const typeLabel = r.requestType === 'sick' ? 'Sick' : r.requestType === 'bereavement' ? 'Bereavement' : 'Holiday';
+        const dow = new Date(r.startDate).getDay();
+        const dayLabel = dayNames[dow];
+        const notice = getDaysNotice(r);
+        const noticeStr = (r.requestType !== 'sick' && notice !== null && notice >= 0) ? `${notice}d` : '—';
+        return `
+            <tr>
+                <td>${dateRange}</td>
+                <td>${dayLabel}</td>
+                <td>${typeLabel}</td>
+                <td style="text-align:center;">${r.days}</td>
+                <td style="text-align:center;">${noticeStr}</td>
+                <td>${escapeAttHtml(r.reason || '')}</td>
+            </tr>
+        `;
+    };
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>${escapeAttHtml(employee.name)} — Attendance Review ${stats.year}</title>
+<style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 900px; margin: 0 auto; padding: 30px; color: #24292f; line-height: 1.5; }
+    h1 { margin: 0 0 4px 0; font-size: 28px; }
+    h2 { font-size: 18px; margin: 30px 0 12px 0; color: #258bca; border-bottom: 2px solid #e9ecef; padding-bottom: 6px; }
+    h3 { font-size: 15px; margin: 20px 0 10px 0; }
+    .meta { color: #6c757d; font-size: 14px; margin-bottom: 20px; }
+    .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0; }
+    .tile { border: 1px solid #d0d7de; border-radius: 8px; padding: 14px; }
+    .tile-lbl { font-size: 12px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; }
+    .tile-val { font-size: 28px; font-weight: 700; margin: 4px 0; }
+    .tile-sub { font-size: 12px; color: #6c757d; }
+    .concerns { background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 14px 18px; margin: 20px 0; }
+    .concerns h3 { margin: 0 0 8px 0; color: #856404; }
+    .concerns ul { margin: 0; padding-left: 20px; }
+    .concerns li { margin-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
+    th { text-align: left; background: #f6f8fa; padding: 8px 10px; border-bottom: 2px solid #d0d7de; font-weight: 600; }
+    td { padding: 8px 10px; border-bottom: 1px solid #e9ecef; vertical-align: top; }
+    tr:nth-child(even) td { background: #fafbfc; }
+    .empty { color: #6c757d; font-style: italic; padding: 8px 0; }
+    .pattern-row { display: flex; align-items: center; gap: 10px; margin: 4px 0; font-size: 14px; }
+    .pattern-label { width: 50px; color: #6c757d; }
+    .pattern-track { flex: 1; height: 18px; background: #f6f8fa; border-radius: 4px; overflow: hidden; }
+    .pattern-fill { height: 100%; background: #dc3545; }
+    .pattern-fill.hot { background: linear-gradient(90deg, #dc3545, #fd7e14); }
+    .pattern-count { width: 30px; text-align: right; font-weight: 600; }
+    .signature-row { margin-top: 50px; display: flex; justify-content: space-between; gap: 40px; page-break-inside: avoid; }
+    .sig-block { flex: 1; }
+    .sig-line { border-top: 1px solid #24292f; margin-top: 50px; padding-top: 6px; font-size: 12px; color: #6c757d; }
+    @media print {
+        body { padding: 15px; max-width: 100%; }
+        h1 { font-size: 22px; }
+        h2 { font-size: 15px; }
+        .tile-val { font-size: 22px; }
+        .no-print { display: none; }
+    }
+</style>
+</head>
+<body>
+    <h1>Attendance Review</h1>
+    <div class="meta">
+        <strong>${escapeAttHtml(employee.name)}</strong> · Year: ${stats.year} · Generated: ${today}
+    </div>
+
+    <div class="tiles">
+        <div class="tile">
+            <div class="tile-lbl">Total Days Off</div>
+            <div class="tile-val">${stats.totalDaysOff}</div>
+            <div class="tile-sub">across ${stats.approvedCount} request${stats.approvedCount === 1 ? '' : 's'}</div>
+        </div>
+        <div class="tile">
+            <div class="tile-lbl">Holiday</div>
+            <div class="tile-val">${stats.holidayDays}</div>
+            <div class="tile-sub">of ${employee.totalAllowance} allowance</div>
+        </div>
+        <div class="tile">
+            <div class="tile-lbl">Sick</div>
+            <div class="tile-val">${stats.sickDays}</div>
+            <div class="tile-sub">${stats.sickOccurrences} occurrence${stats.sickOccurrences === 1 ? '' : 's'}</div>
+        </div>
+        <div class="tile">
+            <div class="tile-lbl">Bereavement</div>
+            <div class="tile-val">${stats.bereavementDays}</div>
+            <div class="tile-sub">${stats.bereavementApproved.length} occurrence${stats.bereavementApproved.length === 1 ? '' : 's'}</div>
+        </div>
+        <div class="tile">
+            <div class="tile-lbl">Short Notice</div>
+            <div class="tile-val">${stats.shortNoticeCount}</div>
+            <div class="tile-sub">&lt; 7 days notice</div>
+        </div>
+        <div class="tile">
+            <div class="tile-lbl">Cancelled</div>
+            <div class="tile-val">${stats.cancelledCount}</div>
+            <div class="tile-sub">${stats.rejectedCount} rejected · ${stats.pendingCount} pending</div>
+        </div>
+    </div>
+
+    ${concerns.length > 0 ? `
+    <div class="concerns">
+        <h3>Discussion Points</h3>
+        <ul>${concerns.map(c => `<li>${c}</li>`).join('')}</ul>
+    </div>` : ''}
+
+    <h2>Holiday Notice Summary</h2>
+    <p style="margin: 0 0 10px 0;">
+        ${stats.avgNoticeDays !== null
+            ? `Average notice given: <strong>${stats.avgNoticeDays} days</strong> across ${stats.holidayApproved.length} request${stats.holidayApproved.length === 1 ? '' : 's'}.`
+            : 'No approved holiday requests in this period.'}
+        ${stats.shortNoticeCount > 0 ? ` <strong>${stats.shortNoticeCount}</strong> below 7 days. ` : ''}
+        ${stats.sameDayCount > 0 ? `<strong>${stats.sameDayCount}</strong> same-day request${stats.sameDayCount === 1 ? '' : 's'}.` : ''}
+    </p>
+    ${stats.shortNoticeRequests.length > 0 ? `
+    <table>
+        <thead>
+            <tr><th>Dates</th><th>Day</th><th>Days</th><th>Notice</th><th>Submitted</th><th>Reason</th></tr>
+        </thead>
+        <tbody>
+            ${stats.shortNoticeRequests.sort((a, b) => new Date(b.startDate) - new Date(a.startDate)).map(r => {
+                const dateRange = r.startDate === r.endDate ? formatAttDate(r.startDate) : `${formatAttDate(r.startDate)} → ${formatAttDate(r.endDate)}`;
+                const dow = new Date(r.startDate).getDay();
+                const notice = getDaysNotice(r);
+                return `<tr>
+                    <td>${dateRange}</td>
+                    <td>${dayNames[dow]}</td>
+                    <td style="text-align:center;">${r.days}</td>
+                    <td style="text-align:center;"><strong>${notice === 0 ? 'Same day' : notice + 'd'}</strong></td>
+                    <td>${formatAttDate(r.submittedDate)}</td>
+                    <td>${escapeAttHtml(r.reason || '')}</td>
+                </tr>`;
+            }).join('')}
+        </tbody>
+    </table>` : '<p class="empty">No short-notice holiday requests in this period.</p>'}
+
+    <h2>Sick Leave</h2>
+    ${stats.sickOccurrences > 0 ? `
+    <p style="margin: 0 0 10px 0;">
+        <strong>${stats.sickOccurrences}</strong> occurrence${stats.sickOccurrences === 1 ? '' : 's'} totalling <strong>${stats.sickDays}</strong> day${stats.sickDays === 1 ? '' : 's'}.
+        ${stats.mondayFridaySickPercent > 0 ? `<strong>${stats.mondayFridaySickPercent}%</strong> on Monday/Friday.` : ''}
+    </p>
+    <h3>Day-of-Week Pattern</h3>
+    ${[1,2,3,4,5].map(idx => {
+        const count = stats.sickByDayOfWeek[idx];
+        const max = Math.max(...stats.sickByDayOfWeek, 1);
+        const pct = (count / max) * 100;
+        const isHot = (idx === 1 || idx === 5) && count > 0;
+        return `<div class="pattern-row">
+            <div class="pattern-label">${dayNames[idx].substring(0,3)}</div>
+            <div class="pattern-track"><div class="pattern-fill ${isHot ? 'hot' : ''}" style="width:${Math.max(pct, 2)}%"></div></div>
+            <div class="pattern-count">${count}</div>
+        </div>`;
+    }).join('')}
+    <h3>All Sick Leave Records</h3>
+    <table>
+        <thead><tr><th>Dates</th><th>Day</th><th>Days</th><th>Recorded By</th><th>Reason</th></tr></thead>
+        <tbody>
+            ${stats.sickApproved.sort((a, b) => new Date(b.startDate) - new Date(a.startDate)).map(r => {
+                const dateRange = r.startDate === r.endDate ? formatAttDate(r.startDate) : `${formatAttDate(r.startDate)} → ${formatAttDate(r.endDate)}`;
+                const dow = new Date(r.startDate).getDay();
+                return `<tr>
+                    <td>${dateRange}</td>
+                    <td>${dayNames[dow]}</td>
+                    <td style="text-align:center;">${r.days}</td>
+                    <td>${escapeAttHtml(r.approvedBy || '')}</td>
+                    <td>${escapeAttHtml(r.reason || '')}</td>
+                </tr>`;
+            }).join('')}
+        </tbody>
+    </table>` : '<p class="empty">No sick leave recorded in this period.</p>'}
+
+    ${stats.bereavementApproved.length > 0 ? `
+    <h2>Bereavement Leave</h2>
+    <table>
+        <thead><tr><th>Dates</th><th>Days</th><th>Reason</th></tr></thead>
+        <tbody>
+            ${stats.bereavementApproved.sort((a, b) => new Date(b.startDate) - new Date(a.startDate)).map(r => {
+                const dateRange = r.startDate === r.endDate ? formatAttDate(r.startDate) : `${formatAttDate(r.startDate)} → ${formatAttDate(r.endDate)}`;
+                return `<tr>
+                    <td>${dateRange}</td>
+                    <td style="text-align:center;">${r.days}</td>
+                    <td>${escapeAttHtml(r.reason || '')}</td>
+                </tr>`;
+            }).join('')}
+        </tbody>
+    </table>` : ''}
+
+    ${stats.cancelledRequests.length > 0 ? `
+    <h2>Cancelled Requests</h2>
+    <table>
+        <thead><tr><th>Dates</th><th>Type</th><th>Days</th><th>Reason</th></tr></thead>
+        <tbody>
+            ${stats.cancelledRequests.sort((a, b) => new Date(b.startDate) - new Date(a.startDate)).map(r => {
+                const dateRange = r.startDate === r.endDate ? formatAttDate(r.startDate) : `${formatAttDate(r.startDate)} → ${formatAttDate(r.endDate)}`;
+                const typeLabel = r.requestType === 'sick' ? 'Sick' : r.requestType === 'bereavement' ? 'Bereavement' : 'Holiday';
+                return `<tr>
+                    <td>${dateRange}</td>
+                    <td>${typeLabel}</td>
+                    <td style="text-align:center;">${r.days}</td>
+                    <td>${escapeAttHtml(r.reason || '')}</td>
+                </tr>`;
+            }).join('')}
+        </tbody>
+    </table>` : ''}
+
+    <h2>Full Chronological Record</h2>
+    ${stats.approvedRequests.length > 0 ? `
+    <table>
+        <thead><tr><th>Dates</th><th>Day</th><th>Type</th><th>Days</th><th>Notice</th><th>Reason</th></tr></thead>
+        <tbody>
+            ${stats.approvedRequests.sort((a, b) => new Date(a.startDate) - new Date(b.startDate)).map(rowHtml).join('')}
+        </tbody>
+    </table>` : '<p class="empty">No approved requests in this period.</p>'}
+
+    <div class="signature-row">
+        <div class="sig-block">
+            <div class="sig-line">Employee signature & date</div>
+        </div>
+        <div class="sig-block">
+            <div class="sig-line">Manager signature & date</div>
+        </div>
+    </div>
+</body>
+</html>`;
+}

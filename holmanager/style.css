@@ -1262,3 +1262,260 @@
 #bulk-selected-dates-list .selected-date-tag span:hover {
     opacity: 1;
 }
+/* ==================== ATTENDANCE REVIEW ==================== */
+
+#attendance-employee-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+}
+
+.att-card {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.att-card:hover {
+    border-color: #258bca;
+    box-shadow: 0 4px 12px rgba(37, 139, 202, 0.12);
+    transform: translateY(-1px);
+}
+
+.att-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.att-card-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #24292f;
+}
+
+.att-card-stats {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+}
+
+.att-mini {
+    text-align: center;
+    padding: 6px 2px;
+    background: #f6f8fa;
+    border-radius: 6px;
+}
+
+.att-mini-val {
+    font-size: 18px;
+    font-weight: 700;
+    color: #24292f;
+    line-height: 1.1;
+}
+
+.att-mini-val.tone-red { color: #dc3545; }
+.att-mini-val.tone-amber { color: #f59e0b; }
+.att-mini-val.tone-grey { color: #6c757d; }
+
+.att-mini-lbl {
+    font-size: 10px;
+    color: #6c757d;
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.att-card-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e9ecef;
+}
+
+.att-flag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+}
+
+.att-flag.flag-amber { background: #fff3cd; color: #856404; }
+.att-flag.flag-red   { background: #f8d7da; color: #721c24; }
+.att-flag.flag-grey  { background: #e2e3e5; color: #383d41; }
+
+/* Detail view */
+.att-detail-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.att-detail-header {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-left: 4px solid #258bca;
+}
+
+.att-concerns {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+
+.att-tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.att-tile {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 16px;
+    border-top: 4px solid #258bca;
+}
+
+.att-tile.tile-blue   { border-top-color: #258bca; }
+.att-tile.tile-red    { border-top-color: #dc3545; }
+.att-tile.tile-purple { border-top-color: #6f42c1; }
+.att-tile.tile-amber  { border-top-color: #f59e0b; }
+.att-tile.tile-grey   { border-top-color: #6c757d; }
+
+.att-tile-label {
+    font-size: 12px;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+.att-tile-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #24292f;
+    margin: 4px 0;
+    line-height: 1;
+}
+
+.att-tile-sub {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.att-section {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.att-section h4 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #24292f;
+}
+
+.att-event-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 12px;
+    background: #f6f8fa;
+    border-radius: 8px;
+    margin-bottom: 6px;
+}
+
+.att-event-main { flex: 1; min-width: 0; }
+.att-event-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.att-muted { color: #6c757d; }
+.att-small { font-size: 12px; }
+
+.att-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+.att-pill.pill-amber { background: #fff3cd; color: #856404; }
+.att-pill.pill-red   { background: #f8d7da; color: #721c24; }
+
+/* Sick day-of-week chart */
+.sick-day-chart {
+    background: #f6f8fa;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 8px 0;
+}
+
+.sick-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0;
+}
+
+.sick-bar-label {
+    width: 40px;
+    font-size: 13px;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.sick-bar-track {
+    flex: 1;
+    height: 22px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.sick-bar-fill {
+    height: 100%;
+    background: #dc3545;
+    transition: width 0.3s ease;
+    min-width: 2px;
+}
+
+.sick-bar-fill.hotspot {
+    background: linear-gradient(90deg, #dc3545, #fd7e14);
+}
+
+.sick-bar-count {
+    width: 30px;
+    text-align: right;
+    font-weight: 600;
+    color: #24292f;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+    .att-card-stats { grid-template-columns: repeat(4, 1fr); }
+    .att-mini:nth-child(n+5) { display: none; }
+    .att-tile-value { font-size: 24px; }
+}

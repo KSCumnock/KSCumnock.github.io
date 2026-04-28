@@ -302,6 +302,7 @@
                     <button class="admin-tab-btn" onclick="showAdminSection('employees')">Employee Management</button>
                     <button class="admin-tab-btn" onclick="showAdminSection('all-requests')">All Requests</button>
                     <button class="admin-tab-btn" onclick="showAdminSection('employee-view')">Employee Quick View</button>
+                    <button class="admin-tab-btn" onclick="showAdminSection('attendance')">🧾 Attendance Review</button>
                     <button class="admin-tab-btn" onclick="showAdminSection('reports')">📄 Reports</button>
                 </div>
                 
@@ -363,6 +364,29 @@
                     <div id="employee-quick-view"></div>
                 </div>
                 
+                <!-- Attendance Review Section -->
+                <div id="admin-attendance" class="admin-section hidden">
+                    <h3>🧾 Attendance Review</h3>
+                    <p style="color: #6c757d; margin-bottom: 15px;">Review individual attendance, sick leave patterns and short-notice requests for 1-on-1 meetings.</p>
+
+                    <!-- List view -->
+                    <div id="attendance-list-view">
+                        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px;">
+                            <div style="flex: 1; min-width: 220px;">
+                                <input type="text" id="attendance-search" placeholder="Search employees..." oninput="filterAttendanceList()" style="padding: 10px; width: 100%; font-size: 16px; border: 2px solid #e9ecef; border-radius: 8px;">
+                            </div>
+                            <div>
+                                <label for="attendance-year-select" style="font-weight: 500; margin-right: 8px;">Year:</label>
+                                <select id="attendance-year-select" onchange="changeAttendanceYear()" style="padding: 8px 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 16px;"></select>
+                            </div>
+                        </div>
+                        <div id="attendance-employee-grid"></div>
+                    </div>
+
+                    <!-- Detail view (populated by JS) -->
+                    <div id="attendance-detail-view" class="hidden"></div>
+                </div>
+
                 <!-- Employee Reports Section -->
                 <div id="admin-reports" class="admin-section hidden">
                     <h3>📄 Employee Reports</h3>
