@@ -1,11 +1,121 @@
-function filterEmployeeCards() {
-    const searchTerm = document.getElementById('employee-search').value.toLowerCase();
-    const cards = document.querySelectorAll('.employee-card-selector');
+// ====================================================================
+// EMPLOYEE PORTAL — search, filter and sort
+// State persists to localStorage so it survives reloads.
+// ====================================================================
+const EMP_LOW_DAYS_THRESHOLD = 5;
 
-    cards.forEach(card => {
-        const name = card.querySelector('.employee-card-name').textContent.toLowerCase();
-        card.style.display = name.includes(searchTerm) ? 'block' : 'none';
+const EMP_VIEW_STATE = (() => {
+    let stored = {};
+    try { stored = JSON.parse(localStorage.getItem('ks-emp-view') || '{}'); } catch {}
+    return {
+        search:  '',
+        filter:  stored.filter || 'all',
+        sort:    stored.sort   || 'name-asc'
+    };
+})();
+
+function persistEmpViewState() {
+    try {
+        localStorage.setItem('ks-emp-view', JSON.stringify({
+            filter: EMP_VIEW_STATE.filter,
+            sort:   EMP_VIEW_STATE.sort
+        }));
+    } catch {}
+}
+
+// Build a per-employee summary used by both filters and the card render.
+function summariseEmployee(employee) {
+    const reqs = holidayRequests.filter(r => r.employeeId === employee.id);
+    const approved = reqs.filter(r => r.status === 'approved');
+    const pending  = reqs.filter(r => r.status === 'pending');
+    const remaining = (employee.totalAllowance || 0) - (employee.usedDays || 0);
+
+    const today = new Date().toISOString().split('T')[0];
+
+    // On leave today? (covers block bookings + range bookings)
+    const onLeaveNow = approved.some(r => {
+        if (r.isBlockBooking && Array.isArray(r.selectedDates)) {
+            return r.selectedDates.includes(today);
+        }
+        return r.startDate <= today && r.endDate >= today;
     });
+
+    // Next upcoming approved leave
+    const upcoming = approved
+        .filter(r => r.startDate >= today)
+        .sort((a, b) => a.startDate.localeCompare(b.startDate));
+    const nextLeaveDate = upcoming[0] ? upcoming[0].startDate : null;
+    const nextLeave    = upcoming[0] || null;
+
+    return {
+        employee,
+        reqs, approved, pending,
+        remaining,
+        onLeaveNow,
+        hasPending: pending.length > 0,
+        lowDays:    remaining <= EMP_LOW_DAYS_THRESHOLD,
+        nextLeave,
+        nextLeaveDate
+    };
+}
+
+function passesFilter(summary, filter) {
+    switch (filter) {
+        case 'has-pending':  return summary.hasPending;
+        case 'on-leave-now': return summary.onLeaveNow;
+        case 'low-days':     return summary.lowDays;
+        default:             return true;
+    }
+}
+
+function passesSearch(summary, search) {
+    if (!search) return true;
+    return summary.employee.name.toLowerCase().includes(search);
+}
+
+function sortSummaries(list, sort) {
+    const cmpName  = (a, b) => a.employee.name.localeCompare(b.employee.name);
+    const cmpName2 = (a, b) => b.employee.name.localeCompare(a.employee.name);
+
+    switch (sort) {
+        case 'name-desc':     return [...list].sort(cmpName2);
+        case 'days-desc':     return [...list].sort((a, b) => b.remaining - a.remaining || cmpName(a, b));
+        case 'days-asc':      return [...list].sort((a, b) => a.remaining - b.remaining || cmpName(a, b));
+        case 'pending-desc':  return [...list].sort((a, b) => b.pending.length - a.pending.length || cmpName(a, b));
+        case 'next-leave':    return [...list].sort((a, b) => {
+            // Upcoming first, then no-upcoming. Soonest date wins.
+            if (a.nextLeaveDate && !b.nextLeaveDate) return -1;
+            if (!a.nextLeaveDate && b.nextLeaveDate) return 1;
+            if (!a.nextLeaveDate && !b.nextLeaveDate) return cmpName(a, b);
+            return a.nextLeaveDate.localeCompare(b.nextLeaveDate);
+        });
+        case 'name-asc':
+        default:              return [...list].sort(cmpName);
+    }
+}
+
+// Update the chip counts (and the All count) for the current employee set.
+function updateFilterChipCounts(summaries) {
+    const counts = {
+        'all':          summaries.length,
+        'has-pending':  summaries.filter(s => s.hasPending).length,
+        'on-leave-now': summaries.filter(s => s.onLeaveNow).length,
+        'low-days':     summaries.filter(s => s.lowDays).length
+    };
+    document.querySelectorAll('.chip-count[data-count]').forEach(el => {
+        const key = el.dataset.count;
+        const n = counts[key] || 0;
+        el.textContent = n;
+        el.classList.toggle('is-zero', n === 0);
+    });
+}
+
+function filterEmployeeCards() {
+    // Kept as legacy entry point — just re-render with the latest search.
+    EMP_VIEW_STATE.search = (document.getElementById('employee-search')?.value || '').toLowerCase().trim();
+    const clearBtn = document.getElementById('emp-search-clear');
+    if (clearBtn) clearBtn.classList.toggle('hidden', !EMP_VIEW_STATE.search);
+    populateEmployeeCards();
 }
 
 // Configuration - GitHub Integration via Cloudflare Worker
@@ -709,30 +819,55 @@ function populateEmployeeCards() {
         });
         return;
     }
+
+    // Build summaries once — used for chip counts AND filtering AND rendering.
+    const allSummaries = employees.map(summariseEmployee);
+    updateFilterChipCounts(allSummaries);
+
+    // Apply filter + search, then sort.
+    const filtered = allSummaries
+        .filter(s => passesFilter(s, EMP_VIEW_STATE.filter))
+        .filter(s => passesSearch(s, EMP_VIEW_STATE.search));
+    const visible = sortSummaries(filtered, EMP_VIEW_STATE.sort);
+
+    if (visible.length === 0) {
+        // Empty results state — context-aware
+        if (EMP_VIEW_STATE.search) {
+            renderEmptyState(container, {
+                icon: 'search',
+                title: 'No matches',
+                description: `No employees match "${EMP_VIEW_STATE.search}". Try a different search or clear the active filter.`
+            });
+        } else {
+            const filterLabels = {
+                'has-pending':  'with pending requests',
+                'on-leave-now': 'on leave today',
+                'low-days':     `with ${EMP_LOW_DAYS_THRESHOLD} or fewer days remaining`
+            };
+            renderEmptyState(container, {
+                icon: 'check',
+                tone: 'success',
+                title: 'No matches for this filter',
+                description: `No employees ${filterLabels[EMP_VIEW_STATE.filter] || 'match'}. Try the "All" filter to see everyone.`
+            });
+        }
+        return;
+    }
     
-    container.innerHTML = employees.map(employee => {
-        const remainingDays = employee.totalAllowance - employee.usedDays;
-        const employeeRequests = holidayRequests.filter(req => req.employeeId === employee.id);
-        const approvedRequests = employeeRequests.filter(req => req.status === 'approved');
-        const pendingRequests = employeeRequests.filter(req => req.status === 'pending');
-        
-        // Find next upcoming holiday/leave
+    container.innerHTML = visible.map(({ employee, remaining, pending, reqs, nextLeave }) => {
+        // Find next upcoming holiday/leave label
         const today = new Date().toISOString().split('T')[0];
-        const upcomingLeave = approvedRequests.filter(req => req.startDate >= today)
-            .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-        
         let nextLeaveText = 'No upcoming leave';
         let nextLeaveClass = 'none';
-        
-        if (upcomingLeave.length > 0) {
-            const nextLeave = upcomingLeave[0];
+
+        if (nextLeave) {
             const daysUntil = Math.ceil((new Date(nextLeave.startDate) - new Date(today)) / (1000 * 60 * 60 * 24));
             const leaveType = nextLeave.requestType || 'holiday';
-            const typeText = leaveType === 'holiday' ? 'Holiday' : 
+            const typeText = leaveType === 'holiday' ? 'Holiday' :
                            leaveType === 'sick' ? 'Sick leave' : 'Bereavement';
             
             if (daysUntil === 0) {
-                nextLeaveText = `${typeText} starts today!`;
+                nextLeaveText = `${typeText} starts today`;
             } else if (daysUntil === 1) {
                 nextLeaveText = `${typeText} starts tomorrow`;
             } else {
@@ -746,16 +881,16 @@ function populateEmployeeCards() {
                 <div class="employee-card-name">${employee.name}</div>
                 <div class="employee-card-stats">
                     <div class="employee-stat">
-                        <strong>${remainingDays}</strong> days left
+                        <strong>${remaining}</strong> days left
                     </div>
                     <div class="employee-stat">
-                        <strong>${pendingRequests.length}</strong> pending
+                        <strong>${pending.length}</strong> pending
                     </div>
                     <div class="employee-stat">
                         <strong>${employee.totalAllowance}</strong> total allowance
                     </div>
                     <div class="employee-stat">
-                        <strong>${employeeRequests.length}</strong> total requests
+                        <strong>${reqs.length}</strong> total requests
                     </div>
                 </div>
                 <div class="employee-next-holiday ${nextLeaveClass}">
@@ -4124,6 +4259,45 @@ document.addEventListener('DOMContentLoaded', () => {
     if (endDateInput) {
         endDateInput.addEventListener('change', updateDaysPreview);
     }
+
+    // Employee portal toolbar — search, sort, filter chips
+    const empSearch = document.getElementById('employee-search');
+    if (empSearch) {
+        empSearch.addEventListener('input', filterEmployeeCards);
+    }
+
+    const empSearchClear = document.getElementById('emp-search-clear');
+    if (empSearchClear) {
+        empSearchClear.addEventListener('click', () => {
+            const input = document.getElementById('employee-search');
+            if (input) input.value = '';
+            filterEmployeeCards();
+            input?.focus();
+        });
+    }
+
+    const empSort = document.getElementById('employee-sort');
+    if (empSort) {
+        empSort.value = EMP_VIEW_STATE.sort;
+        empSort.addEventListener('change', () => {
+            EMP_VIEW_STATE.sort = empSort.value;
+            persistEmpViewState();
+            populateEmployeeCards();
+        });
+    }
+
+    document.querySelectorAll('.filter-chip[data-filter]').forEach(chip => {
+        // Restore active state from persisted filter
+        chip.classList.toggle('active', chip.dataset.filter === EMP_VIEW_STATE.filter);
+        chip.addEventListener('click', () => {
+            EMP_VIEW_STATE.filter = chip.dataset.filter;
+            persistEmpViewState();
+            document.querySelectorAll('.filter-chip[data-filter]').forEach(c => {
+                c.classList.toggle('active', c.dataset.filter === EMP_VIEW_STATE.filter);
+            });
+            populateEmployeeCards();
+        });
+    });
 });
 
 // ==================== PIN keypad wiring ====================

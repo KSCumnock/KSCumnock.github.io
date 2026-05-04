@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-    <link href="style.css?v=20260504b" rel="stylesheet"/>
+    <link href="style.css?v=20260504c" rel="stylesheet"/>
     <!-- EmailJS SDK for email notifications -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
@@ -46,7 +46,7 @@
         <!-- =================== SIDEBAR =================== -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand">
-                <img src="images/kandslogo.png"
+                <img src="/holmanager/images/kandslogo.png"
                      alt="Kerr &amp; Smith"
                      class="sidebar-logo"
                      onerror="this.style.display='none'; var fb=document.getElementById('logo-fallback'); if(fb){fb.style.display='flex';}">
@@ -118,11 +118,31 @@
             <div id="employee-error" class="error hidden"></div>
             
             <div id="employee-content" class="hidden">
-                <h3 style="margin-bottom: 20px; color: #333; font-weight: 500;">Select Employee</h3>
-
-                <!-- Search input -->
-                <div style="margin-bottom: 20px;">
-                    <input type="text" id="employee-search" placeholder="Search employees..." oninput="filterEmployeeCards()" style="padding: 10px; width: 100%; font-size: 16px; border: 2px solid #e9ecef; border-radius: 8px;">
+                <div class="emp-toolbar">
+                    <div class="emp-toolbar-search">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" id="employee-search" placeholder="Search employees…" autocomplete="off">
+                        <button type="button" class="emp-search-clear hidden" id="emp-search-clear" aria-label="Clear search">×</button>
+                    </div>
+                    <div class="emp-toolbar-right">
+                        <div class="emp-filter-chips" id="emp-filter-chips">
+                            <button type="button" class="filter-chip active" data-filter="all">All <span class="chip-count" data-count="all">0</span></button>
+                            <button type="button" class="filter-chip" data-filter="has-pending">Has pending <span class="chip-count" data-count="has-pending">0</span></button>
+                            <button type="button" class="filter-chip" data-filter="on-leave-now">On leave now <span class="chip-count" data-count="on-leave-now">0</span></button>
+                            <button type="button" class="filter-chip" data-filter="low-days">Low days left <span class="chip-count" data-count="low-days">0</span></button>
+                        </div>
+                        <div class="select-wrap emp-sort-wrap">
+                            <select id="employee-sort">
+                                <option value="name-asc">Name · A–Z</option>
+                                <option value="name-desc">Name · Z–A</option>
+                                <option value="days-desc">Most days left</option>
+                                <option value="days-asc">Fewest days left</option>
+                                <option value="pending-desc">Most pending</option>
+                                <option value="next-leave">Next leave soonest</option>
+                            </select>
+                            <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="employee-cards" class="employee-cards-grid"></div>
@@ -706,7 +726,7 @@
     </div>
 
 
- <script src="script.js?v=20260504b"></script>
+ <script src="script.js?v=20260504c"></script>
 
 </body>
 </html>

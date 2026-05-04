@@ -1133,6 +1133,209 @@ body {
         /* Employee Cards Grid */
 
 
+        /* ============ EMPLOYEE PORTAL TOOLBAR ============ */
+        .emp-toolbar {
+            display: grid;
+            grid-template-columns: minmax(220px, 320px) 1fr;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 18px;
+            padding: 12px 14px;
+            background: var(--neutral-0);
+            border: 1px solid var(--neutral-200);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .emp-toolbar-search {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .emp-toolbar-search > svg {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--neutral-400);
+            pointer-events: none;
+        }
+
+        .emp-toolbar-search input {
+            width: 100%;
+            padding: 9px 36px 9px 36px;
+            background: var(--neutral-50);
+            border: 1px solid var(--neutral-200);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-family: var(--font-body);
+            color: var(--neutral-900);
+            transition: all var(--transition);
+        }
+
+        .emp-toolbar-search input:focus {
+            outline: none;
+            background: var(--neutral-0);
+            border-color: var(--ks-blue);
+            box-shadow: 0 0 0 3px var(--ks-blue-50);
+        }
+
+        .emp-search-clear {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--neutral-200);
+            border: none;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--neutral-700);
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: none;
+            padding: 0;
+            font-weight: 600;
+            transition: all var(--transition);
+        }
+
+        .emp-search-clear:hover:not(:disabled) {
+            background: var(--neutral-300);
+            color: var(--neutral-900);
+            transform: translateY(-50%);
+            box-shadow: none;
+        }
+
+        .emp-toolbar-right {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .emp-filter-chips {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .filter-chip {
+            background: var(--neutral-100);
+            border: 1px solid var(--neutral-200);
+            color: var(--neutral-700);
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 500;
+            font-family: var(--font-body);
+            cursor: pointer;
+            transition: all var(--transition);
+            box-shadow: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .filter-chip:hover:not(.active) {
+            background: var(--neutral-150);
+            border-color: var(--neutral-300);
+            color: var(--neutral-900);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .filter-chip.active {
+            background: var(--ks-blue);
+            border-color: var(--ks-blue);
+            color: white;
+            box-shadow: 0 1px 3px rgba(37, 139, 202, 0.25);
+        }
+
+        .filter-chip.active:hover {
+            background: var(--ks-blue-700);
+            border-color: var(--ks-blue-700);
+            transform: none;
+        }
+
+        .chip-count {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.25);
+            padding: 1px 6px;
+            border-radius: 999px;
+            min-width: 18px;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        .filter-chip:not(.active) .chip-count {
+            background: var(--neutral-0);
+            color: var(--neutral-600);
+            border: 1px solid var(--neutral-200);
+        }
+
+        .chip-count.is-zero {
+            opacity: 0.5;
+        }
+
+        .emp-sort-wrap {
+            position: relative;
+            min-width: 180px;
+        }
+
+        .emp-sort-wrap select {
+            appearance: none;
+            -webkit-appearance: none;
+            background: var(--neutral-100);
+            border: 1px solid var(--neutral-200);
+            border-radius: var(--radius-sm);
+            padding: 7px 30px 7px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: var(--font-body);
+            color: var(--neutral-800);
+            cursor: pointer;
+            width: 100%;
+            transition: all var(--transition);
+        }
+
+        .emp-sort-wrap select:hover { background: var(--neutral-150); }
+        .emp-sort-wrap select:focus {
+            outline: none;
+            border-color: var(--ks-blue);
+            box-shadow: 0 0 0 3px var(--ks-blue-50);
+        }
+
+        .emp-sort-wrap .select-chevron {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--neutral-500);
+            pointer-events: none;
+        }
+
+        @media (max-width: 900px) {
+            .emp-toolbar {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .emp-toolbar-right {
+                justify-content: flex-start;
+            }
+            .emp-sort-wrap {
+                width: 100%;
+            }
+        }
+
         .employee-cards-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
