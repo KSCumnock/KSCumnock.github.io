@@ -434,27 +434,214 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            padding: 16px;
+            animation: pinModalFadeIn 0.25s ease;
         }
-        
+
+        @keyframes pinModalFadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
         .pin-content {
+            position: relative;
             background: white;
-            padding: 30px;
-            border-radius: 15px;
+            padding: 36px 28px 28px;
+            border-radius: 20px;
             text-align: center;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 360px;
+            animation: pinContentIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-        
-        .pin-input {
-            font-size: 24px;
-            text-align: center;
-            letter-spacing: 10px;
-            margin: 20px 0;
-            width: 200px;
+
+        @keyframes pinContentIn {
+            from { opacity: 0; transform: scale(0.92) translateY(10px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .pin-content.shake {
+            animation: pinShake 0.45s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes pinShake {
+            10%, 90% { transform: translateX(-2px); }
+            20%, 80% { transform: translateX(4px); }
+            30%, 50%, 70% { transform: translateX(-8px); }
+            40%, 60% { transform: translateX(8px); }
+        }
+
+        .pin-content.success {
+            animation: pinSuccess 0.4s ease forwards;
+        }
+
+        @keyframes pinSuccess {
+            0%   { transform: scale(1); }
+            40%  { transform: scale(1.04); }
+            100% { transform: scale(0.95); opacity: 0; }
+        }
+
+        .pin-close {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            background: transparent;
+            border: none;
+            font-size: 26px;
+            line-height: 1;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 8px;
+            transition: all 0.15s ease;
+        }
+
+        .pin-close:hover {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .pin-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 14px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #258bca 0%, #1e6fa3 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 16px -4px rgba(37, 139, 202, 0.45);
+        }
+
+        .pin-icon svg {
+            width: 30px;
+            height: 30px;
+        }
+
+        .pin-content h3 {
+            margin: 0 0 6px;
+            font-size: 22px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .pin-content p {
+            margin: 0 0 22px;
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .pin-input-hidden {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+            height: 0;
+            width: 0;
+        }
+
+        .pin-dots {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+
+        .pin-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: transparent;
+            border: 2px solid #cbd5e1;
+            transition: all 0.2s ease;
+        }
+
+        .pin-dot.filled {
+            background: #258bca;
+            border-color: #258bca;
+            transform: scale(1.15);
+        }
+
+        .pin-content.shake .pin-dot {
+            border-color: #ef4444;
+            background: #ef4444;
+        }
+
+        .pin-error-msg {
+            font-size: 13px;
+            color: #ef4444;
+            font-weight: 500;
+            min-height: 18px;
+            margin-bottom: 14px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .pin-error-msg.visible {
+            opacity: 1;
+        }
+
+        .pin-keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 6px;
+        }
+
+        .pin-key {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px 0;
+            font-size: 22px;
+            font-weight: 500;
+            color: #0f172a;
+            cursor: pointer;
+            transition: all 0.12s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .pin-key:hover:not(:disabled) {
+            background: #e0f2fe;
+            border-color: #258bca;
+            color: #258bca;
+        }
+
+        .pin-key:active:not(:disabled) {
+            transform: scale(0.94);
+            background: #258bca;
+            color: white;
+        }
+
+        .pin-key-action {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        #pin-key-back svg {
+            display: block;
+        }
+
+        @media (max-width: 420px) {
+            .pin-content {
+                padding: 28px 20px 22px;
+            }
+            .pin-key {
+                padding: 14px 0;
+                font-size: 20px;
+            }
         }
         
         .hidden {
@@ -802,6 +989,170 @@
             border-radius: 8px;
             overflow: hidden;
         }
+
+        /* ===== Calendar holiday display toggles ===== */
+        .calendar-toggles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: center;
+            background: #f8fafc;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .calendar-toggles .checkbox-label {
+            font-size: 14px;
+            color: #334155;
+            cursor: pointer;
+        }
+
+        /* ===== Calendar legend ===== */
+        .calendar-legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 18px;
+            margin-top: 16px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #475569;
+        }
+
+        .legend-swatch {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            display: inline-block;
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+
+        .swatch-employee { background: #fff3cd; }
+        .swatch-bank     { background: #fee2e2; border-left: 3px solid #dc2626; }
+        .swatch-school   { background: #dbeafe; border-left: 3px solid #2563eb; }
+        .swatch-inservice{ background: #f3e8ff; border-left: 3px solid #9333ea; }
+
+        /* ===== Holiday day cell styling ===== */
+        .calendar-day.bank-holiday {
+            background: #fee2e2;
+            box-shadow: inset 3px 0 0 0 #dc2626;
+        }
+
+        .calendar-day.school-holiday {
+            background: #dbeafe;
+            box-shadow: inset 3px 0 0 0 #2563eb;
+        }
+
+        .calendar-day.inservice-day {
+            background: #f3e8ff;
+            box-shadow: inset 3px 0 0 0 #9333ea;
+        }
+
+        /* If a day has both a bank and school holiday, bank wins visually but show both badges */
+        .calendar-day.bank-holiday.school-holiday {
+            background: linear-gradient(135deg, #fee2e2 0%, #fee2e2 50%, #dbeafe 50%, #dbeafe 100%);
+        }
+
+        /* Combine with employee holiday */
+        .calendar-day.has-holiday.bank-holiday,
+        .calendar-day.has-holiday.school-holiday,
+        .calendar-day.has-holiday.inservice-day {
+            background-image: repeating-linear-gradient(
+                45deg,
+                rgba(255, 243, 205, 0.6),
+                rgba(255, 243, 205, 0.6) 8px,
+                transparent 8px,
+                transparent 16px
+            );
+        }
+
+        .calendar-day.has-holiday.bank-holiday {
+            background-color: #fee2e2;
+        }
+
+        .calendar-day.has-holiday.school-holiday {
+            background-color: #dbeafe;
+        }
+
+        .holiday-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            margin-bottom: 4px;
+        }
+
+        .holiday-badge {
+            font-size: 9px;
+            font-weight: 600;
+            padding: 2px 5px;
+            border-radius: 4px;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        .holiday-badge.bank {
+            background: #dc2626;
+            color: white;
+        }
+
+        .holiday-badge.school {
+            background: #2563eb;
+            color: white;
+        }
+
+        .holiday-badge.inservice {
+            background: #9333ea;
+            color: white;
+        }
+
+        /* Popover holiday info */
+        .popover-holiday {
+            padding: 10px 12px;
+            background: #f8fafc;
+            border-left: 3px solid #258bca;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .popover-holiday.bank        { border-left-color: #dc2626; background: #fef2f2; }
+        .popover-holiday.school      { border-left-color: #2563eb; background: #eff6ff; }
+        .popover-holiday.inservice   { border-left-color: #9333ea; background: #faf5ff; }
+
+        .popover-holiday strong {
+            display: block;
+            margin-bottom: 2px;
+            color: #0f172a;
+        }
+
+        .popover-holiday .holiday-tag {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-bottom: 4px;
+        }
+
+        .popover-holiday.bank .holiday-tag        { background: #dc2626; color: white; }
+        .popover-holiday.school .holiday-tag      { background: #2563eb; color: white; }
+        .popover-holiday.inservice .holiday-tag   { background: #9333ea; color: white; }
         
         .calendar-day-header {
             background: #258bca;

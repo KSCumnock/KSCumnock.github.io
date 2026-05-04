@@ -76,6 +76,106 @@ let isBlockBooking = false;
 let selectedDates = [];
 let blockCalendarDate = new Date();
 
+// ==================== SCOTLAND PUBLIC & SCHOOL HOLIDAYS ====================
+// Source: gov.scot / mygov.scot (bank holidays) and East Ayrshire Council
+// (school holidays). Update each year as new dates are confirmed.
+//
+// Types:
+//   'bank'      = Scotland bank holiday
+//   'school'    = School term holiday (pupils off)
+//   'inservice' = In-service day (pupils off, staff in)
+//   'local'     = Local holiday (Ayr Gold Cup weekend, May Day etc.)
+const SCOTLAND_HOLIDAYS = [
+    // ---------- 2025 Scotland bank holidays ----------
+    { date: '2025-01-01', name: "New Year's Day",            type: 'bank' },
+    { date: '2025-01-02', name: '2nd January',               type: 'bank' },
+    { date: '2025-04-18', name: 'Good Friday',               type: 'bank' },
+    { date: '2025-05-05', name: 'Early May bank holiday',    type: 'bank' },
+    { date: '2025-05-26', name: 'Spring bank holiday',       type: 'bank' },
+    { date: '2025-08-04', name: 'Summer bank holiday',       type: 'bank' },
+    { date: '2025-12-01', name: "St Andrew's Day (substitute)", type: 'bank' },
+    { date: '2025-12-25', name: 'Christmas Day',             type: 'bank' },
+    { date: '2025-12-26', name: 'Boxing Day',                type: 'bank' },
+
+    // ---------- 2026 Scotland bank holidays ----------
+    { date: '2026-01-01', name: "New Year's Day",            type: 'bank' },
+    { date: '2026-01-02', name: '2nd January',               type: 'bank' },
+    { date: '2026-04-03', name: 'Good Friday',               type: 'bank' },
+    { date: '2026-05-04', name: 'Early May bank holiday',    type: 'bank' },
+    { date: '2026-05-25', name: 'Spring bank holiday',       type: 'bank' },
+    { date: '2026-06-15', name: 'Special bank holiday (FIFA World Cup)', type: 'bank' },
+    { date: '2026-08-03', name: 'Summer bank holiday',       type: 'bank' },
+    { date: '2026-11-30', name: "St Andrew's Day",           type: 'bank' },
+    { date: '2026-12-25', name: 'Christmas Day',             type: 'bank' },
+    { date: '2026-12-28', name: 'Boxing Day (substitute)',   type: 'bank' },
+
+    // ---------- 2027 Scotland bank holidays ----------
+    { date: '2027-01-01', name: "New Year's Day",            type: 'bank' },
+    { date: '2027-01-04', name: '2nd January (substitute)',  type: 'bank' },
+    { date: '2027-03-26', name: 'Good Friday',               type: 'bank' },
+    { date: '2027-05-03', name: 'Early May bank holiday',    type: 'bank' },
+    { date: '2027-05-31', name: 'Spring bank holiday',       type: 'bank' },
+    { date: '2027-08-02', name: 'Summer bank holiday',       type: 'bank' },
+    { date: '2027-11-30', name: "St Andrew's Day",           type: 'bank' },
+    { date: '2027-12-27', name: 'Christmas Day (substitute)', type: 'bank' },
+    { date: '2027-12-28', name: 'Boxing Day (substitute)',   type: 'bank' }
+];
+
+// East Ayrshire school holidays — given as date ranges (inclusive).
+// Source: school-holidays-2025-26.pdf and school-holidays-2026-27.pdf
+// (East Ayrshire Council).
+// Type:
+//   'school'    = pupils off (term holiday / local holiday)
+//   'inservice' = in-service day (pupils off)
+const SCHOOL_HOLIDAY_RANGES = [
+    // ---------- 2025/26 academic year ----------
+    { start: '2025-08-18', end: '2025-08-19', name: 'In-service day (start of session)', type: 'inservice' },
+    { start: '2025-09-19', end: '2025-09-22', name: 'Local holidays (Ayr Gold Cup weekend)', type: 'school' },
+    { start: '2025-10-13', end: '2025-10-17', name: 'October holidays',         type: 'school' },
+    { start: '2025-10-20', end: '2025-10-20', name: 'In-service day',           type: 'inservice' },
+    { start: '2025-12-22', end: '2026-01-02', name: 'Christmas and New Year',   type: 'school' },
+    { start: '2026-02-09', end: '2026-02-09', name: 'Local holiday',            type: 'school' },
+    { start: '2026-02-10', end: '2026-02-10', name: 'In-service day',           type: 'inservice' },
+    { start: '2026-04-03', end: '2026-04-17', name: 'Easter holidays',          type: 'school' },
+    { start: '2026-05-04', end: '2026-05-04', name: 'Local holiday (May Day)',  type: 'school' },
+    { start: '2026-05-07', end: '2026-05-07', name: 'In-service day',           type: 'inservice' },
+    { start: '2026-06-29', end: '2026-08-14', name: 'Summer holidays',          type: 'school' },
+
+    // ---------- 2026/27 academic year ----------
+    { start: '2026-08-17', end: '2026-08-18', name: 'In-service day (start of session)', type: 'inservice' },
+    { start: '2026-09-18', end: '2026-09-21', name: 'Local holidays (Ayr Gold Cup weekend)', type: 'school' },
+    { start: '2026-10-12', end: '2026-10-16', name: 'October holidays',         type: 'school' },
+    { start: '2026-10-19', end: '2026-10-19', name: 'In-service day',           type: 'inservice' },
+    { start: '2026-12-21', end: '2027-01-04', name: 'Christmas and New Year',   type: 'school' },
+    { start: '2027-02-12', end: '2027-02-15', name: 'Local holidays',           type: 'school' },
+    { start: '2027-02-16', end: '2027-02-16', name: 'In-service day',           type: 'inservice' },
+    { start: '2027-03-26', end: '2027-04-09', name: 'Easter holidays',          type: 'school' },
+    { start: '2027-05-03', end: '2027-05-03', name: 'Local holiday (May Day)',  type: 'school' },
+    { start: '2027-05-24', end: '2027-05-24', name: 'In-service day',           type: 'inservice' },
+    { start: '2027-06-30', end: '2027-08-13', name: 'Summer holidays',          type: 'school' },
+    { start: '2027-08-16', end: '2027-08-17', name: 'In-service day (start of session)', type: 'inservice' }
+];
+
+// Returns array of {name, type} for a given YYYY-MM-DD date.
+function getHolidaysOnDate(dateStr) {
+    const out = [];
+
+    // Bank holidays — exact match on date
+    SCOTLAND_HOLIDAYS.forEach(h => {
+        if (h.date === dateStr) out.push({ name: h.name, type: h.type });
+    });
+
+    // School holidays — fall within [start, end] range
+    SCHOOL_HOLIDAY_RANGES.forEach(range => {
+        if (dateStr >= range.start && dateStr <= range.end) {
+            out.push({ name: range.name, type: range.type });
+        }
+    });
+
+    return out;
+}
+// ==================== END HOLIDAYS DATA ====================
+
 // Dynamic file names based on selected year
 function getEmployeesFileName() {
     return `employees${currentYear}.json`;
@@ -372,6 +472,12 @@ function populateYearSelector() {
             analyticsYearSelect.appendChild(analyticsOption);
         }
     }
+
+    // Explicitly default both selects to the current year
+    // (cloneNode doesn't reliably copy the .selected JS property,
+    // which previously caused analytics to default to 2024)
+    yearSelect.value = currentActualYear;
+    if (analyticsYearSelect) analyticsYearSelect.value = currentActualYear;
 }
 
 // Update pending badge function
@@ -406,9 +512,7 @@ function showTab(tabName) {
             document.querySelectorAll('.tab')[3].classList.add('active');
             loadAdminData();
         } else {
-            document.getElementById('pin-modal').classList.remove('hidden');
-            document.getElementById('pin-modal').style.display = 'flex';
-            document.getElementById('pin-input').focus();
+            openPinModal();
         }
     } else if (tabName === 'calendar') {
         document.getElementById('calendar-tab').classList.remove('hidden');
@@ -427,21 +531,89 @@ function showTab(tabName) {
     closePopover();
 }
 
+// ==================== PIN MODAL ====================
+function openPinModal() {
+    const modal = document.getElementById('pin-modal');
+    const content = document.getElementById('pin-content');
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    if (content) {
+        content.classList.remove('shake', 'success');
+    }
+    resetPinDots();
+    document.getElementById('pin-input').value = '';
+    // Focus the hidden input so physical keyboards still work
+    setTimeout(() => document.getElementById('pin-input').focus(), 50);
+}
+
+function resetPinDots() {
+    document.querySelectorAll('.pin-dot').forEach(d => d.classList.remove('filled'));
+    const err = document.getElementById('pin-error-msg');
+    if (err) err.classList.remove('visible');
+}
+
+function updatePinDots() {
+    const value = document.getElementById('pin-input').value;
+    document.querySelectorAll('.pin-dot').forEach((dot, idx) => {
+        if (idx < value.length) dot.classList.add('filled');
+        else                    dot.classList.remove('filled');
+    });
+    // Hide error as soon as user types again
+    const err = document.getElementById('pin-error-msg');
+    if (err && err.classList.contains('visible') && value.length > 0) {
+        err.classList.remove('visible');
+    }
+}
+
+function appendPinDigit(digit) {
+    const input = document.getElementById('pin-input');
+    if (input.value.length >= 4) return;
+    input.value += digit;
+    updatePinDots();
+    if (input.value.length === 4) {
+        // Slight delay so user sees the last dot fill
+        setTimeout(checkPin, 120);
+    }
+}
+
+function backspacePin() {
+    const input = document.getElementById('pin-input');
+    input.value = input.value.slice(0, -1);
+    updatePinDots();
+}
+
 // PIN modal functions
 async function checkPin() {
     const pin = document.getElementById('pin-input').value;
+    const content = document.getElementById('pin-content');
+
     if (pin === '4224') {
         // Save admin session
         isAdminAuthenticated = true;
         sessionStorage.setItem('adminAuthenticated', 'true');
-        
-        closePinModal();
-        document.getElementById('admin-tab').classList.remove('hidden');
-        document.querySelectorAll('.tab')[3].classList.add('active');
-        await loadAdminData();
+
+        if (content) content.classList.add('success');
+        // Brief delay for the success animation
+        setTimeout(async () => {
+            closePinModal();
+            document.getElementById('admin-tab').classList.remove('hidden');
+            document.querySelectorAll('.tab')[3].classList.add('active');
+            await loadAdminData();
+        }, 280);
     } else {
-        alert('Incorrect PIN. Please try again.');
+        // Shake + show error
+        if (content) {
+            content.classList.add('shake');
+            setTimeout(() => content.classList.remove('shake'), 500);
+        }
+        const err = document.getElementById('pin-error-msg');
+        if (err) err.classList.add('visible');
+
         document.getElementById('pin-input').value = '';
+        setTimeout(() => {
+            resetPinDots();
+            if (err) err.classList.add('visible'); // keep error visible after reset
+        }, 350);
     }
 }
 
@@ -453,9 +625,12 @@ function logoutAdmin() {
 
 function closePinModal() {
     const pinModal = document.getElementById('pin-modal');
+    const content = document.getElementById('pin-content');
     pinModal.classList.add('hidden');
     pinModal.style.display = 'none';
     document.getElementById('pin-input').value = '';
+    if (content) content.classList.remove('shake', 'success');
+    resetPinDots();
 }
 
 // Employee functions
@@ -1366,7 +1541,11 @@ function renderCalendar() {
     
     // Get all non-cancelled requests for this month
     const allRequests = holidayRequests.filter(req => req.status !== 'cancelled');
-    
+
+    // Read holiday display toggles (default to true if not yet rendered)
+    const showBank   = document.getElementById('show-bank-holidays')?.checked ?? true;
+    const showSchool = document.getElementById('show-school-holidays')?.checked ?? true;
+
     // Create calendar grid
     const grid = document.getElementById('calendar-grid');
     grid.innerHTML = '';
@@ -1416,7 +1595,39 @@ function renderCalendar() {
         if (dateStr === currentDateStr) {
             dayElement.classList.add('today');
         }
-        
+
+        // Look up Scotland / school holidays for this day
+        const holidaysOnDay = getHolidaysOnDate(dateStr).filter(h => {
+            if (h.type === 'bank') return showBank;
+            return showSchool; // school + inservice
+        });
+
+        if (holidaysOnDay.length > 0) {
+            // Add classes for visual styling
+            holidaysOnDay.forEach(h => {
+                if (h.type === 'bank')      dayElement.classList.add('bank-holiday');
+                if (h.type === 'school' ||
+                    h.type === 'local')     dayElement.classList.add('school-holiday');
+                if (h.type === 'inservice') dayElement.classList.add('inservice-day');
+            });
+
+            // Add small badges
+            const badgeContainer = document.createElement('div');
+            badgeContainer.className = 'holiday-badges';
+            holidaysOnDay.forEach(h => {
+                const badge = document.createElement('span');
+                const cls = h.type === 'bank' ? 'bank'
+                          : h.type === 'inservice' ? 'inservice'
+                          : 'school';
+                badge.className = `holiday-badge ${cls}`;
+                // Short label for badge, full name in tooltip
+                badge.textContent = shortHolidayLabel(h);
+                badge.title = h.name;
+                badgeContainer.appendChild(badge);
+            });
+            dayElement.appendChild(badgeContainer);
+        }
+
         // Check for requests on this date
         const requestsOnDate = getRequestsOnDate(dateStr, allRequests);
         if (requestsOnDate.length > 0) {
@@ -1438,16 +1649,45 @@ function renderCalendar() {
             });
             
             dayElement.appendChild(employeeList);
-            
-            // Add click handler for popover
+        }
+
+        // Click handler — show popover for any day with employee requests OR public/school holidays
+        if (requestsOnDate.length > 0 || holidaysOnDay.length > 0) {
             dayElement.addEventListener('click', (e) => {
                 e.stopPropagation();
-                showRequestPopover(e.currentTarget, dateStr, requestsOnDate);
+                showRequestPopover(e.currentTarget, dateStr, requestsOnDate, holidaysOnDay);
             });
         }
-        
+
         grid.appendChild(dayElement);
     }
+}
+
+// Shorten holiday name for the day badge (full name still in tooltip + popover)
+function shortHolidayLabel(h) {
+    if (h.type === 'inservice') return 'In-service';
+    if (h.type === 'bank') {
+        if (h.name.includes("New Year"))         return "New Year";
+        if (h.name.includes('2nd January'))      return '2 Jan';
+        if (h.name.includes('Good Friday'))      return 'Good Fri';
+        if (h.name.includes('Early May'))        return 'May Day';
+        if (h.name.includes('Spring'))           return 'Spring BH';
+        if (h.name.includes('Summer'))           return 'Summer BH';
+        if (h.name.includes('Andrew'))           return "St Andrew's";
+        if (h.name.includes('Christmas'))        return 'Christmas';
+        if (h.name.includes('Boxing'))           return 'Boxing Day';
+        if (h.name.includes('FIFA'))             return 'World Cup BH';
+        return 'Bank holiday';
+    }
+    // school / local
+    if (h.name.includes('Christmas'))            return 'Christmas';
+    if (h.name.includes('Easter'))               return 'Easter';
+    if (h.name.includes('Summer'))               return 'Summer';
+    if (h.name.includes('October'))              return 'October';
+    if (h.name.includes('Ayr Gold Cup'))         return 'Ayr Gold Cup';
+    if (h.name.includes('May Day'))              return 'May Day';
+    if (h.name.includes('Local'))                return 'Local hol';
+    return 'School hol';
 }
 
 function getRequestsOnDate(dateStr, requests) {
@@ -1476,7 +1716,7 @@ function getRequestsOnDate(dateStr, requests) {
     });
 }
 
-function showRequestPopover(element, dateStr, requests) {
+function showRequestPopover(element, dateStr, requests, holidays = []) {
     closePopover();
     
     const popover = document.createElement('div');
@@ -1490,7 +1730,23 @@ function showRequestPopover(element, dateStr, requests) {
     });
     
     let content = `<div class="popover-header">${formattedDate}</div>`;
-    
+
+    // Public / school holidays first
+    holidays.forEach(h => {
+        const cls = h.type === 'bank' ? 'bank'
+                  : h.type === 'inservice' ? 'inservice'
+                  : 'school';
+        const tag = h.type === 'bank' ? 'Bank Holiday'
+                  : h.type === 'inservice' ? 'In-Service Day'
+                  : 'School Holiday';
+        content += `
+            <div class="popover-holiday ${cls}">
+                <span class="holiday-tag">${tag}</span>
+                <strong>${h.name}</strong>
+            </div>
+        `;
+    });
+
     requests.forEach(request => {
         const startDate = new Date(request.startDate).toLocaleDateString();
         const endDate = new Date(request.endDate).toLocaleDateString();
@@ -3492,10 +3748,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Handle Enter key in PIN input
-document.getElementById('pin-input').addEventListener('keypress', function(e) {
+// ==================== PIN keypad wiring ====================
+// On-screen keypad
+document.querySelectorAll('.pin-key[data-digit]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        appendPinDigit(btn.dataset.digit);
+    });
+});
+
+const pinBackBtn = document.getElementById('pin-key-back');
+if (pinBackBtn) pinBackBtn.addEventListener('click', backspacePin);
+
+const pinCancelBtn = document.getElementById('pin-key-cancel');
+if (pinCancelBtn) pinCancelBtn.addEventListener('click', closePinModal);
+
+// Physical keyboard support — keep the hidden input listening for digits/backspace/Enter
+document.getElementById('pin-input').addEventListener('input', (e) => {
+    // Strip non-digits and clamp to 4 chars
+    const cleaned = e.target.value.replace(/\D/g, '').slice(0, 4);
+    e.target.value = cleaned;
+    updatePinDots();
+    if (cleaned.length === 4) {
+        setTimeout(checkPin, 120);
+    }
+});
+
+document.getElementById('pin-input').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
-        checkPin();
+        e.preventDefault();
+        if (this.value.length === 4) checkPin();
+    } else if (e.key === 'Escape') {
+        closePinModal();
+    }
+});
+
+// Close PIN modal when clicking the dimmed backdrop
+document.getElementById('pin-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'pin-modal') {
+        closePinModal();
     }
 });
 
