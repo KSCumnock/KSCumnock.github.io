@@ -1,0 +1,2429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holiday Calendar — Kerr &amp; Smith Cumnock</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;1,9..144,500;1,9..144,600&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+    :root {
+        --ks-blue:       #258bca;
+        --ks-blue-700:   #1d6f9f;
+        --ks-blue-50:    #e7f3fb;
+        --ks-blue-100:   #cae6f4;
+        --ks-red:        #d7222a;
+        --ks-red-50:     #fdecee;
+
+        --neutral-0:    #ffffff;
+        --neutral-50:   #fafafa;
+        --neutral-100:  #f5f5f5;
+        --neutral-150:  #ededed;
+        --neutral-200:  #e5e5e5;
+        --neutral-300:  #d4d4d4;
+        --neutral-400:  #a3a3a3;
+        --neutral-500:  #737373;
+        --neutral-600:  #525252;
+        --neutral-700:  #404040;
+        --neutral-800:  #262626;
+        --neutral-900:  #171717;
+
+        --success:      #16a34a;
+        --success-50:   #f0fdf4;
+        --warning:      #d97706;
+        --warning-50:   #fffbeb;
+        --danger:       #dc2626;
+        --danger-50:    #fef2f2;
+
+        --sidebar-w:    280px;
+        --content-pad:  32px;
+
+        --font-display: 'Fraunces', 'Georgia', serif;
+        --font-body:    'Inter Tight', -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-mono:    'JetBrains Mono', 'SF Mono', 'Cascadia Code', monospace;
+
+        --radius-sm:    6px;
+        --radius:       10px;
+        --radius-lg:    16px;
+        --shadow-sm:    0 1px 2px rgba(15, 23, 42, 0.04);
+        --shadow:       0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -1px rgba(15, 23, 42, 0.04);
+        --shadow-lg:    0 16px 32px -8px rgba(15, 23, 42, 0.10), 0 4px 8px -2px rgba(15, 23, 42, 0.06);
+        --transition:   150ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+        font-family: var(--font-body);
+        font-size: 15px;
+        line-height: 1.5;
+        background: var(--neutral-50);
+        color: var(--neutral-800);
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    .num, .calendar-day-number, .stat-value {
+        font-feature-settings: "tnum" 1, "lnum" 1;
+    }
+
+    /* ============ APP SHELL ============ */
+    .app-shell {
+        display: grid;
+        grid-template-columns: var(--sidebar-w) 1fr;
+        min-height: 100vh;
+    }
+
+    /* ============ SIDEBAR ============ */
+    .sidebar {
+        display: flex;
+        flex-direction: column;
+        background: var(--neutral-0);
+        border-right: 1px solid var(--neutral-200);
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        z-index: 100;
+        overflow-y: auto;
+    }
+
+    .sidebar-brand {
+        padding: 24px 20px 20px;
+        border-bottom: 1px solid var(--neutral-150);
+        background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+    }
+
+    .sidebar-logo { width: 100%; max-width: 200px; height: auto; display: block; }
+
+    .sidebar-wordmark {
+        font-family: var(--font-display);
+        font-style: italic;
+        font-weight: 600;
+        font-size: 28px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: var(--ks-red);
+        align-items: baseline;
+        gap: 4px;
+    }
+    .sidebar-wordmark .wm-amp { color: var(--ks-blue); font-size: 22px; font-weight: 400; margin: 0 2px; }
+
+    .sidebar-product {
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid var(--neutral-150);
+        font-family: var(--font-display);
+        font-size: 13px;
+        font-weight: 500;
+        font-style: italic;
+        color: var(--neutral-600);
+        letter-spacing: -0.01em;
+    }
+
+    .sidebar-section {
+        padding: 16px 16px 18px;
+        border-bottom: 1px solid var(--neutral-150);
+    }
+
+    .sidebar-section:last-child { border-bottom: none; }
+
+    .sidebar-section-title {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--neutral-500);
+        margin-bottom: 10px;
+    }
+
+    .field-label {
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--neutral-500);
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .select-wrap { position: relative; }
+
+    select, input[type="search"], input[type="text"] {
+        width: 100%;
+        background: var(--neutral-100);
+        border: 1px solid var(--neutral-200);
+        border-radius: var(--radius-sm);
+        padding: 8px 12px;
+        font-family: var(--font-body);
+        font-size: 13px;
+        color: var(--neutral-900);
+        transition: all var(--transition);
+    }
+
+    select {
+        appearance: none;
+        -webkit-appearance: none;
+        padding-right: 32px;
+        font-family: var(--font-mono);
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    select:hover, input:hover { background: var(--neutral-150); }
+    select:focus, input:focus {
+        outline: none;
+        border-color: var(--ks-blue);
+        background: var(--neutral-0);
+        box-shadow: 0 0 0 3px var(--ks-blue-50);
+    }
+
+    .select-chevron {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 14px;
+        height: 14px;
+        pointer-events: none;
+        color: var(--neutral-500);
+    }
+
+    .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 0;
+        cursor: pointer;
+        font-size: 13px;
+        color: var(--neutral-700);
+        user-select: none;
+    }
+    .checkbox-row input { width: auto; margin: 0; }
+
+    button.btn {
+        background: var(--ks-blue);
+        color: white;
+        border: 1px solid var(--ks-blue);
+        padding: 9px 14px;
+        border-radius: var(--radius-sm);
+        font-size: 13px;
+        font-weight: 500;
+        font-family: var(--font-body);
+        cursor: pointer;
+        transition: all var(--transition);
+        box-shadow: var(--shadow-sm);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: center;
+    }
+    button.btn:hover:not(:disabled) {
+        background: var(--ks-blue-700);
+        border-color: var(--ks-blue-700);
+        transform: translateY(-1px);
+    }
+    button.btn:active { transform: translateY(0); }
+    button.btn:disabled {
+        background: var(--neutral-200);
+        border-color: var(--neutral-200);
+        color: var(--neutral-500);
+        cursor: not-allowed;
+    }
+    button.btn.btn-ghost {
+        background: var(--neutral-0);
+        color: var(--neutral-700);
+        border-color: var(--neutral-200);
+    }
+    button.btn.btn-ghost:hover:not(:disabled) {
+        background: var(--neutral-100);
+        color: var(--neutral-900);
+        border-color: var(--neutral-300);
+    }
+    button.btn.btn-block { width: 100%; }
+    button.btn svg { width: 14px; height: 14px; }
+
+    /* ============ MAIN CONTENT ============ */
+    .main-content {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .topbar {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 32px var(--content-pad) 24px;
+        background: var(--neutral-50);
+        border-bottom: 1px solid var(--neutral-200);
+    }
+
+    .topbar-titles { min-width: 0; }
+
+    .topbar-eyebrow {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--ks-blue);
+        margin-bottom: 6px;
+    }
+
+    .page-title {
+        font-family: var(--font-display);
+        font-size: 38px;
+        font-weight: 500;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        color: var(--neutral-900);
+        margin-bottom: 4px;
+    }
+
+    .page-subtitle {
+        font-size: 14px;
+        color: var(--neutral-500);
+    }
+
+    .month-nav {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .month-nav button {
+        background: var(--neutral-0);
+        border: 1px solid var(--neutral-200);
+        color: var(--neutral-700);
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-sm);
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all var(--transition);
+    }
+    .month-nav button:hover {
+        background: var(--ks-blue-50);
+        color: var(--ks-blue-700);
+        border-color: var(--ks-blue-100);
+    }
+    .month-nav .today-jump {
+        width: auto;
+        padding: 0 12px;
+        font-size: 12px;
+        font-weight: 500;
+        font-family: var(--font-mono);
+    }
+
+    .content-area {
+        flex: 1;
+        padding: var(--content-pad);
+    }
+
+    /* ============ COVERAGE STRIP ============ */
+    .coverage-strip {
+        background: var(--neutral-0);
+        border: 1px solid var(--neutral-200);
+        border-radius: var(--radius);
+        padding: 18px 22px;
+        margin-bottom: 16px;
+        box-shadow: var(--shadow-sm);
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 24px;
+        align-items: center;
+    }
+
+    .coverage-eyebrow {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--neutral-500);
+        margin-bottom: 4px;
+    }
+
+    .coverage-week {
+        font-family: var(--font-display);
+        font-size: 18px;
+        font-weight: 500;
+        color: var(--neutral-900);
+        margin-bottom: 10px;
+        letter-spacing: -0.005em;
+    }
+
+    .coverage-bar {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+
+    .coverage-pip {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--neutral-200);
+        flex-shrink: 0;
+    }
+
+    .coverage-pip.is-off { background: var(--ks-red); }
+
+    .coverage-names {
+        font-size: 13px;
+        color: var(--neutral-600);
+        line-height: 1.5;
+    }
+
+    .coverage-names .person {
+        cursor: pointer;
+        text-decoration: underline;
+        text-decoration-color: var(--neutral-300);
+        text-underline-offset: 2px;
+    }
+
+    .coverage-names .person:hover { color: var(--ks-blue-700); }
+
+    .coverage-summary {
+        text-align: right;
+        font-family: var(--font-display);
+        font-weight: 500;
+    }
+
+    .coverage-summary .num {
+        font-size: 32px;
+        line-height: 1;
+        color: var(--neutral-900);
+    }
+
+    .coverage-summary .total {
+        font-size: 14px;
+        color: var(--neutral-500);
+    }
+
+    .coverage-summary .label {
+        font-family: var(--font-body);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--neutral-500);
+        margin-top: 4px;
+        font-weight: 600;
+    }
+
+    /* ============ VIEW TOGGLE ============ */
+    .view-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+    }
+
+    .view-toggle {
+        display: inline-flex;
+        gap: 0;
+        background: var(--neutral-100);
+        border: 1px solid var(--neutral-200);
+        border-radius: var(--radius-sm);
+        padding: 3px;
+    }
+
+    .view-toggle button {
+        background: transparent;
+        border: none;
+        padding: 6px 14px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--neutral-600);
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .view-toggle button.active {
+        background: var(--neutral-0);
+        color: var(--ks-blue-700);
+        box-shadow: var(--shadow-sm);
+    }
+    .view-toggle button svg { width: 13px; height: 13px; }
+
+    .view-legend {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        font-size: 11px;
+        color: var(--neutral-600);
+    }
+    .view-legend .swatch {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        vertical-align: middle;
+        margin-right: 6px;
+    }
+    .swatch.s-employee { background: var(--ks-blue); }
+    .swatch.s-half     { background: var(--warning); }
+    .swatch.s-bank     { background: var(--ks-red); }
+    .swatch.s-school   { background: #2563eb; }
+
+    /* ============ CALENDAR GRID ============ */
+    .calendar {
+        background: var(--neutral-0);
+        border: 1px solid var(--neutral-200);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        background: var(--neutral-200);
+        gap: 1px;
+    }
+
+    .calendar-head {
+        background: var(--neutral-50);
+        color: var(--neutral-600);
+        padding: 10px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .calendar-day {
+        background: var(--neutral-0);
+        min-height: 110px;
+        padding: 6px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        transition: background var(--transition);
+    }
+
+    .calendar-day:hover { background: var(--neutral-50); }
+
+    .calendar-day-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2px;
+    }
+
+    .calendar-day-number {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--neutral-700);
+    }
+
+    .calendar-day.is-other-month { background: var(--neutral-50); }
+    .calendar-day.is-other-month .calendar-day-number { color: var(--neutral-400); }
+
+    .calendar-day.is-today {
+        background: var(--ks-blue-50);
+        box-shadow: inset 0 0 0 2px var(--ks-blue);
+    }
+    .calendar-day.is-today .calendar-day-number {
+        color: var(--ks-blue-700);
+        font-weight: 700;
+    }
+
+    .calendar-day.is-bank-holiday { background: var(--ks-red-50); box-shadow: inset 3px 0 0 0 var(--ks-red); }
+    .calendar-day.is-school-holiday { background: #dbeafe; box-shadow: inset 3px 0 0 0 #2563eb; }
+    .calendar-day.is-inservice { background: #f3e8ff; box-shadow: inset 3px 0 0 0 #9333ea; }
+
+    .calendar-day.is-weekend .calendar-day-number { color: var(--neutral-400); }
+
+    .day-info-pip {
+        font-family: var(--font-mono);
+        font-size: 9px;
+        font-weight: 700;
+        background: var(--neutral-200);
+        color: var(--neutral-700);
+        padding: 1px 5px;
+        border-radius: 999px;
+        line-height: 1.6;
+        cursor: pointer;
+        min-width: 18px;
+        text-align: center;
+        transition: all var(--transition);
+    }
+    .day-info-pip:hover {
+        background: var(--ks-blue);
+        color: white;
+    }
+    .day-info-pip.has-many { background: var(--ks-red); color: white; }
+    .day-info-pip.has-many:hover { background: #b91c1c; }
+
+    .holiday-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px;
+        margin-bottom: 4px;
+    }
+
+    .holiday-badge {
+        font-size: 9px;
+        font-weight: 600;
+        padding: 1px 5px;
+        border-radius: 4px;
+        line-height: 1.4;
+        white-space: nowrap;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .holiday-badge.bank { background: var(--ks-red); color: white; }
+    .holiday-badge.school { background: #2563eb; color: white; }
+    .holiday-badge.inservice { background: #9333ea; color: white; }
+
+    .chip-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .chip {
+        background: var(--ks-blue);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 500;
+        line-height: 1.4;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        cursor: pointer;
+        transition: all var(--transition);
+    }
+    .chip:hover { transform: translateX(1px); filter: brightness(1.1); }
+
+    .chip.is-half-day { background: var(--warning); }
+
+    .chip.is-selected {
+        background: var(--success);
+        font-weight: 600;
+        box-shadow: 0 0 0 2px var(--success-50);
+    }
+
+    /* Weekend chips: dim unless they're the selected employee */
+    .calendar-day.is-weekend .chip:not(.is-selected) {
+        opacity: 0.45;
+        filter: grayscale(20%);
+    }
+
+    /* ============ LIST VIEW ============ */
+    .list-view {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .list-week-group {
+        background: var(--neutral-0);
+        border: 1px solid var(--neutral-200);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .list-week-header {
+        background: var(--neutral-50);
+        padding: 12px 18px;
+        border-bottom: 1px solid var(--neutral-200);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--neutral-600);
+    }
+
+    .list-day-row {
+        display: grid;
+        grid-template-columns: 80px 1fr auto;
+        gap: 16px;
+        padding: 12px 18px;
+        border-bottom: 1px solid var(--neutral-150);
+        align-items: center;
+    }
+
+    .list-day-row:last-child { border-bottom: none; }
+    .list-day-row.is-weekend { background: var(--neutral-50); }
+    .list-day-row.is-today { background: var(--ks-blue-50); }
+    .list-day-row.is-bank-holiday { background: var(--ks-red-50); }
+    .list-day-row.is-school-holiday { background: #dbeafe; }
+
+    .list-day-date {
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--neutral-700);
+    }
+
+    .list-day-content {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+        min-width: 0;
+    }
+
+    .list-day-content .person-pill {
+        background: var(--ks-blue);
+        color: white;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all var(--transition);
+    }
+    .list-day-content .person-pill:hover { filter: brightness(1.1); }
+    .list-day-content .person-pill.is-half-day { background: var(--warning); }
+    .list-day-content .person-pill.is-selected { background: var(--success); box-shadow: 0 0 0 2px var(--success-50); }
+
+    .list-day-content .holiday-tag {
+        background: transparent;
+        color: var(--neutral-600);
+        font-size: 12px;
+        font-style: italic;
+    }
+
+    .list-day-content .empty {
+        color: var(--neutral-400);
+        font-size: 12px;
+        font-style: italic;
+    }
+
+    .list-day-count {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--neutral-500);
+        white-space: nowrap;
+    }
+
+    /* ============ QUIET WEEK FINDER ============ */
+    .quiet-finder {
+        background: var(--neutral-0);
+        border: 1px solid var(--neutral-200);
+        border-radius: var(--radius);
+        padding: 22px;
+        margin-top: 24px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .quiet-finder-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 6px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .quiet-finder-title {
+        font-family: var(--font-display);
+        font-size: 20px;
+        font-weight: 500;
+        color: var(--neutral-900);
+        letter-spacing: -0.01em;
+    }
+
+    .quiet-finder-sub {
+        font-size: 12px;
+        color: var(--neutral-500);
+    }
+
+    .quiet-finder-list {
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1px;
+        background: var(--neutral-200);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        border: 1px solid var(--neutral-200);
+    }
+
+    .quiet-week-row {
+        display: grid;
+        grid-template-columns: auto 60px 1fr auto;
+        gap: 16px;
+        padding: 10px 14px;
+        background: var(--neutral-0);
+        align-items: center;
+        cursor: pointer;
+        transition: background var(--transition);
+    }
+    .quiet-week-row:hover { background: var(--ks-blue-50); }
+
+    .quiet-week-rank {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--neutral-400);
+        font-weight: 700;
+        width: 18px;
+    }
+
+    .quiet-week-date {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--neutral-800);
+    }
+
+    .quiet-week-bar {
+        display: flex;
+        gap: 2px;
+        align-items: center;
+    }
+
+    .quiet-week-bar .pip {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--neutral-200);
+    }
+    .quiet-week-bar .pip.is-off { background: var(--ks-red); }
+
+    .quiet-week-tag {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        padding: 2px 8px;
+        border-radius: 999px;
+        letter-spacing: 0.06em;
+    }
+    .quiet-week-tag.tone-best   { background: var(--success-50); color: #15803d; }
+    .quiet-week-tag.tone-good   { background: var(--ks-blue-50); color: var(--ks-blue-700); }
+    .quiet-week-tag.tone-busy   { background: var(--warning-50); color: var(--warning); }
+    .quiet-week-tag.tone-avoid  { background: var(--danger-50); color: var(--danger); }
+
+    /* ============ SELECTED EMPLOYEE PANEL ============ */
+    .employee-panel {
+        background: var(--neutral-0);
+        border: 1px solid var(--neutral-200);
+        border-radius: var(--radius);
+        padding: 22px;
+        margin-bottom: 16px;
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        border-left: 3px solid var(--ks-blue);
+    }
+
+    .employee-panel .close-x {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        background: transparent;
+        border: none;
+        color: var(--neutral-400);
+        cursor: pointer;
+        width: 28px;
+        height: 28px;
+        border-radius: var(--radius-sm);
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all var(--transition);
+    }
+    .employee-panel .close-x:hover {
+        background: var(--neutral-100);
+        color: var(--neutral-700);
+    }
+
+    .employee-panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 18px;
+        gap: 16px;
+        padding-right: 32px;
+    }
+
+    .employee-name {
+        font-family: var(--font-display);
+        font-size: 24px;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+        color: var(--neutral-900);
+    }
+
+    .employee-name-sub {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--ks-blue);
+        margin-bottom: 4px;
+    }
+
+    .employee-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .employee-stat-card {
+        background: var(--neutral-50);
+        border-radius: var(--radius-sm);
+        padding: 12px 14px;
+        border: 1px solid var(--neutral-150);
+    }
+
+    .employee-stat-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--neutral-500);
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .employee-stat-value {
+        font-family: var(--font-display);
+        font-size: 24px;
+        font-weight: 500;
+        color: var(--neutral-900);
+        line-height: 1;
+        font-feature-settings: "tnum" 1, "lnum" 1;
+    }
+
+    .request-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .request-item {
+        background: var(--neutral-50);
+        border: 1px solid var(--neutral-150);
+        border-left: 3px solid var(--ks-blue);
+        border-radius: var(--radius-sm);
+        padding: 12px 14px;
+    }
+    .request-item.is-approved { border-left-color: var(--success); }
+    .request-item.is-pending  { border-left-color: var(--warning); }
+    .request-item.is-rejected,
+    .request-item.is-cancelled { border-left-color: var(--danger); }
+
+    .request-dates {
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--neutral-900);
+        margin-bottom: 4px;
+    }
+    .request-meta {
+        font-size: 12px;
+        color: var(--neutral-500);
+    }
+    .request-status {
+        display: inline-block;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-top: 6px;
+    }
+    .request-status.s-approved  { background: var(--success-50); color: #15803d; }
+    .request-status.s-pending   { background: var(--warning-50); color: var(--warning); }
+    .request-status.s-rejected,
+    .request-status.s-cancelled { background: var(--danger-50);  color: var(--danger); }
+
+    /* ============ POPOVER ============ */
+    .popover-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.2);
+        z-index: 900;
+    }
+
+    .popover {
+        position: fixed;
+        background: var(--neutral-0);
+        border: 1px solid var(--neutral-200);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-lg);
+        z-index: 901;
+        min-width: 240px;
+        max-width: 320px;
+        max-height: 360px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .popover-header {
+        background: var(--neutral-50);
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--neutral-200);
+        font-family: var(--font-display);
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--neutral-900);
+        letter-spacing: -0.005em;
+    }
+
+    .popover-body {
+        padding: 8px;
+        overflow-y: auto;
+    }
+
+    .popover-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 10px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background var(--transition);
+    }
+    .popover-row:hover { background: var(--neutral-100); }
+
+    .popover-row .name {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--neutral-900);
+    }
+    .popover-row .tag {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: var(--ks-blue-50);
+        color: var(--ks-blue-700);
+    }
+    .popover-row .tag.is-half { background: var(--warning-50); color: var(--warning); }
+
+    .popover-holiday-banner {
+        padding: 10px 14px;
+        font-size: 12px;
+        background: var(--ks-blue-50);
+        color: var(--ks-blue-700);
+        border-bottom: 1px solid var(--neutral-200);
+    }
+    .popover-holiday-banner.is-bank   { background: var(--ks-red-50); color: var(--ks-red); }
+    .popover-holiday-banner.is-school { background: #dbeafe; color: #1e40af; }
+    .popover-holiday-banner strong { font-weight: 600; }
+
+    /* ============ TOASTS ============ */
+    .toast-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        z-index: 10000;
+        max-width: 380px;
+        pointer-events: none;
+    }
+
+    .toast {
+        background: var(--neutral-0);
+        border: 1px solid var(--neutral-200);
+        border-radius: var(--radius);
+        padding: 14px 16px;
+        box-shadow: var(--shadow-lg);
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        min-width: 280px;
+        pointer-events: auto;
+        position: relative;
+        overflow: hidden;
+        animation: toastSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .toast.is-leaving { animation: toastSlideOut 0.22s ease forwards; }
+
+    @keyframes toastSlideIn {
+        from { transform: translateX(420px); opacity: 0; }
+        to   { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes toastSlideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to   { transform: translateX(420px); opacity: 0; }
+    }
+
+    .toast::before {
+        content: '';
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 3px;
+        background: var(--neutral-400);
+    }
+    .toast.toast-success::before { background: var(--success); }
+    .toast.toast-error::before   { background: var(--danger); }
+    .toast.toast-warning::before { background: var(--warning); }
+    .toast.toast-info::before    { background: var(--ks-blue); }
+
+    .toast-icon { width: 18px; height: 18px; flex-shrink: 0; }
+    .toast-success .toast-icon { color: var(--success); }
+    .toast-error .toast-icon   { color: var(--danger); }
+    .toast-warning .toast-icon { color: var(--warning); }
+    .toast-info .toast-icon    { color: var(--ks-blue); }
+
+    .toast-body { flex: 1; min-width: 0; }
+    .toast-title { font-weight: 600; font-size: 14px; color: var(--neutral-900); margin-bottom: 2px; }
+    .toast-message { font-size: 13px; color: var(--neutral-600); line-height: 1.4; }
+
+    /* ============ EMPTY STATES ============ */
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        max-width: 360px;
+        margin: 0 auto;
+    }
+
+    .empty-state-icon {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 14px;
+        background: var(--neutral-100);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--neutral-400);
+    }
+    .empty-state-icon svg { width: 26px; height: 26px; }
+
+    .empty-state-title {
+        font-family: var(--font-display);
+        font-size: 18px;
+        font-weight: 500;
+        color: var(--neutral-900);
+        margin-bottom: 4px;
+        letter-spacing: -0.01em;
+    }
+
+    .empty-state-desc {
+        font-size: 13px;
+        color: var(--neutral-500);
+        line-height: 1.5;
+    }
+
+    /* ============ LOADING ============ */
+    .loading-screen {
+        min-height: 60vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        color: var(--neutral-500);
+        font-size: 14px;
+    }
+
+    .loading-spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--neutral-200);
+        border-top-color: var(--ks-blue);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-banner {
+        background: var(--danger-50);
+        border: 1px solid #fca5a5;
+        color: var(--danger);
+        padding: 14px 18px;
+        border-radius: var(--radius);
+        font-size: 13px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    /* ============ MOBILE MENU ============ */
+    .mobile-menu-toggle {
+        display: none;
+        position: fixed;
+        top: 14px;
+        left: 14px;
+        width: 40px;
+        height: 40px;
+        background: var(--neutral-0);
+        border: 1px solid var(--neutral-200);
+        border-radius: var(--radius-sm);
+        color: var(--neutral-700);
+        cursor: pointer;
+        z-index: 200;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .sidebar-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.5);
+        z-index: 99;
+        opacity: 0;
+        transition: opacity var(--transition);
+    }
+    .sidebar-backdrop.visible { opacity: 1; }
+
+    @media (max-width: 900px) {
+        .app-shell { grid-template-columns: 1fr; }
+        .mobile-menu-toggle { display: flex; }
+        .sidebar-backdrop { display: block; pointer-events: none; }
+        .sidebar-backdrop.visible { pointer-events: auto; }
+        .sidebar {
+            position: fixed;
+            left: 0; top: 0;
+            width: var(--sidebar-w);
+            max-width: 84vw;
+            transform: translateX(-100%);
+            transition: transform var(--transition);
+            box-shadow: var(--shadow-lg);
+        }
+        .sidebar.open { transform: translateX(0); }
+        .topbar {
+            padding: 24px 20px 18px 64px;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 14px;
+        }
+        .month-nav { align-self: stretch; justify-content: flex-end; }
+        .content-area { padding: 16px; }
+        .page-title { font-size: 28px; }
+        .coverage-strip { grid-template-columns: 1fr; gap: 14px; }
+        .coverage-summary { text-align: left; display: flex; align-items: baseline; gap: 8px; }
+        .coverage-summary .label { margin-top: 0; }
+    }
+
+    .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle menu" onclick="toggleSidebar()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
+
+    <div class="app-shell">
+        <!-- =================== SIDEBAR =================== -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <img src="/images/kandslogo.png" alt="Kerr &amp; Smith" class="sidebar-logo"
+                     onerror="this.style.display='none'; var fb=document.getElementById('logo-fallback'); if(fb){fb.style.display='flex';}">
+                <div id="logo-fallback" class="sidebar-wordmark" style="display:none;">
+                    <span>Kerr</span><span class="wm-amp">&amp;</span><span>Smith</span>
+                </div>
+                <div class="sidebar-product">Holiday Calendar</div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Reporting Year</div>
+                <div class="select-wrap">
+                    <select id="year-select"></select>
+                    <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">View an employee</div>
+                <input type="search" id="employee-search" placeholder="Search names…" autocomplete="off">
+                <div class="select-wrap" style="margin-top:8px;">
+                    <select id="employee-select">
+                        <option value="">All employees</option>
+                    </select>
+                    <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+                <button id="ics-download" class="btn btn-block btn-ghost" style="margin-top:10px;" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Add to my calendar
+                </button>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Holiday overlays</div>
+                <label class="checkbox-row">
+                    <input type="checkbox" id="show-bank" checked>
+                    <span>Scotland bank holidays</span>
+                </label>
+                <label class="checkbox-row">
+                    <input type="checkbox" id="show-school" checked>
+                    <span>East Ayrshire school holidays</span>
+                </label>
+            </div>
+        </aside>
+
+        <!-- =================== MAIN =================== -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="topbar-titles">
+                    <div class="topbar-eyebrow">Kerr &amp; Smith Cumnock</div>
+                    <h1 class="page-title" id="page-title">Loading…</h1>
+                    <p class="page-subtitle" id="page-subtitle">Team availability across the year</p>
+                </div>
+                <div class="month-nav">
+                    <button id="prev-month" aria-label="Previous month">‹</button>
+                    <button class="today-jump" id="today-jump">Today</button>
+                    <button id="next-month" aria-label="Next month">›</button>
+                </div>
+            </header>
+
+            <div class="content-area" id="content-area">
+                <div class="loading-screen" id="loading-screen">
+                    <div class="loading-spinner"></div>
+                    <div>Loading holiday data…</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+    // =====================================================================
+    // CONFIG + STATE
+    // =====================================================================
+    const GITHUB_CONFIG = {
+        owner: 'KSCumnock',
+        repo: 'Holidays',
+        branch: 'main'
+    };
+    const GITHUB_RAW_BASE = `https://raw.githubusercontent.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/${GITHUB_CONFIG.branch}/`;
+
+    let employeesData = [];
+    let holidayRequestsData = [];
+    let currentDate = new Date();
+    let currentYear = new Date().getFullYear();
+    let availableYears = [];
+    let selectedEmployeeId = null;
+    let currentView = 'calendar'; // 'calendar' | 'list'
+    let dataCache = new Map();
+    let currentPopover = null;
+    const MOBILE_QUERY = window.matchMedia('(max-width: 900px)');
+    if (MOBILE_QUERY.matches) currentView = 'list';
+
+    // =====================================================================
+    // SCOTLAND PUBLIC + EAST AYRSHIRE SCHOOL HOLIDAYS
+    // (Mirror of admin script.js — keep in sync.)
+    // =====================================================================
+    const SCOTLAND_HOLIDAYS = [
+        { date: '2025-01-01', name: "New Year's Day", type: 'bank' },
+        { date: '2025-01-02', name: '2nd January', type: 'bank' },
+        { date: '2025-04-18', name: 'Good Friday', type: 'bank' },
+        { date: '2025-05-05', name: 'Early May bank holiday', type: 'bank' },
+        { date: '2025-05-26', name: 'Spring bank holiday', type: 'bank' },
+        { date: '2025-08-04', name: 'Summer bank holiday', type: 'bank' },
+        { date: '2025-12-01', name: "St Andrew's Day (substitute)", type: 'bank' },
+        { date: '2025-12-25', name: 'Christmas Day', type: 'bank' },
+        { date: '2025-12-26', name: 'Boxing Day', type: 'bank' },
+        { date: '2026-01-01', name: "New Year's Day", type: 'bank' },
+        { date: '2026-01-02', name: '2nd January', type: 'bank' },
+        { date: '2026-04-03', name: 'Good Friday', type: 'bank' },
+        { date: '2026-05-04', name: 'Early May bank holiday', type: 'bank' },
+        { date: '2026-05-25', name: 'Spring bank holiday', type: 'bank' },
+        { date: '2026-06-15', name: 'Special bank holiday (FIFA World Cup)', type: 'bank' },
+        { date: '2026-08-03', name: 'Summer bank holiday', type: 'bank' },
+        { date: '2026-11-30', name: "St Andrew's Day", type: 'bank' },
+        { date: '2026-12-25', name: 'Christmas Day', type: 'bank' },
+        { date: '2026-12-28', name: 'Boxing Day (substitute)', type: 'bank' },
+        { date: '2027-01-01', name: "New Year's Day", type: 'bank' },
+        { date: '2027-01-04', name: '2nd January (substitute)', type: 'bank' },
+        { date: '2027-03-26', name: 'Good Friday', type: 'bank' },
+        { date: '2027-05-03', name: 'Early May bank holiday', type: 'bank' },
+        { date: '2027-05-31', name: 'Spring bank holiday', type: 'bank' },
+        { date: '2027-08-02', name: 'Summer bank holiday', type: 'bank' },
+        { date: '2027-11-30', name: "St Andrew's Day", type: 'bank' },
+        { date: '2027-12-27', name: 'Christmas Day (substitute)', type: 'bank' },
+        { date: '2027-12-28', name: 'Boxing Day (substitute)', type: 'bank' }
+    ];
+
+    const SCHOOL_HOLIDAY_RANGES = [
+        { start: '2025-08-18', end: '2025-08-19', name: 'In-service day (start of session)', type: 'inservice' },
+        { start: '2025-09-19', end: '2025-09-22', name: 'Local holidays (Ayr Gold Cup weekend)', type: 'school' },
+        { start: '2025-10-13', end: '2025-10-17', name: 'October holidays', type: 'school' },
+        { start: '2025-10-20', end: '2025-10-20', name: 'In-service day', type: 'inservice' },
+        { start: '2025-12-22', end: '2026-01-02', name: 'Christmas and New Year', type: 'school' },
+        { start: '2026-02-09', end: '2026-02-09', name: 'Local holiday', type: 'school' },
+        { start: '2026-02-10', end: '2026-02-10', name: 'In-service day', type: 'inservice' },
+        { start: '2026-04-03', end: '2026-04-17', name: 'Easter holidays', type: 'school' },
+        { start: '2026-05-04', end: '2026-05-04', name: 'Local holiday (May Day)', type: 'school' },
+        { start: '2026-05-07', end: '2026-05-07', name: 'In-service day', type: 'inservice' },
+        { start: '2026-06-29', end: '2026-08-14', name: 'Summer holidays', type: 'school' },
+        { start: '2026-08-17', end: '2026-08-18', name: 'In-service day (start of session)', type: 'inservice' },
+        { start: '2026-09-18', end: '2026-09-21', name: 'Local holidays (Ayr Gold Cup weekend)', type: 'school' },
+        { start: '2026-10-12', end: '2026-10-16', name: 'October holidays', type: 'school' },
+        { start: '2026-10-19', end: '2026-10-19', name: 'In-service day', type: 'inservice' },
+        { start: '2026-12-21', end: '2027-01-04', name: 'Christmas and New Year', type: 'school' },
+        { start: '2027-02-12', end: '2027-02-15', name: 'Local holidays', type: 'school' },
+        { start: '2027-02-16', end: '2027-02-16', name: 'In-service day', type: 'inservice' },
+        { start: '2027-03-26', end: '2027-04-09', name: 'Easter holidays', type: 'school' },
+        { start: '2027-05-03', end: '2027-05-03', name: 'Local holiday (May Day)', type: 'school' },
+        { start: '2027-05-24', end: '2027-05-24', name: 'In-service day', type: 'inservice' },
+        { start: '2027-06-30', end: '2027-08-13', name: 'Summer holidays', type: 'school' },
+        { start: '2027-08-16', end: '2027-08-17', name: 'In-service day (start of session)', type: 'inservice' }
+    ];
+
+    function getHolidaysOnDate(dateStr) {
+        const out = [];
+        SCOTLAND_HOLIDAYS.forEach(h => { if (h.date === dateStr) out.push({ name: h.name, type: h.type }); });
+        SCHOOL_HOLIDAY_RANGES.forEach(r => {
+            if (dateStr >= r.start && dateStr <= r.end) out.push({ name: r.name, type: r.type });
+        });
+        return out;
+    }
+
+    function shortHolidayLabel(h) {
+        if (h.type === 'inservice') return 'In-service';
+        if (h.type === 'bank') {
+            if (h.name.includes("New Year")) return "New Year";
+            if (h.name.includes('2nd January')) return '2 Jan';
+            if (h.name.includes('Good Friday')) return 'Good Fri';
+            if (h.name.includes('Early May')) return 'May Day';
+            if (h.name.includes('Spring')) return 'Spring BH';
+            if (h.name.includes('Summer')) return 'Summer BH';
+            if (h.name.includes('Andrew')) return "St Andrew's";
+            if (h.name.includes('Christmas')) return 'Christmas';
+            if (h.name.includes('Boxing')) return 'Boxing Day';
+            if (h.name.includes('FIFA')) return 'World Cup BH';
+            return 'Bank holiday';
+        }
+        if (h.name.includes('Christmas'))    return 'Christmas';
+        if (h.name.includes('Easter'))       return 'Easter';
+        if (h.name.includes('Summer'))       return 'Summer';
+        if (h.name.includes('October'))      return 'October';
+        if (h.name.includes('Ayr Gold Cup')) return 'Ayr Gold Cup';
+        if (h.name.includes('May Day'))      return 'May Day';
+        if (h.name.includes('Local'))        return 'Local hol';
+        return 'School hol';
+    }
+
+    // =====================================================================
+    // TOAST
+    // =====================================================================
+    const TOAST_ICONS = {
+        success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+        error:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>',
+        warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+        info:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+    };
+    let _toastSeq = 0;
+    function toast(opts) {
+        const { type='info', title='', message='', duration=4000 } = opts;
+        const id = `toast-${++_toastSeq}`;
+        const el = document.createElement('div');
+        el.id = id;
+        el.className = `toast toast-${type}`;
+        el.innerHTML = `
+            <div class="toast-icon">${TOAST_ICONS[type] || ''}</div>
+            <div class="toast-body">
+                ${title ? `<div class="toast-title">${title}</div>` : ''}
+                ${message ? `<div class="toast-message">${message}</div>` : ''}
+            </div>
+        `;
+        document.getElementById('toast-container').appendChild(el);
+        if (duration > 0) {
+            setTimeout(() => {
+                el.classList.add('is-leaving');
+                setTimeout(() => el.remove(), 220);
+            }, duration);
+        }
+        return id;
+    }
+    toast.success = (m, t) => toast({ type:'success', message:m, title:t });
+    toast.error   = (m, t) => toast({ type:'error',   message:m, title:t });
+    toast.warning = (m, t) => toast({ type:'warning', message:m, title:t });
+    toast.info    = (m, t) => toast({ type:'info',    message:m, title:t });
+
+    // =====================================================================
+    // EMPTY STATES
+    // =====================================================================
+    const EMPTY_ICONS = {
+        inbox:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>',
+        users:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>',
+        calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
+        check:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+    };
+
+    function emptyState(opts={}) {
+        const { icon='inbox', title='Nothing here', description='' } = opts;
+        return `
+            <div class="empty-state">
+                <div class="empty-state-icon">${EMPTY_ICONS[icon] || ''}</div>
+                <h4 class="empty-state-title">${title}</h4>
+                ${description ? `<p class="empty-state-desc">${description}</p>` : ''}
+            </div>
+        `;
+    }
+
+    // =====================================================================
+    // DATE HELPERS
+    // =====================================================================
+    function ymd(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth()+1).padStart(2,'0');
+        const d = String(date.getDate()).padStart(2,'0');
+        return `${y}-${m}-${d}`;
+    }
+
+    function fmtLong(date) {
+        return date.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    }
+
+    function startOfWeek(date) {
+        const d = new Date(date);
+        const dayIdx = d.getDay(); // 0 = Sun
+        const diff = dayIdx === 0 ? -6 : 1 - dayIdx; // shift to Mon
+        d.setDate(d.getDate() + diff);
+        d.setHours(0,0,0,0);
+        return d;
+    }
+
+    function addDays(date, n) {
+        const d = new Date(date);
+        d.setDate(d.getDate() + n);
+        return d;
+    }
+
+    // =====================================================================
+    // DATA LOADING
+    // =====================================================================
+    function getFileNames(year) {
+        return {
+            employees: `employees${year}.json`,
+            holidayRequests: `holiday-requests${year}.json`
+        };
+    }
+
+    async function checkYearAvailability(year) {
+        try {
+            const r = await fetch(GITHUB_RAW_BASE + getFileNames(year).employees);
+            return r.ok;
+        } catch { return false; }
+    }
+
+    async function findAvailableYears() {
+        // Cache in sessionStorage to avoid hitting GitHub on every load
+        const cached = sessionStorage.getItem('availableYears');
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                if (Array.isArray(parsed) && parsed.length) return parsed;
+            } catch {}
+        }
+        const yr = new Date().getFullYear();
+        const candidates = [yr - 2, yr - 1, yr, yr + 1, yr + 2];
+        const found = [];
+        for (const y of candidates) {
+            if (await checkYearAvailability(y)) found.push(y);
+        }
+        if (found.length) sessionStorage.setItem('availableYears', JSON.stringify(found));
+        return found.sort((a,b) => a - b);
+    }
+
+    async function loadDataFromGitHub() {
+        const cacheKey = `data-${currentYear}`;
+        if (dataCache.has(cacheKey)) {
+            const c = dataCache.get(cacheKey);
+            employeesData = c.employees;
+            holidayRequestsData = c.holidayRequests;
+            return;
+        }
+        const fileNames = getFileNames(currentYear);
+        const [empResp, reqResp] = await Promise.all([
+            fetch(GITHUB_RAW_BASE + fileNames.employees),
+            fetch(GITHUB_RAW_BASE + fileNames.holidayRequests)
+        ]);
+        if (!empResp.ok) throw new Error(`Couldn't load employees for ${currentYear}`);
+        if (!reqResp.ok) throw new Error(`Couldn't load holiday requests for ${currentYear}`);
+        employeesData       = await empResp.json();
+        holidayRequestsData = await reqResp.json();
+        dataCache.set(cacheKey, { employees: employeesData, holidayRequests: holidayRequestsData });
+    }
+
+    // =====================================================================
+    // QUERY HELPERS
+    // =====================================================================
+    function getEmployeesOnHoliday(dateStr) {
+        return holidayRequestsData
+            .filter(req => {
+                if (req.status !== 'approved') return false;
+                if (req.isBlockBooking && Array.isArray(req.selectedDates)) {
+                    return req.selectedDates.includes(dateStr);
+                }
+                return req.startDate <= dateStr && req.endDate >= dateStr;
+            })
+            .map(req => {
+                const emp = employeesData.find(e => e.id === req.employeeId);
+                return {
+                    employeeId: req.employeeId,
+                    employeeName: emp ? emp.name : 'Unknown',
+                    requestId: req.id,
+                    isHalfDay: !!req.isHalfDay,
+                    halfDayPeriod: req.halfDayPeriod,
+                    requestType: req.requestType || 'holiday',
+                    reason: req.reason
+                };
+            })
+            .sort((a, b) => a.employeeName.localeCompare(b.employeeName));
+    }
+
+    // Count off (excluding weekends in the count display)
+    function getOffCountForRange(startDate, endDate) {
+        const offByDay = {};
+        const cursor = new Date(startDate);
+        while (cursor <= endDate) {
+            const key = ymd(cursor);
+            offByDay[key] = getEmployeesOnHoliday(key);
+            cursor.setDate(cursor.getDate() + 1);
+        }
+        return offByDay;
+    }
+
+    // =====================================================================
+    // RENDER: TOPBAR
+    // =====================================================================
+    function updateTopbar() {
+        const month = currentDate.toLocaleDateString('en-GB', { month: 'long' });
+        const year = currentDate.getFullYear();
+        document.getElementById('page-title').textContent = `${month} ${year}`;
+        const employeeCount = employeesData.length;
+        document.getElementById('page-subtitle').textContent =
+            `Team availability · ${employeeCount} employee${employeeCount === 1 ? '' : 's'}`;
+    }
+
+    // =====================================================================
+    // RENDER: COVERAGE STRIP (this week)
+    // =====================================================================
+    function renderCoverageStrip() {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const weekStart = startOfWeek(today);
+        const weekEnd = addDays(weekStart, 4); // Mon..Fri (working week)
+
+        // Unique employees off across the working week
+        const offByDay = getOffCountForRange(weekStart, weekEnd);
+        const employeeIdsOff = new Set();
+        Object.values(offByDay).forEach(arr => arr.forEach(p => employeeIdsOff.add(p.employeeId)));
+
+        const total = employeesData.length || 1;
+        const off = employeeIdsOff.size;
+
+        // Build pip dots
+        let pips = '';
+        for (let i = 0; i < total; i++) {
+            pips += `<span class="coverage-pip ${i < off ? 'is-off' : ''}"></span>`;
+        }
+
+        // Build linked names
+        const namesArr = [...employeeIdsOff].map(id => {
+            const emp = employeesData.find(e => e.id === id);
+            return emp ? `<span class="person" data-employee-id="${emp.id}">${emp.name}</span>` : null;
+        }).filter(Boolean);
+        const namesHtml = namesArr.length
+            ? namesArr.join(' · ')
+            : '<span class="empty">Everyone is in this week</span>';
+
+        const dateLine = `${weekStart.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'})} → ${weekEnd.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'})}`;
+
+        return `
+            <div class="coverage-strip">
+                <div>
+                    <div class="coverage-eyebrow">This week</div>
+                    <div class="coverage-week">${dateLine}</div>
+                    <div class="coverage-bar">${pips}</div>
+                    <div class="coverage-names">${namesHtml}</div>
+                </div>
+                <div class="coverage-summary">
+                    <span class="num">${off}</span><span class="total"> / ${total}</span>
+                    <div class="label">off this week</div>
+                </div>
+            </div>
+        `;
+    }
+
+    // =====================================================================
+    // RENDER: CALENDAR GRID
+    // =====================================================================
+    function renderCalendarGrid() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const showBank   = document.getElementById('show-bank').checked;
+        const showSchool = document.getElementById('show-school').checked;
+
+        const firstOfMonth = new Date(year, month, 1);
+        const startGrid = new Date(firstOfMonth);
+        startGrid.setDate(1 - firstOfMonth.getDay()); // back to Sunday
+        const today = ymd(new Date());
+
+        let html = `<div class="calendar"><div class="calendar-grid">`;
+        ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+            html += `<div class="calendar-head">${d}</div>`;
+        });
+
+        for (let i = 0; i < 42; i++) {
+            const d = new Date(startGrid);
+            d.setDate(startGrid.getDate() + i);
+            const dateStr = ymd(d);
+            const dayOfWeek = d.getDay();
+            const inMonth = d.getMonth() === month;
+
+            const classes = ['calendar-day'];
+            if (!inMonth) classes.push('is-other-month');
+            if (dateStr === today) classes.push('is-today');
+            if (dayOfWeek === 0 || dayOfWeek === 6) classes.push('is-weekend');
+
+            // Holidays for this day
+            const holidays = getHolidaysOnDate(dateStr).filter(h => {
+                if (h.type === 'bank') return showBank;
+                return showSchool;
+            });
+            holidays.forEach(h => {
+                if (h.type === 'bank') classes.push('is-bank-holiday');
+                else if (h.type === 'inservice') classes.push('is-inservice');
+                else classes.push('is-school-holiday');
+            });
+
+            // People off
+            const peopleOff = getEmployeesOnHoliday(dateStr);
+
+            // Pip count for info button
+            const pipCount = peopleOff.length;
+            const pipClass = pipCount >= 3 ? 'has-many' : '';
+            const pipHtml = pipCount > 0 || holidays.length > 0
+                ? `<span class="day-info-pip ${pipClass}" data-date="${dateStr}">${pipCount || 'i'}</span>`
+                : '';
+
+            // Holiday badges (limit 1 to keep cell tidy)
+            let badgesHtml = '';
+            if (holidays.length) {
+                badgesHtml = `<div class="holiday-badges">${holidays.slice(0,1).map(h => {
+                    const cls = h.type === 'bank' ? 'bank' : (h.type === 'inservice' ? 'inservice' : 'school');
+                    return `<span class="holiday-badge ${cls}" title="${h.name}">${shortHolidayLabel(h)}</span>`;
+                }).join('')}</div>`;
+            }
+
+            // Chips (cap at 3 visible)
+            let chipsHtml = '';
+            const visibleChips = peopleOff.slice(0, 3);
+            visibleChips.forEach(p => {
+                const isSelected = p.employeeId === selectedEmployeeId;
+                const chipClass = ['chip'];
+                if (p.isHalfDay) chipClass.push('is-half-day');
+                if (isSelected) chipClass.push('is-selected');
+                const tooltip = `${p.employeeName} — ${p.isHalfDay ? p.halfDayPeriod + ' half-day' : 'Full day'}`;
+                chipsHtml += `<span class="${chipClass.join(' ')}" data-employee-id="${p.employeeId}" title="${tooltip}">${shortName(p.employeeName)}</span>`;
+            });
+            const overflow = peopleOff.length - visibleChips.length;
+            if (overflow > 0) {
+                chipsHtml += `<span class="chip" style="background: var(--neutral-300); color: var(--neutral-700);" data-date="${dateStr}">+${overflow} more</span>`;
+            }
+
+            html += `
+                <div class="${classes.join(' ')}">
+                    <div class="calendar-day-head">
+                        <span class="calendar-day-number">${d.getDate()}</span>
+                        ${pipHtml}
+                    </div>
+                    ${badgesHtml}
+                    <div class="chip-list">${chipsHtml}</div>
+                </div>
+            `;
+        }
+        html += `</div></div>`;
+        return html;
+    }
+
+    function shortName(fullName) {
+        const parts = fullName.trim().split(/\s+/);
+        if (parts.length === 1) return parts[0];
+        return `${parts[0]} ${parts[parts.length-1][0]}.`;
+    }
+
+    // =====================================================================
+    // RENDER: LIST VIEW
+    // =====================================================================
+    function renderListView() {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const startWeek = startOfWeek(today);
+        const weeks = 4; // show next 4 weeks
+        const showBank   = document.getElementById('show-bank').checked;
+        const showSchool = document.getElementById('show-school').checked;
+
+        let html = `<div class="list-view">`;
+        for (let w = 0; w < weeks; w++) {
+            const weekStart = addDays(startWeek, w * 7);
+            const weekEnd = addDays(weekStart, 6);
+            const weekLabel = w === 0 ? 'This week'
+                              : w === 1 ? 'Next week'
+                              : `Week of ${weekStart.toLocaleDateString('en-GB', {day:'numeric', month:'short'})}`;
+            const range = `${weekStart.toLocaleDateString('en-GB', {day:'numeric', month:'short'})} → ${weekEnd.toLocaleDateString('en-GB', {day:'numeric', month:'short'})}`;
+
+            html += `<div class="list-week-group">
+                <div class="list-week-header">${weekLabel} · ${range}</div>`;
+
+            for (let i = 0; i < 7; i++) {
+                const d = addDays(weekStart, i);
+                const dateStr = ymd(d);
+                const dow = d.getDay();
+                const isWeekend = dow === 0 || dow === 6;
+                const isToday = dateStr === ymd(today);
+
+                const peopleOff = getEmployeesOnHoliday(dateStr);
+                const holidays = getHolidaysOnDate(dateStr).filter(h => {
+                    if (h.type === 'bank') return showBank;
+                    return showSchool;
+                });
+
+                const rowClasses = ['list-day-row'];
+                if (isWeekend) rowClasses.push('is-weekend');
+                if (isToday)   rowClasses.push('is-today');
+                if (holidays.some(h => h.type === 'bank')) rowClasses.push('is-bank-holiday');
+                else if (holidays.some(h => h.type === 'school' || h.type === 'inservice')) rowClasses.push('is-school-holiday');
+
+                const dateLabel = `<strong>${d.toLocaleDateString('en-GB', {weekday:'short'})}</strong> ${d.getDate()}/${d.getMonth()+1}`;
+
+                let contentHtml = '';
+                if (holidays.length) {
+                    holidays.forEach(h => {
+                        contentHtml += `<span class="holiday-tag">${h.name}</span>`;
+                    });
+                }
+                if (peopleOff.length) {
+                    peopleOff.forEach(p => {
+                        const cls = ['person-pill'];
+                        if (p.isHalfDay) cls.push('is-half-day');
+                        if (p.employeeId === selectedEmployeeId) cls.push('is-selected');
+                        contentHtml += `<span class="${cls.join(' ')}" data-employee-id="${p.employeeId}">${p.employeeName}</span>`;
+                    });
+                }
+                if (!contentHtml) {
+                    contentHtml = `<span class="empty">${isWeekend ? 'Weekend' : 'Everyone in'}</span>`;
+                }
+
+                html += `
+                    <div class="${rowClasses.join(' ')}">
+                        <div class="list-day-date">${dateLabel}</div>
+                        <div class="list-day-content">${contentHtml}</div>
+                        <div class="list-day-count">${peopleOff.length} off</div>
+                    </div>
+                `;
+            }
+
+            html += `</div>`;
+        }
+        html += `</div>`;
+        return html;
+    }
+
+    // =====================================================================
+    // RENDER: QUIET WEEK FINDER (next 90 days)
+    // =====================================================================
+    function renderQuietFinder() {
+        const total = employeesData.length || 1;
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        const weeks = [];
+        // Look at next 13 weeks (~90 days), starting from next Monday
+        let cursor = startOfWeek(today);
+        if (cursor < today) cursor = addDays(cursor, 7); // skip current week — show only future
+        for (let i = 0; i < 13; i++) {
+            const wkStart = addDays(cursor, i * 7);
+            const wkEnd = addDays(wkStart, 4); // Mon-Fri
+            const offByDay = getOffCountForRange(wkStart, wkEnd);
+            const ids = new Set();
+            Object.values(offByDay).forEach(arr => arr.forEach(p => ids.add(p.employeeId)));
+            weeks.push({ start: wkStart, end: wkEnd, off: ids.size });
+        }
+
+        // Sort by off ascending (quietest first)
+        const sorted = [...weeks].sort((a, b) => a.off - b.off || a.start - b.start);
+        const top = sorted.slice(0, 6);
+
+        if (!top.length) return '';
+
+        const tagFor = (off) => {
+            if (off === 0) return { cls: 'tone-best', text: 'Best' };
+            if (off <= 2)  return { cls: 'tone-good', text: 'Good' };
+            if (off <= 4)  return { cls: 'tone-busy', text: 'Busy' };
+            return { cls: 'tone-avoid', text: 'Avoid' };
+        };
+
+        let rowsHtml = '';
+        top.forEach((w, idx) => {
+            const tag = tagFor(w.off);
+            let pips = '';
+            for (let p = 0; p < total; p++) {
+                pips += `<span class="pip ${p < w.off ? 'is-off' : ''}"></span>`;
+            }
+            const dateLabel = `${w.start.toLocaleDateString('en-GB', {day:'numeric', month:'short'})} – ${w.end.toLocaleDateString('en-GB', {day:'numeric', month:'short'})}`;
+            rowsHtml += `
+                <div class="quiet-week-row" data-jump-date="${ymd(w.start)}">
+                    <span class="quiet-week-rank">${String(idx+1).padStart(2,'0')}</span>
+                    <span class="quiet-week-date">${dateLabel}</span>
+                    <span class="quiet-week-bar">${pips}</span>
+                    <span class="quiet-week-tag ${tag.cls}">${w.off} off · ${tag.text}</span>
+                </div>
+            `;
+        });
+
+        return `
+            <div class="quiet-finder">
+                <div class="quiet-finder-header">
+                    <div class="quiet-finder-title">Find a quiet week</div>
+                    <div class="quiet-finder-sub">Mon–Fri working weeks · next 90 days · click to view</div>
+                </div>
+                <div class="quiet-finder-list">${rowsHtml}</div>
+            </div>
+        `;
+    }
+
+    // =====================================================================
+    // RENDER: SELECTED EMPLOYEE PANEL
+    // =====================================================================
+    function renderEmployeePanel() {
+        if (!selectedEmployeeId) return '';
+        const emp = employeesData.find(e => e.id === selectedEmployeeId);
+        if (!emp) return '';
+
+        const reqs = holidayRequestsData.filter(r => r.employeeId === selectedEmployeeId);
+        const approved = reqs.filter(r => r.status === 'approved');
+        const pending  = reqs.filter(r => r.status === 'pending');
+        const used = approved.reduce((s, r) => s + (r.days || 0), 0);
+        const remaining = (emp.totalAllowance || 0) - used;
+
+        const sortedReqs = [...reqs].sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+        let reqHtml = '';
+        if (sortedReqs.length === 0) {
+            reqHtml = emptyState({
+                icon: 'calendar',
+                title: 'No requests yet',
+                description: `${emp.name} hasn't made any requests for ${currentYear}.`
+            });
+        } else {
+            reqHtml = `<div class="request-list">${sortedReqs.slice(0, 10).map(r => {
+                const dr = r.startDate === r.endDate
+                    ? formatShortDate(r.startDate)
+                    : `${formatShortDate(r.startDate)} – ${formatShortDate(r.endDate)}`;
+                const dayText = r.isHalfDay ? `${r.days} day (${r.halfDayPeriod} half-day)` :
+                                r.isBlockBooking ? `${r.days} days (block)` :
+                                `${r.days} day${r.days === 1 ? '' : 's'}`;
+                const typeLabel = (r.requestType === 'sick') ? 'Sick' :
+                                  (r.requestType === 'bereavement') ? 'Bereavement' : 'Holiday';
+                return `
+                    <div class="request-item is-${r.status}">
+                        <div class="request-dates">${dr}</div>
+                        <div class="request-meta">${typeLabel} · ${dayText}${r.reason ? ` · ${r.reason}` : ''}</div>
+                        <span class="request-status s-${r.status}">${r.status}</span>
+                    </div>
+                `;
+            }).join('')}</div>`;
+            if (sortedReqs.length > 10) {
+                reqHtml += `<div style="text-align:center; font-size: 12px; color: var(--neutral-500); margin-top: 10px;">Showing 10 most recent of ${sortedReqs.length} requests</div>`;
+            }
+        }
+
+        return `
+            <div class="employee-panel">
+                <button class="close-x" onclick="clearSelectedEmployee()" aria-label="Close">×</button>
+                <div class="employee-panel-header">
+                    <div>
+                        <div class="employee-name-sub">Employee</div>
+                        <div class="employee-name">${emp.name}</div>
+                    </div>
+                </div>
+                <div class="employee-stats">
+                    <div class="employee-stat-card">
+                        <div class="employee-stat-label">Allowance</div>
+                        <div class="employee-stat-value">${emp.totalAllowance || 0}</div>
+                    </div>
+                    <div class="employee-stat-card">
+                        <div class="employee-stat-label">Used</div>
+                        <div class="employee-stat-value">${used}</div>
+                    </div>
+                    <div class="employee-stat-card">
+                        <div class="employee-stat-label">Remaining</div>
+                        <div class="employee-stat-value">${remaining}</div>
+                    </div>
+                    <div class="employee-stat-card">
+                        <div class="employee-stat-label">Pending</div>
+                        <div class="employee-stat-value">${pending.length}</div>
+                    </div>
+                </div>
+                ${reqHtml}
+            </div>
+        `;
+    }
+
+    function formatShortDate(s) {
+        try {
+            return new Date(s).toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+        } catch { return s; }
+    }
+
+    // =====================================================================
+    // VIEW SWITCHER + ORCHESTRATION
+    // =====================================================================
+    function renderViewControls() {
+        const calActive = currentView === 'calendar';
+        return `
+            <div class="view-controls">
+                <div class="view-toggle" role="tablist">
+                    <button class="${calActive ? 'active' : ''}" data-view="calendar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        Calendar
+                    </button>
+                    <button class="${!calActive ? 'active' : ''}" data-view="list">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                        List
+                    </button>
+                </div>
+                <div class="view-legend">
+                    <span><span class="swatch s-employee"></span>Full day</span>
+                    <span><span class="swatch s-half"></span>Half day</span>
+                    <span><span class="swatch s-bank"></span>Bank holiday</span>
+                    <span><span class="swatch s-school"></span>School holiday</span>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderEverything() {
+        if (!employeesData.length) {
+            document.getElementById('content-area').innerHTML = emptyState({
+                icon: 'users',
+                title: 'No employees yet for ' + currentYear,
+                description: 'Once admins add employees for this year, the calendar will populate here.'
+            });
+            return;
+        }
+        const html =
+            renderCoverageStrip() +
+            renderEmployeePanel() +
+            renderViewControls() +
+            (currentView === 'calendar' ? renderCalendarGrid() : renderListView()) +
+            renderQuietFinder();
+        document.getElementById('content-area').innerHTML = html;
+        wireRenderedHandlers();
+        updateTopbar();
+    }
+
+    function wireRenderedHandlers() {
+        // View toggle
+        document.querySelectorAll('.view-toggle button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentView = btn.dataset.view;
+                renderEverything();
+            });
+        });
+        // Chips → select employee
+        document.querySelectorAll('.chip[data-employee-id], .person-pill[data-employee-id], .person[data-employee-id]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = parseInt(el.dataset.employeeId);
+                if (id) selectEmployee(id);
+            });
+        });
+        // "+N more" chip → open day popover
+        document.querySelectorAll('.chip[data-date]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showDayPopover(e, el.dataset.date);
+            });
+        });
+        // Day info pips
+        document.querySelectorAll('.day-info-pip[data-date]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showDayPopover(e, el.dataset.date);
+            });
+        });
+        // Quiet week rows → jump to that month
+        document.querySelectorAll('.quiet-week-row[data-jump-date]').forEach(el => {
+            el.addEventListener('click', () => {
+                const d = new Date(el.dataset.jumpDate);
+                currentDate = new Date(d.getFullYear(), d.getMonth(), 1);
+                if (currentView === 'list') currentView = 'calendar';
+                renderEverything();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                toast.info(`Jumped to ${currentDate.toLocaleDateString('en-GB', {month:'long', year:'numeric'})}`);
+            });
+        });
+    }
+
+    // =====================================================================
+    // POPOVER
+    // =====================================================================
+    function closePopover() {
+        if (currentPopover) {
+            if (currentPopover.popover) currentPopover.popover.remove();
+            if (currentPopover.backdrop) currentPopover.backdrop.remove();
+            currentPopover = null;
+        }
+    }
+
+    function showDayPopover(event, dateStr) {
+        closePopover();
+        const peopleOff = getEmployeesOnHoliday(dateStr);
+        const holidays = getHolidaysOnDate(dateStr);
+
+        const dateObj = new Date(dateStr);
+        const formatted = fmtLong(dateObj);
+
+        const backdrop = document.createElement('div');
+        backdrop.className = 'popover-backdrop';
+        backdrop.addEventListener('click', closePopover);
+        document.body.appendChild(backdrop);
+
+        const popover = document.createElement('div');
+        popover.className = 'popover';
+
+        let bannerHtml = '';
+        holidays.forEach(h => {
+            const cls = h.type === 'bank' ? 'is-bank' : (h.type === 'school' ? 'is-school' : '');
+            bannerHtml += `<div class="popover-holiday-banner ${cls}"><strong>${h.type === 'bank' ? 'Bank holiday' : (h.type === 'inservice' ? 'In-service day' : 'School holiday')}:</strong> ${h.name}</div>`;
+        });
+
+        let bodyHtml = '';
+        if (peopleOff.length) {
+            bodyHtml = peopleOff.map(p => `
+                <div class="popover-row" data-employee-id="${p.employeeId}">
+                    <span class="name">${p.employeeName}</span>
+                    <span class="tag ${p.isHalfDay ? 'is-half' : ''}">${p.isHalfDay ? p.halfDayPeriod + ' half' : 'Full day'}</span>
+                </div>
+            `).join('');
+        } else {
+            bodyHtml = emptyState({ icon: 'check', title: 'No one off', description: 'Full team in.' });
+        }
+
+        popover.innerHTML = `
+            <div class="popover-header">${formatted}</div>
+            ${bannerHtml}
+            <div class="popover-body">${bodyHtml}</div>
+        `;
+
+        document.body.appendChild(popover);
+
+        // Position relative to the click target
+        const rect = event.target.getBoundingClientRect();
+        const popH = popover.offsetHeight;
+        const popW = popover.offsetWidth;
+        let left = rect.right + 8;
+        let top  = rect.top;
+        if (left + popW > window.innerWidth - 12)  left = Math.max(12, rect.left - popW - 8);
+        if (top  + popH > window.innerHeight - 12) top  = Math.max(12, window.innerHeight - popH - 12);
+        popover.style.left = `${left}px`;
+        popover.style.top  = `${top}px`;
+
+        // Wire row clicks
+        popover.querySelectorAll('.popover-row[data-employee-id]').forEach(row => {
+            row.addEventListener('click', () => {
+                const id = parseInt(row.dataset.employeeId);
+                if (id) {
+                    selectEmployee(id);
+                    closePopover();
+                }
+            });
+        });
+
+        currentPopover = { popover, backdrop };
+        event.stopPropagation();
+    }
+
+    // =====================================================================
+    // SELECT EMPLOYEE
+    // =====================================================================
+    function selectEmployee(employeeId) {
+        selectedEmployeeId = employeeId;
+        document.getElementById('employee-select').value = employeeId;
+        document.getElementById('ics-download').disabled = false;
+        renderEverything();
+        // Scroll to top so they see the panel
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (MOBILE_QUERY.matches) toggleSidebar(false);
+    }
+
+    function clearSelectedEmployee() {
+        selectedEmployeeId = null;
+        document.getElementById('employee-select').value = '';
+        document.getElementById('ics-download').disabled = true;
+        renderEverything();
+    }
+
+    // =====================================================================
+    // ICS EXPORT
+    // =====================================================================
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function icsEscape(s) {
+        return String(s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+    }
+
+    function buildIcsForEmployee(employeeId) {
+        const emp = employeesData.find(e => e.id === employeeId);
+        if (!emp) return null;
+
+        const reqs = holidayRequestsData.filter(r =>
+            r.employeeId === employeeId && r.status === 'approved'
+        );
+
+        const dtstamp = (() => {
+            const d = new Date();
+            return `${d.getUTCFullYear()}${pad(d.getUTCMonth()+1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
+        })();
+
+        const lines = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//Kerr & Smith Cumnock//Holiday Manager//EN',
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH',
+            `X-WR-CALNAME:${icsEscape(emp.name)} — Holidays ${currentYear}`
+        ];
+
+        const addEvent = (uid, dtStart, dtEndExclusive, summary, description) => {
+            lines.push('BEGIN:VEVENT');
+            lines.push(`UID:${uid}`);
+            lines.push(`DTSTAMP:${dtstamp}`);
+            lines.push(`DTSTART;VALUE=DATE:${dtStart}`);
+            lines.push(`DTEND;VALUE=DATE:${dtEndExclusive}`);
+            lines.push(`SUMMARY:${icsEscape(summary)}`);
+            if (description) lines.push(`DESCRIPTION:${icsEscape(description)}`);
+            lines.push('TRANSP:TRANSPARENT');
+            lines.push('END:VEVENT');
+        };
+
+        const fmtIcsDate = (s) => {
+            const d = new Date(s);
+            return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;
+        };
+
+        reqs.forEach(r => {
+            const typeLabel = r.requestType === 'sick' ? 'Sick leave' :
+                              r.requestType === 'bereavement' ? 'Bereavement' : 'Holiday';
+            const summary = r.isHalfDay
+                ? `${typeLabel} (${r.halfDayPeriod} half)`
+                : `${typeLabel}${r.days ? ' · ' + r.days + ' day' + (r.days === 1 ? '' : 's') : ''}`;
+            const desc = r.reason || '';
+
+            if (r.isBlockBooking && Array.isArray(r.selectedDates)) {
+                r.selectedDates.forEach((d, idx) => {
+                    const start = fmtIcsDate(d);
+                    const endD = new Date(d); endD.setDate(endD.getDate() + 1);
+                    const end = fmtIcsDate(endD);
+                    addEvent(`ks-${r.id}-${idx}@kerrandsmith`, start, end, summary, desc);
+                });
+            } else {
+                const start = fmtIcsDate(r.startDate);
+                const endD = new Date(r.endDate); endD.setDate(endD.getDate() + 1);
+                const end = fmtIcsDate(endD);
+                addEvent(`ks-${r.id}@kerrandsmith`, start, end, summary, desc);
+            }
+        });
+
+        lines.push('END:VCALENDAR');
+        return lines.join('\r\n');
+    }
+
+    function downloadIcs() {
+        if (!selectedEmployeeId) {
+            toast.warning('Pick an employee first.');
+            return;
+        }
+        const ics = buildIcsForEmployee(selectedEmployeeId);
+        if (!ics) {
+            toast.error('Could not build calendar file.');
+            return;
+        }
+        const emp = employeesData.find(e => e.id === selectedEmployeeId);
+        const safeName = (emp.name || 'employee').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+        const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `kerrandsmith-${safeName}-${currentYear}.ics`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success(`Downloaded · open the file to import into your calendar app.`, 'Calendar exported');
+    }
+
+    // =====================================================================
+    // SIDEBAR / MOBILE
+    // =====================================================================
+    function toggleSidebar(force) {
+        const sb = document.getElementById('sidebar');
+        const bd = document.getElementById('sidebar-backdrop');
+        const willOpen = (typeof force === 'boolean') ? force : !sb.classList.contains('open');
+        sb.classList.toggle('open', willOpen);
+        if (bd) bd.classList.toggle('visible', willOpen);
+    }
+
+    // =====================================================================
+    // YEAR / EMPLOYEE DROPDOWN POPULATION
+    // =====================================================================
+    function populateYearDropdown() {
+        const sel = document.getElementById('year-select');
+        sel.innerHTML = availableYears.map(y =>
+            `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`
+        ).join('');
+    }
+
+    function populateEmployeeDropdown() {
+        const sel = document.getElementById('employee-select');
+        const search = document.getElementById('employee-search').value.toLowerCase();
+        const sorted = [...employeesData]
+            .filter(e => e.name.toLowerCase().includes(search))
+            .sort((a, b) => a.name.localeCompare(b.name));
+        const opts = ['<option value="">All employees</option>']
+            .concat(sorted.map(e => `<option value="${e.id}">${e.name}</option>`));
+        sel.innerHTML = opts.join('');
+        if (selectedEmployeeId) sel.value = selectedEmployeeId;
+    }
+
+    // =====================================================================
+    // INIT
+    // =====================================================================
+    async function init() {
+        try {
+            availableYears = await findAvailableYears();
+            if (!availableYears.length) {
+                throw new Error('No holiday data files found in the GitHub repo.');
+            }
+            if (!availableYears.includes(currentYear)) {
+                currentYear = availableYears[availableYears.length - 1];
+            }
+            populateYearDropdown();
+            await loadDataFromGitHub();
+            populateEmployeeDropdown();
+            renderEverything();
+            wireGlobalHandlers();
+        } catch (err) {
+            console.error(err);
+            document.getElementById('content-area').innerHTML = `
+                <div class="error-banner">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    <div>${err.message || 'Could not load data.'}</div>
+                </div>
+            `;
+            updateTopbar();
+        }
+    }
+
+    function wireGlobalHandlers() {
+        // Year change
+        document.getElementById('year-select').addEventListener('change', async (e) => {
+            const newYear = parseInt(e.target.value);
+            if (newYear === currentYear) return;
+            currentYear = newYear;
+            selectedEmployeeId = null;
+            document.getElementById('content-area').innerHTML = `
+                <div class="loading-screen"><div class="loading-spinner"></div><div>Loading ${currentYear}…</div></div>
+            `;
+            try {
+                await loadDataFromGitHub();
+                populateEmployeeDropdown();
+                renderEverything();
+                toast.success(`Loaded ${currentYear}`);
+            } catch (err) {
+                toast.error(`Could not load ${currentYear}: ${err.message}`);
+            }
+        });
+
+        // Employee picker
+        document.getElementById('employee-select').addEventListener('change', (e) => {
+            const id = parseInt(e.target.value);
+            if (id) selectEmployee(id);
+            else clearSelectedEmployee();
+        });
+
+        // Employee search
+        document.getElementById('employee-search').addEventListener('input', () => {
+            populateEmployeeDropdown();
+        });
+
+        // Holiday overlays
+        document.getElementById('show-bank').addEventListener('change', renderEverything);
+        document.getElementById('show-school').addEventListener('change', renderEverything);
+
+        // Month navigation
+        document.getElementById('prev-month').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderEverything();
+        });
+        document.getElementById('next-month').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderEverything();
+        });
+        document.getElementById('today-jump').addEventListener('click', () => {
+            currentDate = new Date();
+            renderEverything();
+        });
+
+        // ICS download
+        document.getElementById('ics-download').addEventListener('click', downloadIcs);
+
+        // Close popover on outside click / Esc
+        document.addEventListener('click', (e) => {
+            if (currentPopover && !e.target.closest('.popover')) closePopover();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && currentPopover) closePopover();
+        });
+
+        // Mobile breakpoint changes
+        MOBILE_QUERY.addEventListener('change', (e) => {
+            if (e.matches && currentView === 'calendar') {
+                currentView = 'list';
+                renderEverything();
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
