@@ -30,7 +30,13 @@
         <!-- =================== SIDEBAR =================== -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand">
-                <img src="kandslogo.png" alt="Kerr &amp; Smith" class="sidebar-logo">
+                <img src="images/kandslogo.png"
+                     alt="Kerr &amp; Smith"
+                     class="sidebar-logo"
+                     onerror="this.style.display='none'; var fb=document.getElementById('logo-fallback'); if(fb){fb.style.display='flex';}">
+                <div id="logo-fallback" class="sidebar-wordmark" style="display:none;" aria-hidden="true">
+                    <span class="wm-name">Kerr</span><span class="wm-amp">&amp;</span><span class="wm-name">Smith</span>
+                </div>
                 <div class="sidebar-product">Holiday Management</div>
             </div>
 

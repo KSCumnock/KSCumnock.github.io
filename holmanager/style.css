@@ -99,22 +99,44 @@ body {
 }
 
 .sidebar-brand {
-    padding: 24px 20px 22px;
+    padding: 24px 20px 20px;
     border-bottom: 1px solid var(--neutral-150);
     background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
 }
 
 .sidebar-logo {
     width: 100%;
-    max-width: 180px;
+    max-width: 200px;
     height: auto;
     display: block;
 }
 
-.sidebar-product {
-    margin-top: 12px;
+.sidebar-wordmark {
     font-family: var(--font-display);
-    font-size: 14px;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 30px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ks-red);
+    align-items: baseline;
+    gap: 4px;
+}
+
+.sidebar-wordmark .wm-amp {
+    color: var(--ks-blue);
+    font-size: 24px;
+    font-weight: 400;
+    margin: 0 2px;
+    transform: translateY(-1px);
+}
+
+.sidebar-product {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--neutral-150);
+    font-family: var(--font-display);
+    font-size: 13px;
     font-weight: 500;
     font-style: italic;
     color: var(--neutral-600);
