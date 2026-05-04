@@ -3869,11 +3869,16 @@ function generateEmployeeReportData(employeeId) {
             totalDaysRequested,
             approvedDays,
             pendingDays,
-            remainingDays: employee.totalAllowance - employee.usedDays
+            remainingDays: employee.totalAllowance - employee.usedDays,
+            toilEarned: employee.toilEarned || 0,
+            toilEntryCount: (employee.toilHistory || []).length
         },
         upcomingRequests,
         pastRequests,
-        allRequests: employeeRequests.sort((a, b) => new Date(b.submittedDate) - new Date(a.submittedDate))
+        allRequests: employeeRequests.sort((a, b) => new Date(b.submittedDate) - new Date(a.submittedDate)),
+        toilHistory: (employee.toilHistory || [])
+            .slice()
+            .sort((a, b) => new Date(b.dateWorked) - new Date(a.dateWorked))
     };
 }
 
@@ -3920,6 +3925,7 @@ function generateReportHTML(reportData, isAllEmployees = false) {
         let html = `
             <html>
             <head>
+                <meta charset="UTF-8">
                 <title>${reportData.employee.name} - Report ${currentYear}</title>
                 <style>
                     body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; color: #333; }
@@ -3997,6 +4003,10 @@ function generateEmployeeSectionHTML(data, isSection = true) {
             <div class="stat-card">
                 <div class="stat-value">${stats.pendingCount}</div>
                 <div>Pending</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">${stats.toilEarned}</div>
+                <div>TOIL Earned</div>
             </div>
         </div>
     `;
@@ -4113,6 +4123,41 @@ function generateEmployeeSectionHTML(data, isSection = true) {
             `;
         });
         
+        html += `</tbody></table></div>`;
+    }
+    
+    const toilHistory = data.toilHistory || [];
+    if (toilHistory.length > 0) {
+        html += `
+            <div class="section">
+                <h3>TOIL Log</h3>
+                <p style="color:#6c757d; margin: 0 0 12px 0;">Total TOIL earned this year: <strong>${toilHistory.reduce((sum, e) => sum + (e.days || 0), 0)} day(s)</strong> across ${toilHistory.length} entr${toilHistory.length === 1 ? 'y' : 'ies'}.</p>
+                <table class="requests-table">
+                    <thead>
+                        <tr>
+                            <th>Date Worked</th>
+                            <th>Days</th>
+                            <th>Reason</th>
+                            <th>Granted By</th>
+                            <th>Granted On</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        toilHistory.forEach(entry => {
+            const grantedByText = entry.grantedBy
+                ? `${entry.grantedBy}${entry.grantedDate ? ` (${entry.grantedDate})` : ''}`
+                : '—';
+            html += `
+                <tr>
+                    <td>${entry.dateWorked || '—'}</td>
+                    <td>${entry.days}</td>
+                    <td>${entry.reason || 'Not specified'}</td>
+                    <td>${entry.grantedBy || '—'}</td>
+                    <td>${entry.grantedDate || '—'}</td>
+                </tr>
+            `;
+        });
         html += `</tbody></table></div>`;
     }
     
