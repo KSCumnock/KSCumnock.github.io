@@ -59,7 +59,7 @@ function promptAuthoriser(actionText) {
     if (name === null) return null;          // user cancelled
     const trimmed = name.trim();
     if (!trimmed) {
-        alert('A name is required for audit purposes. Action cancelled.');
+        toast.warning('A name is required for audit purposes', { title: 'Action cancelled' });
         return null;
     }
     return trimmed;
@@ -311,7 +311,7 @@ async function saveEmployees() {
         console.log(`Employees saved successfully to GitHub for ${currentYear}`);
     } catch (error) {
         console.error('Error saving employees:', error);
-        alert('Failed to save employee data to GitHub. Please try again.');
+        toast.error('Failed to save employee data to GitHub. Please try again.', { title: 'Save failed' });
         throw error;
     }
 }
@@ -328,7 +328,7 @@ async function saveHolidayRequests() {
         console.log(`Holiday requests saved successfully to GitHub for ${currentYear}`);
     } catch (error) {
         console.error('Error saving holiday requests:', error);
-        alert('Failed to save holiday request data to GitHub. Please try again.');
+        toast.error('Failed to save holiday request data to GitHub. Please try again.', { title: 'Save failed' });
         throw error;
     }
 }
@@ -699,7 +699,14 @@ function populateEmployeeCards() {
     const container = document.getElementById('employee-cards');
     
     if (employees.length === 0) {
-        container.innerHTML = '<p>No employees found.</p>';
+        renderEmptyState(container, {
+            icon: 'users',
+            title: 'No employees yet',
+            description: 'Once an administrator adds employees, their cards will appear here.',
+            action: isAdminAuthenticated
+                ? { label: 'Go to Employee Management', variant: 'btn-ghost', onClick: "showTab('admin'); setTimeout(()=>showAdminSection('employees'),100);" }
+                : null
+        });
         return;
     }
     
@@ -1273,7 +1280,7 @@ async function submitHolidayRequest(event) {
     if (isBlockBooking) {
         // Handle block booking submission
         if (selectedDates.length === 0) {
-            alert('Please select at least one date.');
+            toast.warning('Please select at least one date to continue.');
             return;
         }
         
@@ -1284,7 +1291,7 @@ async function submitHolidayRequest(event) {
                 const date = new Date(d);
                 return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
             }).join(', ');
-            alert(`You already have existing bookings on the following date(s):\n\n${formattedDates}\n\nPlease remove those dates from your selection and try again.`);
+            toast.warning(`You already have bookings on: ${formattedDates}. Please remove those dates and try again.`, { title: 'Date conflict', duration: 8000 });
             return;
         }
 
@@ -1305,7 +1312,7 @@ async function submitHolidayRequest(event) {
         
         // Check if employee has enough days
         if (shouldDeductDays && totalDaysNeeded > remainingDays) {
-            alert(`You don't have enough holiday days remaining. You need ${totalDaysNeeded} days but only have ${remainingDays} days left.`);
+            toast.warning(`You need ${totalDaysNeeded} days but only have ${remainingDays} remaining.`, { title: 'Insufficient allowance', duration: 7000 });
             return;
         }
         
@@ -1378,9 +1385,9 @@ async function submitHolidayRequest(event) {
         
         // Different message for sick leave (auto-approved)
         if (requestType === 'sick') {
-            alert(`${typeText} block booking recorded successfully and automatically approved!\n\nSince this is sick leave, no approval is required. Admins have been notified.\n\nCreated ${groups.length} separate request${groups.length !== 1 ? 's' : ''}.`);
+            toast.success(`${typeText} recorded · ${groups.length} request${groups.length !== 1 ? 's' : ''} created. Admins notified.`, { title: 'Auto-approved', duration: 6000 });
         } else {
-            alert(`${typeText} block booking submitted successfully! Created ${groups.length} separate request${groups.length !== 1 ? 's' : ''} pending approval.`);
+            toast.success(`${typeText} block booking submitted · ${groups.length} request${groups.length !== 1 ? 's' : ''} pending approval.`, { title: 'Submitted', duration: 5000 });
         }
         
         // Reset block booking
@@ -1400,7 +1407,7 @@ async function submitHolidayRequest(event) {
         
         // Check if employee has enough days only if it's a holiday or if deducting from allowance
         if (shouldDeductDays && days > remainingDays) {
-            alert(`You don't have enough holiday days remaining. You have ${remainingDays} days left.`);
+            toast.warning(`You only have ${remainingDays} day${remainingDays === 1 ? '' : 's'} remaining.`, { title: 'Insufficient allowance', duration: 6000 });
             return;
         }
         
@@ -1412,7 +1419,7 @@ async function submitHolidayRequest(event) {
                 const date = new Date(d);
                 return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
             }).join(', ');
-            alert(`You already have existing bookings on the following date(s):\n\n${formattedDates}\n\nPlease choose different dates and try again.`);
+            toast.warning(`You already have bookings on: ${formattedDates}. Please choose different dates.`, { title: 'Date conflict', duration: 8000 });
             return;
         }
         
@@ -1462,9 +1469,9 @@ async function submitHolidayRequest(event) {
         
         // Different message for sick leave (auto-approved)
         if (requestType === 'sick') {
-            alert(`${typeText} recorded successfully and automatically approved!\n\nSince this is sick leave, no approval is required. Admins have been notified.`);
+            toast.success(`${typeText} recorded · admins notified.`, { title: 'Auto-approved', duration: 5000 });
         } else {
-            alert(`${typeText} request submitted successfully and pending approval!`);
+            toast.success(`${typeText} submitted · pending approval.`, { title: 'Submitted' });
         }
         
         // Reset form
@@ -1491,7 +1498,11 @@ function loadEmployeeRequests() {
     const requests = holidayRequests.filter(req => req.employeeId === currentEmployee.id);
     
     if (requests.length === 0) {
-        container.innerHTML = '<p>No requests found.</p>';
+        renderEmptyState(container, {
+            icon: 'calendar',
+            title: 'No requests yet',
+            description: `${currentEmployee.name} hasn't made any holiday requests this year. Use the form above to submit one.`
+        });
         return;
     }
     
@@ -1552,41 +1563,63 @@ function loadEmployeeRequests() {
 }
 
 async function cancelHolidayRequest(requestId) {
-    if (!confirm('Are you sure you want to cancel this request?')) return;
-    
     const request = holidayRequests.find(req => req.id === requestId);
-    if (request) {
-        const authoriser = promptAuthoriser(`cancel this ${request.requestType || 'holiday'} request for ${request.employeeName}`);
-        if (!authoriser) return;
+    if (!request) return;
 
-        const employee = employees.find(emp => emp.id === request.employeeId);
-        
-        // If the request was approved and it's a holiday or deducts from holiday allowance, return the days
-        if (request.status === 'approved' && (request.requestType === 'holiday' || request.deductFromHoliday)) {
-            if (employee) {
-                employee.usedDays -= request.days;
-                await saveEmployees();
-            }
-        }
-        
-        request.status = 'cancelled';
-        request.cancelledDate = new Date().toISOString().split('T')[0];
-        request.cancelledBy = authoriser;
+    const ok = await confirmDialog({
+        title: 'Cancel this request?',
+        message: `${request.employeeName}'s ${request.requestType || 'holiday'} request will be cancelled. Any days already deducted will be returned to their allowance.`,
+        confirmLabel: 'Cancel request',
+        cancelLabel: 'Keep it',
+        danger: true
+    });
+    if (!ok) return;
+
+    const authoriser = promptAuthoriser(`cancel this ${request.requestType || 'holiday'} request for ${request.employeeName}`);
+    if (!authoriser) return;
+
+    const employee = employees.find(emp => emp.id === request.employeeId);
+    const wasApprovedAndDeducted = request.status === 'approved' &&
+        (request.requestType === 'holiday' || request.deductFromHoliday) && employee;
+
+    // ----- Snapshot -----
+    const snapshot = {
+        request: { ...request },
+        employee: wasApprovedAndDeducted ? { ...employee } : null
+    };
+
+    // ----- Optimistic apply -----
+    if (wasApprovedAndDeducted) employee.usedDays -= request.days;
+    request.status = 'cancelled';
+    request.cancelledDate = new Date().toISOString().split('T')[0];
+    request.cancelledBy = authoriser;
+
+    if (currentEmployee && currentEmployee.id === request.employeeId) {
+        loadEmployeeRequests();
+    }
+    refreshAdminViews();
+    renderCalendar();
+    updatePendingBadge();
+
+    const loading = toast.loading(`Cancelling ${request.employeeName}'s request…`);
+
+    try {
+        if (wasApprovedAndDeducted) await saveEmployees();
         await saveHolidayRequests();
-        
-        // Send email notification to employee
-        if (employee) {
-            await sendEmailNotification(employee, request, 'cancelled');
-        }
-        
-        // Refresh displays
+        if (employee) await sendEmailNotification(employee, request, 'cancelled');
+        loading.success('Request cancelled');
+    } catch (err) {
+        Object.assign(request, snapshot.request);
+        if (snapshot.employee && employee) Object.assign(employee, snapshot.employee);
         if (currentEmployee && currentEmployee.id === request.employeeId) {
             loadEmployeeRequests();
         }
+        refreshAdminViews();
         renderCalendar();
-        updatePendingBadge(); // Update badge count
-        
-        alert('Request cancelled successfully!');
+        updatePendingBadge();
+        loading.error(`Couldn't cancel — ${err.message || 'save failed'}`, {
+            actions: [{ label: 'Retry', primary: true, onClick: () => cancelHolidayRequest(requestId) }]
+        });
     }
 }
 
@@ -1966,7 +1999,12 @@ function loadEmployeeQuickView() {
     const container = document.getElementById('employee-quick-view');
     
     if (employees.length === 0) {
-        container.innerHTML = '<p>No employees found.</p>';
+        renderEmptyState(container, {
+            icon: 'users',
+            title: 'No employees yet',
+            description: 'Add employees from the Employee Management section to see their summaries here.',
+            action: { label: 'Add an employee', variant: 'btn-ghost', onClick: "showAdminSection('employees')" }
+        });
         return;
     }
     
@@ -2010,7 +2048,13 @@ function showEmployeeDetail(employeeId) {
     `;
     
     if (employeeRequests.length === 0) {
-        content += '<p>No requests found for this employee.</p>';
+        content += `
+            <div class="empty-state">
+                <div class="empty-state-icon">${EMPTY_ICONS.calendar}</div>
+                <h4 class="empty-state-title">No requests yet</h4>
+                <p class="empty-state-desc">${employee.name} hasn't submitted any holiday requests for ${currentYear}.</p>
+            </div>
+        `;
     } else {
         // Sort by submitted date (newest first)
         const sortedRequests = [...employeeRequests].sort((a, b) => 
@@ -2083,7 +2127,23 @@ function loadPendingRequests() {
     const pendingRequests = holidayRequests.filter(req => req.status === 'pending');
     
     if (pendingRequests.length === 0) {
-        container.innerHTML = '<p>No pending requests.</p>';
+        // Find last approval to give context
+        const approved = holidayRequests
+            .filter(r => r.status === 'approved' && r.approvedDate)
+            .sort((a, b) => (b.approvedDate || '').localeCompare(a.approvedDate || ''));
+        const lastApproval = approved[0];
+        let context = '';
+        if (lastApproval) {
+            const d = new Date(lastApproval.approvedDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+            context = `Last approval: ${lastApproval.employeeName} · ${d}`;
+        }
+        renderEmptyState(container, {
+            icon: 'check',
+            tone: 'success',
+            title: "You're all caught up",
+            description: 'No pending holiday requests need your attention right now.',
+            contextLine: context
+        });
         return;
     }
     
@@ -2425,107 +2485,335 @@ async function sendEmailNotification(employee, request, notificationType) {
     }
 }
 
-// Toast notification functions
-let toastCounter = 0;
+// ====================================================================
+// NOTIFICATION SYSTEM
+// Provides:
+//   toast({type, title, message, duration, actions}) — show a toast
+//   toast.success(msg, opts), .error(), .warning(), .info()
+//   toast.loading(msg) — sticky toast with spinner; returns handle with
+//                        .success(msg), .error(msg, opts), .dismiss()
+//   confirmDialog({title, message, confirmLabel, danger}) — async confirm
+//   renderEmptyState(container, opts) — pretty empty state
+// ====================================================================
 
-function showEmailToast(title, message, type = 'success', duration = 0) {
-    const toastId = `toast-${toastCounter++}`;
-    const toast = document.createElement('div');
-    toast.id = toastId;
-    toast.className = `email-toast ${type}`;
-    
-    let icon = '';
-    if (type === 'sending') {
-        icon = '<div class="spinner"></div>';
-    } else if (type === 'success') {
-        icon = '<span style="font-size: 24px;">✓</span>';
-    } else if (type === 'error') {
-        icon = '<span style="font-size: 24px;">✕</span>';
+const TOAST_ICONS = {
+    success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+    error:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>',
+    warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+    info:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
+    loading: '<div class="toast-spinner"></div>'
+};
+
+let _toastSeq = 0;
+
+function _ensureToastContainer() {
+    let c = document.getElementById('toast-container');
+    if (!c) {
+        c = document.createElement('div');
+        c.id = 'toast-container';
+        c.className = 'toast-container';
+        document.body.appendChild(c);
     }
-    
-    toast.innerHTML = `
-        ${icon}
-        <div class="email-toast-content">
-            <div class="email-toast-title">${title}</div>
-            <div class="email-toast-message">${message}</div>
-        </div>
-    `;
-    
-    document.body.appendChild(toast);
-    
-    // Auto-remove after duration (if specified)
-    if (duration > 0) {
-        setTimeout(() => removeToast(toastId), duration);
-    }
-    
-    return toastId;
+    return c;
 }
 
-function removeToast(toastId) {
-    const toast = document.getElementById(toastId);
-    if (toast) {
-        toast.style.animation = 'slideIn 0.3s ease reverse';
-        setTimeout(() => toast.remove(), 300);
+function _dismissToast(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add('is-leaving');
+    setTimeout(() => el.remove(), 230);
+}
+
+function _showToast(opts = {}) {
+    const {
+        type = 'info',
+        title = '',
+        message = '',
+        duration = (type === 'error' ? 6000 : type === 'loading' ? 0 : 4000),
+        actions = [],
+        dismissible = true
+    } = opts;
+
+    const id = `toast-${++_toastSeq}`;
+    const container = _ensureToastContainer();
+    const el = document.createElement('div');
+    el.id = id;
+    el.className = `toast toast-${type}`;
+    el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
+    const safeTitle = title ? `<div class="toast-title">${title}</div>` : '';
+    const safeMessage = message ? `<div class="toast-message">${message}</div>` : '';
+
+    const actionsHtml = (actions && actions.length) ? `
+        <div class="toast-actions">
+            ${actions.map((a, i) =>
+                `<button type="button" class="toast-action-btn ${a.primary ? 'primary' : ''}" data-action="${i}">${a.label}</button>`
+            ).join('')}
+        </div>` : '';
+
+    const closeBtn = (dismissible && type !== 'loading') ? `
+        <button type="button" class="toast-close" aria-label="Dismiss">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>` : '';
+
+    el.innerHTML = `
+        <div class="toast-icon">${TOAST_ICONS[type] || TOAST_ICONS.info}</div>
+        <div class="toast-body">
+            ${safeTitle}
+            ${safeMessage}
+            ${actionsHtml}
+        </div>
+        ${closeBtn}
+    `;
+
+    container.appendChild(el);
+
+    // Wire close button
+    const closeEl = el.querySelector('.toast-close');
+    if (closeEl) closeEl.addEventListener('click', () => _dismissToast(id));
+
+    // Wire action buttons
+    if (actions && actions.length) {
+        el.querySelectorAll('.toast-action-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.dataset.action, 10);
+                const action = actions[idx];
+                if (action && typeof action.onClick === 'function') action.onClick();
+                if (!action || action.dismissOnClick !== false) _dismissToast(id);
+            });
+        });
     }
+
+    if (duration > 0) {
+        setTimeout(() => _dismissToast(id), duration);
+    }
+
+    return {
+        id,
+        dismiss: () => _dismissToast(id),
+        update: (newOpts) => {
+            _dismissToast(id);
+            return _showToast(newOpts);
+        }
+    };
+}
+
+// Public API
+const toast = (opts) => _showToast(opts);
+toast.success  = (msg, opts = {}) => _showToast({ ...opts, type: 'success', message: msg });
+toast.error    = (msg, opts = {}) => _showToast({ ...opts, type: 'error',   message: msg });
+toast.warning  = (msg, opts = {}) => _showToast({ ...opts, type: 'warning', message: msg });
+toast.info     = (msg, opts = {}) => _showToast({ ...opts, type: 'info',    message: msg });
+
+// Loading toast — returns handle with .success/.error/.dismiss
+toast.loading = (msg, title = '') => {
+    const handle = _showToast({ type: 'loading', title, message: msg, duration: 0, dismissible: false });
+    return {
+        ...handle,
+        success: (newMsg, newTitle) => handle.update({ type: 'success', title: newTitle || '', message: newMsg }),
+        error:   (newMsg, opts = {}) => handle.update({ type: 'error', title: opts.title || '', message: newMsg, actions: opts.actions, duration: opts.duration }),
+        info:    (newMsg, newTitle) => handle.update({ type: 'info', title: newTitle || '', message: newMsg })
+    };
+};
+
+// Backward compat — old code still calls showEmailToast()
+function showEmailToast(title, message, type = 'success', duration = 4000) {
+    const mapped = type === 'sending' ? 'loading' : type;
+    return _showToast({ type: mapped, title, message, duration: type === 'sending' ? 0 : duration });
+}
+function removeToast(/* legacy - now a no-op since toasts auto-dismiss */) {}
+
+// ============ CONFIRM DIALOG ============
+function confirmDialog({
+    title = 'Are you sure?',
+    message = '',
+    confirmLabel = 'Confirm',
+    cancelLabel = 'Cancel',
+    danger = false
+} = {}) {
+    return new Promise((resolve) => {
+        const modal     = document.getElementById('confirm-modal');
+        const titleEl   = document.getElementById('confirm-title');
+        const messageEl = document.getElementById('confirm-message');
+        const okBtn     = document.getElementById('confirm-ok');
+        const cancelBtn = document.getElementById('confirm-cancel');
+        const iconEl    = document.getElementById('confirm-icon');
+
+        if (!modal || !okBtn || !cancelBtn) {
+            // Fall back if HTML isn't there
+            resolve(window.confirm(message || title));
+            return;
+        }
+
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+        okBtn.textContent = confirmLabel;
+        cancelBtn.textContent = cancelLabel;
+        modal.classList.toggle('is-danger', !!danger);
+
+        // Icon
+        iconEl.innerHTML = danger
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+
+        modal.classList.remove('hidden');
+
+        const cleanup = (result) => {
+            modal.classList.add('hidden');
+            okBtn.removeEventListener('click', onOk);
+            cancelBtn.removeEventListener('click', onCancel);
+            modal.removeEventListener('click', onBackdrop);
+            document.removeEventListener('keydown', onKey);
+            resolve(result);
+        };
+        const onOk = () => cleanup(true);
+        const onCancel = () => cleanup(false);
+        const onBackdrop = (e) => { if (e.target === modal) cleanup(false); };
+        const onKey = (e) => {
+            if (e.key === 'Escape') cleanup(false);
+            if (e.key === 'Enter')  cleanup(true);
+        };
+
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        modal.addEventListener('click', onBackdrop);
+        document.addEventListener('keydown', onKey);
+        setTimeout(() => okBtn.focus(), 50);
+    });
+}
+
+// ============ EMPTY STATES ============
+const EMPTY_ICONS = {
+    inbox:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>',
+    check:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+    users:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>',
+    calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
+    file:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>',
+    search:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>'
+};
+
+function renderEmptyState(container, opts = {}) {
+    if (!container) return;
+    const {
+        icon = 'inbox',
+        title = 'Nothing here yet',
+        description = '',
+        contextLine = '',
+        tone = 'default',          // 'success' | 'info' | 'default'
+        action = null              // {label, onClick (string of JS), variant}
+    } = opts;
+    const iconHtml = EMPTY_ICONS[icon] || icon; // accept raw SVG too
+    container.innerHTML = `
+        <div class="empty-state ${tone !== 'default' ? 'tone-' + tone : ''}">
+            <div class="empty-state-icon">${iconHtml}</div>
+            <h4 class="empty-state-title">${title}</h4>
+            ${description ? `<p class="empty-state-desc">${description}</p>` : ''}
+            ${contextLine ? `<div class="empty-state-context">${contextLine}</div>` : ''}
+            ${action ? `<div class="empty-state-action"><button class="${action.variant || 'btn-ghost'}" onclick="${action.onClick}">${action.label}</button></div>` : ''}
+        </div>
+    `;
+}
+
+// Re-render admin sub-views without re-fetching from GitHub.
+// Used after optimistic updates so the UI reflects local state.
+function refreshAdminViews() {
+    if (typeof loadPendingRequests === 'function')     loadPendingRequests();
+    if (typeof loadEmployeeList === 'function')        loadEmployeeList();
+    if (typeof loadAllRequests === 'function')         loadAllRequests();
+    if (typeof loadEmployeeQuickView === 'function')   loadEmployeeQuickView();
+    if (typeof loadReportsSection === 'function')      loadReportsSection();
+    if (typeof loadAttendanceReview === 'function')    loadAttendanceReview();
 }
 
 async function approveRequest(requestId) {
     const request = holidayRequests.find(req => req.id === requestId);
-    if (request) {
-        const authoriser = promptAuthoriser(`approve ${request.employeeName}'s ${request.requestType || 'holiday'} request`);
-        if (!authoriser) return;
+    if (!request) return;
 
-        request.status = 'approved';
-        request.approvedDate = new Date().toISOString().split('T')[0];
-        request.approvedBy = authoriser;
-        
-        const employee = employees.find(emp => emp.id === request.employeeId);
-        if (employee) {
-            // Only deduct days if it's a holiday or explicitly marked to deduct
-            if (request.requestType === 'holiday' || request.deductFromHoliday) {
-                employee.usedDays += request.days;
-                await saveEmployees();
-            }
-            
-            // Send email notification
-            await sendEmailNotification(employee, request, 'approved');
-        }
-        
+    const authoriser = promptAuthoriser(`approve ${request.employeeName}'s ${request.requestType || 'holiday'} request`);
+    if (!authoriser) return;
+
+    // ----- Snapshot for rollback -----
+    const employee = employees.find(emp => emp.id === request.employeeId);
+    const willDeductDays = !!(employee && (request.requestType === 'holiday' || request.deductFromHoliday));
+    const snapshot = {
+        request: { ...request },
+        employee: willDeductDays ? { ...employee } : null
+    };
+
+    // ----- Apply optimistically -----
+    request.status = 'approved';
+    request.approvedDate = new Date().toISOString().split('T')[0];
+    request.approvedBy = authoriser;
+    if (willDeductDays) employee.usedDays += request.days;
+
+    // Re-render UI immediately (no GitHub round-trip wait)
+    refreshAdminViews();
+    renderCalendar();
+    updatePendingBadge();
+
+    const loading = toast.loading(`Approving ${request.employeeName}'s request…`);
+
+    try {
+        if (willDeductDays) await saveEmployees();
         await saveHolidayRequests();
-        loadAdminData();
+        if (employee) await sendEmailNotification(employee, request, 'approved');
+        loading.success(`Approved · ${request.employeeName}`);
+    } catch (err) {
+        // ----- Rollback -----
+        Object.assign(request, snapshot.request);
+        if (snapshot.employee && employee) Object.assign(employee, snapshot.employee);
+        refreshAdminViews();
         renderCalendar();
-        updatePendingBadge(); // Update badge count
+        updatePendingBadge();
+        loading.error(`Couldn't approve — ${err.message || 'save failed'}`, {
+            actions: [{ label: 'Retry', primary: true, onClick: () => approveRequest(requestId) }]
+        });
     }
 }
 
 async function rejectRequest(requestId) {
     const request = holidayRequests.find(req => req.id === requestId);
-    if (request) {
-        const authoriser = promptAuthoriser(`reject ${request.employeeName}'s ${request.requestType || 'holiday'} request`);
-        if (!authoriser) return;
+    if (!request) return;
 
-        const employee = employees.find(emp => emp.id === request.employeeId);
-        
-        // If this was previously approved and deducted days, return them
-        if (request.status === 'approved' && (request.requestType === 'holiday' || request.deductFromHoliday)) {
-            if (employee) {
-                employee.usedDays -= request.days;
-                await saveEmployees();
-            }
-        }
-        
-        request.status = 'rejected';
-        request.rejectedDate = new Date().toISOString().split('T')[0];
-        request.rejectedBy = authoriser;
-        
-        // Send email notification
-        if (employee) {
-            await sendEmailNotification(employee, request, 'declined');
-        }
-        
+    const authoriser = promptAuthoriser(`reject ${request.employeeName}'s ${request.requestType || 'holiday'} request`);
+    if (!authoriser) return;
+
+    const employee = employees.find(emp => emp.id === request.employeeId);
+
+    // If a previously-approved request is being rejected, restore the days
+    const wasApprovedAndDeducted = request.status === 'approved' &&
+        (request.requestType === 'holiday' || request.deductFromHoliday) && employee;
+
+    const snapshot = {
+        request: { ...request },
+        employee: wasApprovedAndDeducted ? { ...employee } : null
+    };
+
+    if (wasApprovedAndDeducted) employee.usedDays -= request.days;
+    request.status = 'rejected';
+    request.rejectedDate = new Date().toISOString().split('T')[0];
+    request.rejectedBy = authoriser;
+
+    refreshAdminViews();
+    renderCalendar();
+    updatePendingBadge();
+
+    const loading = toast.loading(`Rejecting ${request.employeeName}'s request…`);
+
+    try {
+        if (wasApprovedAndDeducted) await saveEmployees();
         await saveHolidayRequests();
-        loadAdminData();
-        updatePendingBadge(); // Update badge count
+        if (employee) await sendEmailNotification(employee, request, 'declined');
+        loading.success(`Rejected · ${request.employeeName}`);
+    } catch (err) {
+        Object.assign(request, snapshot.request);
+        if (snapshot.employee && employee) Object.assign(employee, snapshot.employee);
+        refreshAdminViews();
+        renderCalendar();
+        updatePendingBadge();
+        loading.error(`Couldn't reject — ${err.message || 'save failed'}`, {
+            actions: [{ label: 'Retry', primary: true, onClick: () => rejectRequest(requestId) }]
+        });
     }
 }
 
@@ -2537,7 +2825,7 @@ async function addEmployee(event) {
     const includeSaturdayDeduction = document.getElementById('include-saturday-deduction').checked;
     
     if (!name || name.trim() === '') {
-        alert('Please enter an employee name');
+        toast.warning('Please enter an employee name.');
         return;
     }
     
@@ -2561,26 +2849,44 @@ async function addEmployee(event) {
 }
 
 async function removeEmployee(employeeId) {
-    if (confirm('Are you sure you want to remove this employee? This will also remove all their requests.')) {
-        employees = employees.filter(emp => emp.id !== employeeId);
-        holidayRequests = holidayRequests.filter(req => req.employeeId !== employeeId);
-        
+    const emp = employees.find(e => e.id === employeeId);
+    const name = emp ? emp.name : 'this employee';
+    const requestCount = holidayRequests.filter(r => r.employeeId === employeeId).length;
+
+    const ok = await confirmDialog({
+        title: `Remove ${name}?`,
+        message: requestCount > 0
+            ? `This will permanently delete ${name}'s record and all ${requestCount} associated request${requestCount === 1 ? '' : 's'}. This cannot be undone.`
+            : `This will permanently delete ${name}'s record. This cannot be undone.`,
+        confirmLabel: 'Remove employee',
+        cancelLabel: 'Keep',
+        danger: true
+    });
+    if (!ok) return;
+
+    employees = employees.filter(emp => emp.id !== employeeId);
+    holidayRequests = holidayRequests.filter(req => req.employeeId !== employeeId);
+
+    populateEmployeeCards();
+    refreshAdminViews();
+    renderCalendar();
+
+    // Clear employee info if removed employee was selected
+    if (currentEmployee && currentEmployee.id === employeeId) {
+        currentEmployee = null;
+        document.getElementById('employee-info').classList.add('hidden');
+        document.querySelectorAll('.employee-card-selector').forEach(card => {
+            card.classList.remove('selected');
+        });
+    }
+
+    const loading = toast.loading(`Removing ${name}…`);
+    try {
         await saveEmployees();
         await saveHolidayRequests();
-        
-        populateEmployeeCards();
-        loadAdminData();
-        renderCalendar();
-        
-        // Clear employee info if removed employee was selected
-        if (currentEmployee && currentEmployee.id === employeeId) {
-            currentEmployee = null;
-            document.getElementById('employee-info').classList.add('hidden');
-            // Remove selection from cards
-            document.querySelectorAll('.employee-card-selector').forEach(card => {
-                card.classList.remove('selected');
-            });
-        }
+        loading.success(`${name} removed`);
+    } catch (err) {
+        loading.error(`Couldn't save changes — ${err.message || 'please try again'}`);
     }
 }
 
@@ -2588,7 +2894,12 @@ function loadEmployeeList() {
     const container = document.getElementById('employee-list');
     
     if (employees.length === 0) {
-        container.innerHTML = '<p>No employees found.</p>';
+        renderEmptyState(container, {
+            icon: 'users',
+            tone: 'info',
+            title: 'No employees yet',
+            description: 'Use the form on the left to add your first employee. They\'ll appear here once added.'
+        });
         return;
     }
     
@@ -2664,14 +2975,18 @@ async function saveEmployeeEdit(event) {
     closeEditEmployeeModal();
     
     const actionText = adjustment > 0 ? `Added ${adjustment} days` : adjustment < 0 ? `Deducted ${Math.abs(adjustment)} days` : 'Updated settings';
-    alert(`${actionText} for ${employee.name}. New allowance: ${employee.totalAllowance} days`);
+    toast.success(`${actionText} · new allowance ${employee.totalAllowance} days`, { title: employee.name });
 }
 
 function loadAllRequests() {
     const container = document.getElementById('all-requests');
     
     if (holidayRequests.length === 0) {
-        container.innerHTML = '<p>No requests found.</p>';
+        renderEmptyState(container, {
+            icon: 'inbox',
+            title: 'No requests yet',
+            description: 'Holiday requests will appear here as employees submit them. The newest will be at the top.'
+        });
         return;
     }
     
@@ -2883,19 +3198,21 @@ function removeBulkDate(dateStr) {
 
 async function submitBulkHolidays() {
     if (bulkSelectedDates.length === 0) {
-        alert('Please select at least one date');
+        toast.warning('Please select at least one date.');
         return;
     }
     
     const reason = document.getElementById('bulk-holiday-reason').value || 'Company Holiday';
     const deductFromAllowance = document.getElementById('bulk-deduct-allowance').checked;
     
-    const confirmMsg = `This will add ${bulkSelectedDates.length} holiday date(s) for ALL ${employees.length} employees.\n\n` +
-        `Dates: ${bulkSelectedDates.map(d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })).join(', ')}\n\n` +
-        `${deductFromAllowance ? 'Days WILL be deducted from holiday allowance.' : 'Days will NOT be deducted from holiday allowance.'}\n\n` +
-        `Continue?`;
-    
-    if (!confirm(confirmMsg)) return;
+    const dateList = bulkSelectedDates.map(d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })).join(', ');
+    const ok = await confirmDialog({
+        title: 'Add holidays for everyone?',
+        message: `${bulkSelectedDates.length} date${bulkSelectedDates.length === 1 ? '' : 's'} will be added for all ${employees.length} employees.\n\nDates: ${dateList}\n\n${deductFromAllowance ? 'Days WILL be deducted from each employee\'s allowance.' : 'Days will NOT be deducted from allowances.'}`,
+        confirmLabel: 'Add holidays',
+        cancelLabel: 'Cancel'
+    });
+    if (!ok) return;
 
     // Require authoriser name for audit trail
     const bulkAuthoriser = promptAuthoriser('authorise this bulk holiday for all employees');
@@ -2987,11 +3304,11 @@ async function submitBulkHolidays() {
     closeBulkHolidayModal();
     
     const addedCount = employees.length - skippedEmployees.length;
-    let msg = `Successfully added holidays for ${addedCount} employee(s)!`;
     if (skippedEmployees.length > 0) {
-        msg += `\n\nSkipped ${skippedEmployees.length} employee(s) who already had bookings on those dates:\n${skippedEmployees.join(', ')}`;
+        toast.success(`Added for ${addedCount} employee${addedCount === 1 ? '' : 's'} · ${skippedEmployees.length} skipped (already had bookings: ${skippedEmployees.join(', ')})`, { title: 'Bulk holidays added', duration: 8000 });
+    } else {
+        toast.success(`Added for ${addedCount} employee${addedCount === 1 ? '' : 's'}`, { title: 'Bulk holidays added' });
     }
-    alert(msg);
 }
 
 // ==================== END BULK HOLIDAYS FUNCTIONS ====================
@@ -3322,13 +3639,13 @@ function exportEmployeeReport() {
     const selectedEmployeeId = parseInt(selectElement.value);
     
     if (!selectedEmployeeId) {
-        alert('Please select an employee first.');
+        toast.warning('Please select an employee first.');
         return;
     }
     
     const reportData = generateEmployeeReportData(selectedEmployeeId);
     if (!reportData) {
-        alert('Employee not found.');
+        toast.error('Employee not found.');
         return;
     }
     
@@ -3338,7 +3655,7 @@ function exportEmployeeReport() {
 
 function exportAllEmployeesReport() {
     if (employees.length === 0) {
-        alert('No employees found.');
+        toast.warning('No employees found.');
         return;
     }
     
@@ -3920,7 +4237,19 @@ function renderAttendanceEmployeeList() {
     const filtered = employees.filter(emp => emp.name.toLowerCase().includes(searchTerm));
 
     if (filtered.length === 0) {
-        container.innerHTML = '<p style="color:#6c757d;">No employees match.</p>';
+        if (searchTerm) {
+            renderEmptyState(container, {
+                icon: 'search',
+                title: 'No matches',
+                description: `No employees match "${searchTerm}". Try a different search term.`
+            });
+        } else {
+            renderEmptyState(container, {
+                icon: 'users',
+                title: 'No employees',
+                description: 'Add employees from the Employee Management section to review their attendance here.'
+            });
+        }
         return;
     }
 
@@ -4357,7 +4686,7 @@ function printAttendanceReview(employeeId) {
     const html = generateStandaloneAttendanceHTML(stats);
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-        alert('Pop-up blocked. Please allow pop-ups to print.');
+        toast.error('Pop-up blocked. Please allow pop-ups to print this report.', { title: 'Print blocked', duration: 7000 });
         return;
     }
     printWindow.document.write(html);
