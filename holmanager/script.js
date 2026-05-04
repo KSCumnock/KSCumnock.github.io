@@ -350,7 +350,7 @@ async function changeYear() {
     
     // Update current year
     currentYear = newYear;
-    document.getElementById('current-year-display').textContent = `Current: ${currentYear}`;
+    var _cyd = document.getElementById('current-year-display'); if (_cyd) _cyd.textContent = `Current: ${currentYear}`;
     
     // Reset data
     employees = [];
@@ -425,13 +425,15 @@ async function init() {
         // Set the dropdown to current year
         yearSelect.value = currentActualYear.toString();
         currentYear = currentActualYear;
-        document.getElementById('current-year-display').textContent = `Current: ${currentYear}`;
+        var _cyd = document.getElementById('current-year-display'); if (_cyd) _cyd.textContent = `Current: ${currentYear}`;
         
         await loadEmployees();
         await loadHolidayRequests();
         populateEmployeeCards();
         renderCalendar();
         updatePendingBadge(); // Add badge update
+        updateAdminStatusIndicator();
+        updateTopbarDate();
         showTab('employee');
         
         document.getElementById('employee-loading').classList.add('hidden');
@@ -480,56 +482,100 @@ function populateYearSelector() {
     if (analyticsYearSelect) analyticsYearSelect.value = currentActualYear;
 }
 
-// Update pending badge function
+// Update pending badge — drives both the sidebar nav badge and (legacy) any old tab badge
 function updatePendingBadge() {
     const pendingCount = holidayRequests.filter(req => req.status === 'pending').length;
-    const adminTab = document.querySelectorAll('.tab')[3]; // Admin Panel tab
-    
-    // Remove existing badge if any
-    const existingBadge = adminTab.querySelector('.badge');
-    if (existingBadge) {
-        existingBadge.remove();
+
+    // New sidebar nav badge
+    const navBadge = document.getElementById('nav-pending-badge');
+    if (navBadge) {
+        if (pendingCount > 0) {
+            navBadge.textContent = pendingCount;
+            navBadge.classList.add('has-pending');
+        } else {
+            navBadge.textContent = '';
+            navBadge.classList.remove('has-pending');
+        }
     }
-    
-    // Add badge if there are pending requests
-    if (pendingCount > 0) {
-        const badge = document.createElement('span');
-        badge.className = 'badge';
-        badge.textContent = pendingCount;
-        adminTab.appendChild(badge);
+}
+
+// Page metadata for the new sidebar layout
+const PAGE_META = {
+    employee:  { eyebrow: 'Kerr & Smith Cumnock', title: 'Employees',  subtitle: 'Submit and manage holiday, sick and bereavement requests' },
+    calendar:  { eyebrow: 'Kerr & Smith Cumnock', title: 'Calendar',   subtitle: "Team availability with Scotland public &amp; East Ayrshire school holidays" },
+    analytics: { eyebrow: 'Kerr & Smith Cumnock', title: 'Analytics',  subtitle: 'Insights into holiday patterns, coverage and forecasts' },
+    admin:     { eyebrow: 'Kerr & Smith Cumnock', title: 'Admin Panel', subtitle: 'Approve requests, manage employees and generate reports' }
+};
+
+function setActiveNavItem(tabName) {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.tab === tabName);
+    });
+    const meta = PAGE_META[tabName];
+    if (meta) {
+        const eb = document.getElementById('topbar-eyebrow'); if (eb) eb.textContent = meta.eyebrow;
+        const tt = document.getElementById('page-title');     if (tt) tt.textContent = meta.title;
+        const st = document.getElementById('page-subtitle');  if (st) st.innerHTML = meta.subtitle;
     }
 }
 
 // Tab switching
 function showTab(tabName) {
-    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    // Mark which content sections are visible
     document.querySelectorAll('.content').forEach(content => content.classList.add('hidden'));
-    
+
+    // Sidebar may be open on mobile — close it after navigation
+    closeSidebarOnMobile();
+
     if (tabName === 'admin') {
         // Check if already authenticated in this session
         if (isAdminAuthenticated) {
             document.getElementById('admin-tab').classList.remove('hidden');
-            document.querySelectorAll('.tab')[3].classList.add('active');
+            setActiveNavItem('admin');
             loadAdminData();
         } else {
             openPinModal();
         }
     } else if (tabName === 'calendar') {
         document.getElementById('calendar-tab').classList.remove('hidden');
-        document.querySelectorAll('.tab')[1].classList.add('active');
+        setActiveNavItem('calendar');
         renderCalendar();
     } else if (tabName === 'analytics') {
         document.getElementById('analytics-tab').classList.remove('hidden');
-        document.querySelectorAll('.tab')[2].classList.add('active');
+        setActiveNavItem('analytics');
         refreshAnalytics();
     } else {
         document.getElementById('employee-tab').classList.remove('hidden');
-        document.querySelectorAll('.tab')[0].classList.add('active');
+        setActiveNavItem('employee');
     }
     
     // Close any open popovers
     closePopover();
 }
+
+// Mobile sidebar drawer
+function toggleSidebar(force) {
+    const sidebar  = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    if (!sidebar) return;
+    const willOpen = (typeof force === 'boolean') ? force : !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', willOpen);
+    if (backdrop) backdrop.classList.toggle('visible', willOpen);
+}
+function closeSidebarOnMobile() {
+    if (window.matchMedia('(max-width: 900px)').matches) {
+        toggleSidebar(false);
+    }
+}
+
+// Render today's date in the topbar meta block
+function updateTopbarDate() {
+    const el = document.getElementById('topbar-today');
+    if (!el) return;
+    const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    el.textContent = fmt.format(new Date());
+}
+
 
 // ==================== PIN MODAL ====================
 function openPinModal() {
@@ -582,6 +628,19 @@ function backspacePin() {
     updatePinDots();
 }
 
+function updateAdminStatusIndicator() {
+    const el = document.getElementById('admin-status');
+    if (!el) return;
+    const text = el.querySelector('.status-text');
+    if (isAdminAuthenticated) {
+        el.classList.add('is-admin');
+        if (text) text.textContent = 'Admin signed in';
+    } else {
+        el.classList.remove('is-admin');
+        if (text) text.textContent = 'Standard view';
+    }
+}
+
 // PIN modal functions
 async function checkPin() {
     const pin = document.getElementById('pin-input').value;
@@ -597,7 +656,8 @@ async function checkPin() {
         setTimeout(async () => {
             closePinModal();
             document.getElementById('admin-tab').classList.remove('hidden');
-            document.querySelectorAll('.tab')[3].classList.add('active');
+            setActiveNavItem('admin');
+            updateAdminStatusIndicator();
             await loadAdminData();
         }, 280);
     } else {
@@ -620,6 +680,7 @@ async function checkPin() {
 function logoutAdmin() {
     isAdminAuthenticated = false;
     sessionStorage.removeItem('adminAuthenticated');
+    updateAdminStatusIndicator();
     showTab('employee');
 }
 
