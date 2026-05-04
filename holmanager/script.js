@@ -2084,12 +2084,13 @@ function showAdminSection(section) {
     // Find and activate the correct tab button
     const tabButtons = document.querySelectorAll('.admin-tab-btn');
     tabButtons.forEach((btn, index) => {
-        if ((section === 'pending' && index === 0) ||
-            (section === 'employees' && index === 1) ||
-            (section === 'all-requests' && index === 2) ||
+        if ((section === 'pending'       && index === 0) ||
+            (section === 'employees'     && index === 1) ||
+            (section === 'all-requests'  && index === 2) ||
             (section === 'employee-view' && index === 3) ||
-            (section === 'attendance' && index === 4) ||
-            (section === 'reports' && index === 5)) {
+            (section === 'attendance'    && index === 4) ||
+            (section === 'reports'       && index === 5) ||
+            (section === 'toil'          && index === 6)) {
             btn.classList.add('active');
         }
     });
@@ -2103,6 +2104,8 @@ function showAdminSection(section) {
         loadReportsSection();
     } else if (section === 'attendance') {
         loadAttendanceReview();
+    } else if (section === 'toil') {
+        loadToilLog();
     }
 }
 
@@ -2858,6 +2861,7 @@ function refreshAdminViews() {
     if (typeof loadEmployeeQuickView === 'function')   loadEmployeeQuickView();
     if (typeof loadReportsSection === 'function')      loadReportsSection();
     if (typeof loadAttendanceReview === 'function')    loadAttendanceReview();
+    if (typeof loadToilLog === 'function')             loadToilLog();
 }
 
 async function approveRequest(requestId) {
@@ -3065,8 +3069,36 @@ function openEditEmployeeModal(employeeId) {
     document.getElementById('edit-allowance-adjustment').value = '';
     document.getElementById('edit-adjustment-reason').value = '';
     document.getElementById('edit-saturday-deduction').checked = employee.includeSaturdayDeduction || false;
-    
-    // Show the modal
+
+    // Inject (or refresh) TOIL summary card if employee has any TOIL
+    const modalBody = document.querySelector('#edit-employee-modal .modal-body');
+    let toilCard = document.getElementById('edit-employee-toil-card');
+    if (toilCard) toilCard.remove();
+    const toilEarned = employee.toilEarned || 0;
+    if (toilEarned > 0) {
+        toilCard = document.createElement('div');
+        toilCard.id = 'edit-employee-toil-card';
+        toilCard.className = 'toil-summary-card';
+        const lastEntry = (employee.toilHistory || []).slice(-1)[0];
+        const lastText = lastEntry
+            ? `Last grant: ${lastEntry.days} day${lastEntry.days === 1 ? '' : 's'} on ${new Date(lastEntry.dateWorked).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}${lastEntry.reason ? ' · ' + lastEntry.reason : ''}`
+            : '';
+        toilCard.innerHTML = `
+            <div>
+                <div class="toil-label">TOIL earned this year</div>
+                ${lastText ? `<div style="font-size: 11px; color: var(--neutral-500); margin-top: 2px;">${lastText}</div>` : ''}
+            </div>
+            <div class="toil-value">+${toilEarned}</div>
+        `;
+        // Place it right after the existing stats card (the first child div with grey background)
+        const firstStatCard = modalBody.querySelector('div[style*="background: #f8f9fa"], div[style*="background:#f8f9fa"]');
+        if (firstStatCard && firstStatCard.nextSibling) {
+            modalBody.insertBefore(toilCard, firstStatCard.nextSibling);
+        } else {
+            modalBody.insertBefore(toilCard, modalBody.firstChild);
+        }
+    }
+
     const modal = document.getElementById('edit-employee-modal');
     modal.classList.remove('hidden');
     modal.style.display = 'flex';
@@ -3447,6 +3479,328 @@ async function submitBulkHolidays() {
 }
 
 // ==================== END BULK HOLIDAYS FUNCTIONS ====================
+
+// ==================== TOIL (TIME OFF IN LIEU) ====================
+// Lets admins grant extra holiday days to employees who worked outside
+// their normal hours (covering events, weekends etc.).
+//
+// Implementation:
+//   - Increases employee.totalAllowance by N days
+//   - Tracks running total per employee in employee.toilEarned (display only)
+//   - Stores audit-trail entries in employee.toilHistory (date worked, days,
+//     reason, granted by, granted on)
+// Saves via existing saveEmployees() — no new GitHub file needed.
+
+let toilSelectedEmployeeIds = new Set();
+
+function openToilGrantModal() {
+    const modal = document.getElementById('toil-grant-modal');
+    if (!modal) return;
+
+    // Reset state
+    toilSelectedEmployeeIds = new Set();
+    document.getElementById('toil-days').value = '1';
+    document.getElementById('toil-reason').value = '';
+    document.getElementById('toil-emp-search').value = '';
+
+    // Default the date to last Saturday (most common TOIL scenario)
+    const today = new Date();
+    const lastSat = new Date(today);
+    const daysToSat = (today.getDay() + 1) % 7 || 7;  // last Saturday
+    lastSat.setDate(today.getDate() - daysToSat);
+    document.getElementById('toil-date-worked').value = lastSat.toISOString().split('T')[0];
+
+    renderToilEmployeeGrid();
+    updateToilPreview();
+
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+}
+
+function closeToilGrantModal() {
+    const modal = document.getElementById('toil-grant-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+    toilSelectedEmployeeIds = new Set();
+}
+
+function renderToilEmployeeGrid() {
+    const container = document.getElementById('toil-employee-grid');
+    if (!container) return;
+
+    const search = (document.getElementById('toil-emp-search')?.value || '').toLowerCase();
+    const filtered = employees
+        .filter(e => e.name.toLowerCase().includes(search))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    if (filtered.length === 0) {
+        container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 24px; color: var(--neutral-500); font-size: 13px;">${search ? 'No employees match your search.' : 'No employees yet.'}</div>`;
+        return;
+    }
+
+    container.innerHTML = filtered.map(emp => {
+        const checked = toilSelectedEmployeeIds.has(emp.id);
+        const toilSoFar = emp.toilEarned || 0;
+        return `
+            <label class="toil-emp-row ${checked ? 'is-checked' : ''}" data-employee-id="${emp.id}">
+                <input type="checkbox" ${checked ? 'checked' : ''} data-employee-id="${emp.id}">
+                <span>${emp.name}</span>
+                ${toilSoFar > 0 ? `<span class="emp-meta">+${toilSoFar} TOIL</span>` : ''}
+            </label>
+        `;
+    }).join('');
+
+    // Wire checkbox change handlers
+    container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', () => {
+            const id = parseInt(cb.dataset.employeeId);
+            if (cb.checked) toilSelectedEmployeeIds.add(id);
+            else            toilSelectedEmployeeIds.delete(id);
+            // Toggle visual state on the row
+            const row = cb.closest('.toil-emp-row');
+            if (row) row.classList.toggle('is-checked', cb.checked);
+            updateToilPreview();
+        });
+    });
+}
+
+function toilSelectAll(check) {
+    document.querySelectorAll('#toil-employee-grid .toil-emp-row').forEach(row => {
+        const cb = row.querySelector('input[type="checkbox"]');
+        if (!cb) return;
+        const id = parseInt(cb.dataset.employeeId);
+        cb.checked = check;
+        if (check) toilSelectedEmployeeIds.add(id);
+        else       toilSelectedEmployeeIds.delete(id);
+        row.classList.toggle('is-checked', check);
+    });
+    updateToilPreview();
+}
+
+function updateToilPreview() {
+    const days = parseFloat(document.getElementById('toil-days')?.value || 0) || 0;
+    const count = toilSelectedEmployeeIds.size;
+    const previewCount = document.getElementById('toil-preview-count');
+    const previewTotal = document.getElementById('toil-preview-total');
+    if (previewCount) previewCount.textContent = count;
+    if (previewTotal) previewTotal.textContent = (count * days).toFixed(days % 1 === 0 ? 0 : 1);
+}
+
+async function submitToilGrant() {
+    const dateWorked = document.getElementById('toil-date-worked').value;
+    const days = parseFloat(document.getElementById('toil-days').value);
+    const reason = document.getElementById('toil-reason').value.trim();
+    const ids = [...toilSelectedEmployeeIds];
+
+    // Validation
+    if (!dateWorked) {
+        toast.warning('Please pick the date worked.');
+        return;
+    }
+    if (!days || days <= 0) {
+        toast.warning('Days to grant must be greater than zero.');
+        return;
+    }
+    if (ids.length === 0) {
+        toast.warning('Pick at least one employee.');
+        return;
+    }
+
+    // Confirm with name list
+    const namesPreview = ids.slice(0, 4).map(id => employees.find(e => e.id === id)?.name).filter(Boolean);
+    const namesText = namesPreview.join(', ') + (ids.length > 4 ? ` and ${ids.length - 4} other${ids.length - 4 === 1 ? '' : 's'}` : '');
+    const ok = await confirmDialog({
+        title: `Grant ${days} day${days === 1 ? '' : 's'} TOIL to ${ids.length} employee${ids.length === 1 ? '' : 's'}?`,
+        message: `${namesText} will each have their allowance increased by ${days} day${days === 1 ? '' : 's'} for working on ${new Date(dateWorked).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.`,
+        confirmLabel: 'Grant TOIL',
+        cancelLabel: 'Cancel'
+    });
+    if (!ok) return;
+
+    // Authoriser for audit trail (uses the same prompt as approve/reject)
+    const grantedBy = promptAuthoriser(`grant TOIL to ${ids.length} employee${ids.length === 1 ? '' : 's'}`);
+    if (!grantedBy) return;
+
+    // Snapshot for rollback
+    const snapshot = ids.map(id => {
+        const emp = employees.find(e => e.id === id);
+        return emp ? { id, totalAllowance: emp.totalAllowance, toilEarned: emp.toilEarned || 0, toilHistory: emp.toilHistory ? [...emp.toilHistory] : [] } : null;
+    }).filter(Boolean);
+
+    const grantedDate = new Date().toISOString().split('T')[0];
+
+    // Apply optimistically
+    const grantedNames = [];
+    ids.forEach(id => {
+        const emp = employees.find(e => e.id === id);
+        if (!emp) return;
+        emp.totalAllowance = (emp.totalAllowance || 0) + days;
+        emp.toilEarned     = (emp.toilEarned     || 0) + days;
+        emp.toilHistory    = emp.toilHistory || [];
+        emp.toilHistory.push({
+            id: `toil-${Date.now()}-${id}`,
+            dateWorked,
+            days,
+            reason: reason || null,
+            grantedBy,
+            grantedDate
+        });
+        grantedNames.push(emp.name);
+    });
+
+    // Re-render UI immediately
+    closeToilGrantModal();
+    populateEmployeeCards();
+    refreshAdminViews();
+
+    const loading = toast.loading(`Granting TOIL to ${ids.length} employee${ids.length === 1 ? '' : 's'}…`);
+
+    try {
+        await saveEmployees();
+        const totalDays = (ids.length * days).toFixed(days % 1 === 0 ? 0 : 1);
+        loading.success(`Granted ${days} day${days === 1 ? '' : 's'} to ${ids.length} employee${ids.length === 1 ? '' : 's'} · ${totalDays} TOIL days total`, 'TOIL granted');
+    } catch (err) {
+        // Rollback
+        snapshot.forEach(snap => {
+            const emp = employees.find(e => e.id === snap.id);
+            if (emp) {
+                emp.totalAllowance = snap.totalAllowance;
+                emp.toilEarned     = snap.toilEarned;
+                emp.toilHistory    = snap.toilHistory;
+            }
+        });
+        populateEmployeeCards();
+        refreshAdminViews();
+        loading.error(`Couldn't save — ${err.message || 'GitHub save failed'}`, {
+            actions: [{ label: 'Retry', primary: true, onClick: () => {
+                // Re-open modal with same selection
+                ids.forEach(id => toilSelectedEmployeeIds.add(id));
+                openToilGrantModal();
+                document.getElementById('toil-date-worked').value = dateWorked;
+                document.getElementById('toil-days').value = days;
+                document.getElementById('toil-reason').value = reason;
+                renderToilEmployeeGrid();
+                updateToilPreview();
+            } }]
+        });
+    }
+}
+// ----- TOIL Log view -----
+function loadToilLog() {
+    const statsEl   = document.getElementById('toil-summary-stats');
+    const contentEl = document.getElementById('toil-log-content');
+    if (!statsEl || !contentEl) return;
+
+    // Build a flat list of every entry, with employee name attached
+    const allEntries = [];
+    employees.forEach(emp => {
+        (emp.toilHistory || []).forEach(entry => {
+            allEntries.push({ ...entry, employeeId: emp.id, employeeName: emp.name });
+        });
+    });
+
+    // Stats
+    const totalEntries  = allEntries.length;
+    const totalDays     = allEntries.reduce((s, e) => s + (e.days || 0), 0);
+    const peopleAwarded = new Set(allEntries.map(e => e.employeeId)).size;
+    const last30Days    = allEntries.filter(e => {
+        const d = new Date(e.grantedDate);
+        const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
+        return d >= cutoff;
+    });
+    const last30Total = last30Days.reduce((s, e) => s + (e.days || 0), 0);
+
+    statsEl.innerHTML = `
+        <div class="toil-stat">
+            <div class="toil-stat-label">Days granted ${currentYear}</div>
+            <div class="toil-stat-value">${totalDays % 1 === 0 ? totalDays : totalDays.toFixed(1)}</div>
+            <div class="toil-stat-sub">${totalEntries} grant${totalEntries === 1 ? '' : 's'} on record</div>
+        </div>
+        <div class="toil-stat">
+            <div class="toil-stat-label">Employees awarded</div>
+            <div class="toil-stat-value">${peopleAwarded}</div>
+            <div class="toil-stat-sub">of ${employees.length} total</div>
+        </div>
+        <div class="toil-stat">
+            <div class="toil-stat-label">Last 30 days</div>
+            <div class="toil-stat-value">${last30Total % 1 === 0 ? last30Total : last30Total.toFixed(1)}</div>
+            <div class="toil-stat-sub">${last30Days.length} grant${last30Days.length === 1 ? '' : 's'}</div>
+        </div>
+    `;
+
+    // If no entries at all → empty state and stop
+    if (totalEntries === 0) {
+        contentEl.innerHTML = '';
+        renderEmptyState(contentEl, {
+            icon: 'inbox',
+            tone: 'info',
+            title: 'No TOIL granted yet',
+            description: 'Click "Grant TOIL" above to award extra holiday days to employees who worked outside their normal hours.'
+        });
+        return;
+    }
+
+    // Group by employee, then sort entries within each by date worked (newest first)
+    const byEmployee = {};
+    allEntries.forEach(e => {
+        if (!byEmployee[e.employeeId]) {
+            byEmployee[e.employeeId] = { name: e.employeeName, employeeId: e.employeeId, entries: [], total: 0 };
+        }
+        byEmployee[e.employeeId].entries.push(e);
+        byEmployee[e.employeeId].total += (e.days || 0);
+    });
+
+    // Sort employees by total TOIL desc (most TOIL first), then alphabetically
+    const sortedGroups = Object.values(byEmployee).sort((a, b) =>
+        b.total - a.total || a.name.localeCompare(b.name)
+    );
+
+    // Sort each employee's entries by dateWorked desc (most recent first)
+    sortedGroups.forEach(g =>
+        g.entries.sort((a, b) => (b.dateWorked || '').localeCompare(a.dateWorked || ''))
+    );
+
+    contentEl.innerHTML = sortedGroups.map(group => {
+        const totalLabel = group.total % 1 === 0 ? group.total : group.total.toFixed(1);
+        const entriesHtml = group.entries.map(entry => {
+            const dateWorked = entry.dateWorked
+                ? new Date(entry.dateWorked).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+                : '—';
+            const grantedOn = entry.grantedDate
+                ? new Date(entry.grantedDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+                : '';
+            const daysLabel = entry.days % 1 === 0 ? entry.days : entry.days.toFixed(1);
+            return `
+                <div class="toil-entry">
+                    <div class="toil-entry-date">${dateWorked}</div>
+                    <div class="toil-entry-days">+${daysLabel}</div>
+                    <div class="toil-entry-reason">
+                        ${entry.reason ? `<span class="label">Reason</span>${entry.reason}` : '<span class="label" style="font-style: italic;">No reason given</span>'}
+                    </div>
+                    <div class="toil-entry-meta">
+                        granted by ${entry.grantedBy || 'unknown'}${grantedOn ? ' · ' + grantedOn : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div class="toil-emp-group">
+                <div class="toil-emp-header">
+                    <div class="toil-emp-name">${group.name}</div>
+                    <div class="toil-emp-total">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        <span class="num">${totalLabel}</span> day${group.total === 1 ? '' : 's'} TOIL
+                    </div>
+                </div>
+                <div class="toil-entry-list">${entriesHtml}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ==================== END TOIL FUNCTIONS ====================
 
 // Report generation functions
 function loadReportsSection() {
@@ -4298,6 +4652,21 @@ document.addEventListener('DOMContentLoaded', () => {
             populateEmployeeCards();
         });
     });
+
+    // TOIL grant modal — live preview + employee search
+    const toilDaysInput = document.getElementById('toil-days');
+    if (toilDaysInput) toilDaysInput.addEventListener('input', updateToilPreview);
+
+    const toilSearch = document.getElementById('toil-emp-search');
+    if (toilSearch) toilSearch.addEventListener('input', renderToilEmployeeGrid);
+
+    // Close TOIL modal on backdrop click
+    const toilModal = document.getElementById('toil-grant-modal');
+    if (toilModal) {
+        toilModal.addEventListener('click', (e) => {
+            if (e.target === toilModal) closeToilGrantModal();
+        });
+    }
 });
 
 // ==================== PIN keypad wiring ====================
