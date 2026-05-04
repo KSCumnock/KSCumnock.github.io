@@ -4210,33 +4210,59 @@ function calculateKeyMetrics(year) {
 
 function renderMonthlyChart(year) {
     const monthlyData = Array(12).fill(0);
+    const monthRequests = Array(12).fill(0);
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
+
     holidayRequests.filter(req => {
         const reqYear = new Date(req.startDate).getFullYear();
         return reqYear === year && req.status === 'approved';
     }).forEach(req => {
         const month = new Date(req.startDate).getMonth();
         monthlyData[month] += req.days || 0;
+        monthRequests[month] += 1;
     });
-    
-    const maxValue = Math.max(...monthlyData, 1);
-    
-    let html = '<div style="display: flex; align-items: flex-end; justify-content: space-between; height: 250px; gap: 10px;">';
+
+    const maxValue   = Math.max(...monthlyData);
+    const totalDays  = monthlyData.reduce((s, d) => s + d, 0);
+    const container  = document.getElementById('monthly-chart');
+
+    // Empty state if zero data this year
+    if (totalDays === 0) {
+        renderEmptyState(container, {
+            icon: 'calendar',
+            title: 'No usage yet',
+            description: `No approved holidays in ${year} so far. Once requests are approved, monthly trends will appear here.`
+        });
+        return;
+    }
+
+    // Absolute pixel heights — sidesteps the % height-in-flex bug entirely.
+    // The chart container is 300px tall in the markup; reserve ~50px for labels
+    // and the optional value row, giving the tallest bar ~220px to play with.
+    const PLOT_HEIGHT = 220;
+
+    let html = '<div class="monthly-chart-bars">';
     monthlyData.forEach((days, index) => {
-        const height = (days / maxValue) * 100;
+        const heightPx = days > 0 ? Math.max(6, Math.round((days / maxValue) * PLOT_HEIGHT)) : 4;
+        const reqCount = monthRequests[index];
+        const valueLabel = days > 0 ? (days % 1 === 0 ? days : days.toFixed(1)) : '';
+        const tooltip = days > 0
+            ? `${monthNames[index]}: ${valueLabel} day${days === 1 ? '' : 's'} across ${reqCount} request${reqCount === 1 ? '' : 's'}`
+            : `${monthNames[index]}: no approved leave`;
+
         html += `
-            <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
-                <div style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 4px 4px 0 0; height: ${height}%; min-height: ${days > 0 ? '20px' : '0'}; position: relative; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px;">
-                    ${days > 0 ? `<span style="color: white; font-size: 12px; font-weight: 600;">${days}</span>` : ''}
+            <div class="monthly-bar-col" title="${tooltip}">
+                <div class="monthly-bar-stack">
+                    ${days > 0 ? `<div class="monthly-bar-value">${valueLabel}</div>` : ''}
+                    <div class="monthly-bar ${days === 0 ? 'is-empty' : ''}" style="height: ${heightPx}px;"></div>
                 </div>
-                <div style="margin-top: 8px; font-size: 12px; color: #666; font-weight: 500;">${monthNames[index]}</div>
+                <div class="monthly-bar-label">${monthNames[index]}</div>
             </div>
         `;
     });
     html += '</div>';
-    
-    document.getElementById('monthly-chart').innerHTML = html;
+
+    container.innerHTML = html;
 }
 
 function renderRequestTypeChart(year) {
