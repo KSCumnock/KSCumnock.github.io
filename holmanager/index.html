@@ -365,19 +365,15 @@
             
             <div id="admin-content" class="hidden">
                 <!-- Admin Header with Logout -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e9ecef;">
-                    <div>
-                        <h2 style="margin: 0; color: #333;">Admin Panel</h2>
-                        <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">Manage employees, requests, and company holidays</p>
-                    </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button onclick="openBulkHolidayModal()" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
-                            📅 Bulk Add Holidays
-                        </button>
-                        <button onclick="logoutAdmin()" style="background: #6c757d;">
-                            🔒 Logout
-                        </button>
-                    </div>
+                <div class="admin-header-bar">
+                    <button onclick="openBulkHolidayModal()" class="btn-success">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -3px; margin-right: 6px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><line x1="12" y1="14" x2="12" y2="18"></line><line x1="10" y1="16" x2="14" y2="16"></line></svg>
+                        Bulk Add Holidays
+                    </button>
+                    <button onclick="logoutAdmin()" class="btn-ghost">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -3px; margin-right: 6px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                        Sign out
+                    </button>
                 </div>
                 
                 <!-- Admin Navigation Tabs -->
@@ -678,10 +674,10 @@
                 </div>
                 
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button onclick="submitBulkHolidays()" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                    <button onclick="submitBulkHolidays()" class="btn-success">
                         Add Holidays for All Employees
                     </button>
-                    <button type="button" onclick="closeBulkHolidayModal()" style="background: #6c757d;">Cancel</button>
+                    <button type="button" onclick="closeBulkHolidayModal()" class="btn-ghost">Cancel</button>
                 </div>
             </div>
         </div>
