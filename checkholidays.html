@@ -3,1621 +3,710 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Holiday Calendar</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f7fa;
-            min-height: 100vh;
-            color: #2d3748;
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            background: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-            min-height: 100vh;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .header h1 {
-            font-size: 2.25rem;
-            margin-bottom: 0.5rem;
-            font-weight: 700;
-            letter-spacing: -0.025em;
-        }
-        
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-            font-weight: 300;
-        }
-        
-        .content {
-            padding: 2rem;
-        }
-        
-        .controls-section {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            gap: 2rem;
-            align-items: center;
-        }
-        
-        .year-picker, .employee-picker {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        
-        .control-label {
-            font-weight: 600;
-            color: #4a5568;
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        
-        .year-select, .employee-select {
-            padding: 0.75rem 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 500;
-            background: white;
-            color: #2d3748;
-            transition: all 0.2s ease;
-            min-width: 140px;
-        }
-        
-        .year-select:focus, .employee-select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        .employee-select {
-            min-width: 250px;
-        }
-        
-        .month-navigation {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
-        
-        .nav-button {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 0.75rem 1.25rem;
-            border-radius: 8px;
-            font-size: 0.925rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-        
-        .nav-button:hover {
-            background: #5a67d8;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-        }
-        
-        .nav-button:active {
-            transform: translateY(0);
-        }
-        
-        .month-year {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #2d3748;
-            text-align: center;
-            min-width: 200px;
-        }
-        
-        .main-layout {
-            display: grid;
-            grid-template-columns: 1fr 400px;
-            gap: 2rem;
-            align-items: start;
-        }
-        
-        .calendar-section {
-            min-width: 0;
-        }
-        
-        .employee-details {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 1.5rem;
-            position: sticky;
-            top: 2rem;
-            max-height: calc(100vh - 4rem);
-            overflow-y: auto;
-        }
-        
-        .summary-stats {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 1.5rem;
-        }
-        
-        .stat-item {
-            text-align: center;
-            padding: 1rem;
-            background: #f8fafc;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-        }
-        
-        .stat-number {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #667eea;
-            display: block;
-            line-height: 1;
-        }
-        
-        .stat-label {
-            font-size: 0.75rem;
-            color: #718096;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-top: 0.5rem;
-            font-weight: 600;
-        }
-        
-        .legend {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.875rem;
-            color: #4a5568;
-            font-weight: 500;
-        }
-        
-        .legend-chip {
-            width: 16px;
-            height: 16px;
-            border-radius: 4px;
-            display: inline-block;
-        }
-        
-        .legend-full {
-            background: #667eea;
-        }
-        
-        .legend-half {
-            background: #ed8936;
-        }
-        
-        .legend-selected {
-            background: #38a169;
-        }
-        
-        .calendar {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e2e8f0;
-        }
-        
-        .calendar th {
-            background: #edf2f7;
-            padding: 1rem 0.5rem;
-            text-align: center;
-            font-weight: 600;
-            color: #4a5568;
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        
-        .calendar td {
-            border: 1px solid #e2e8f0;
-            vertical-align: top;
-            height: 120px;
-            width: 14.28%;
-            position: relative;
-            background: white;
-            transition: background-color 0.2s ease;
-        }
-        
-        .calendar td:hover {
-            background: #f7fafc;
-        }
-        
-        .day-number {
-            position: absolute;
-            top: 0.5rem;
-            left: 0.5rem;
-            font-weight: 600;
-            color: #2d3748;
-            font-size: 0.875rem;
-            z-index: 2;
-        }
-        
-        .day-info-button {
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            width: 15px;
-            height: 15px;
-            border-radius: 50%;
-            background: #718096;
-            color: white;
-            border: none;
-            font-size: 0.55rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 3;
-            transition: all 0.2s ease;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-        }
-        
-        .day-info-button:hover {
-            background: #e53e3e;
-            transform: scale(1.1);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-        }
-        
-        .day-info-button.no-holidays {
-            display: none;
-        }
-        
-        .other-month {
-            background: #f7fafc !important;
-        }
-        
-        .other-month .day-number {
-            color: #a0aec0 !important;
-        }
-        
-        .today {
-            background: #667eea !important;
-            color: white;
-        }
-        
-        .today .day-number {
-            color: white;
-            background: rgba(255,255,255,0.2);
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-        }
-        
-        .weekend {
-            background: #f7fafc;
-        }
-        
-        /* Weekend holiday styling - grey out with lower opacity */
-        .weekend .employee-chip {
-            opacity: 0.5;
-            filter: grayscale(20%);
-        }
-        
-        .weekend .employee-chip:hover {
-            opacity: 0.7;
-            transform: translateY(-1px);
-        }
-        
-        /* Keep selected employee chips more visible on weekends */
-        .weekend .employee-chip.selected {
-            opacity: 0.7;
-            filter: grayscale(10%);
-        }
-        
-        .weekend .employee-chip.selected:hover {
-            opacity: 0.85;
-        }
-        
-        .holidays-container {
-            position: absolute;
-            top: 2rem;
-            left: 0.25rem;
-            right: 0.25rem;
-            bottom: 0.25rem;
-            overflow: hidden;
-        }
-        
-        .employee-chip {
-            background: #667eea;
-            color: white;
-            padding: 0.125rem 0.5rem;
-            border-radius: 12px;
-            font-size: 0.500rem;
-            font-weight: 500;
-            margin: 0.125rem;
-            display: inline-block;
-            text-overflow: ellipsis;
-            overflow: hidden;
-            white-space: nowrap;
-            max-width: calc(100% - 0.25rem);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .employee-chip:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        
-        .employee-chip.half-day {
-            background: #ed8936;
-            color: white;
-        }
-        
-        .employee-chip.selected {
-            background: #38a169;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            border-color: rgba(255,255,255,0.4);
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 3rem;
-            color: #718096;
-            font-size: 1.125rem;
-        }
-        
-        .loading-spinner {
-            display: inline-block;
-            width: 2rem;
-            height: 2rem;
-            border: 3px solid #e2e8f0;
-            border-radius: 50%;
-            border-top-color: #667eea;
-            animation: spin 1s ease-in-out infinite;
-            margin-bottom: 1rem;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .error {
-            background: #fed7d7;
-            color: #c53030;
-            padding: 1.5rem;
-            border-radius: 12px;
-            margin-bottom: 1.5rem;
-            border: 1px solid #feb2b2;
-            text-align: center;
-            font-weight: 500;
-        }
-        
-        .hidden {
-            display: none;
-        }
-        
-        .employee-details h3 {
-            color: #2d3748;
-            margin-bottom: 1.5rem;
-            font-size: 1.25rem;
-            text-align: center;
-            font-weight: 600;
-        }
-        
-        .selected-employee {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            border: 2px solid #38a169;
-            box-shadow: 0 2px 4px rgba(56, 161, 105, 0.1);
-        }
-        
-        .employee-name {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 1rem;
-            text-align: center;
-        }
-        
-        .employee-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        
-        .employee-stat {
-            text-align: center;
-            background: #f7fafc;
-            padding: 1rem;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-        }
-        
-        .employee-stat-number {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #667eea;
-            display: block;
-            line-height: 1;
-        }
-        
-        .employee-stat-label {
-            font-size: 0.75rem;
-            color: #718096;
-            text-transform: uppercase;
-            margin-top: 0.25rem;
-            font-weight: 600;
-            letter-spacing: 0.05em;
-        }
-        
-        .requests-header {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 1rem;
-            text-align: center;
-        }
-        
-        .employee-requests {
-            max-height: 350px;
-            overflow-y: auto;
-        }
-        
-        .request-item {
-            background: white;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
-            border-left: 4px solid #667eea;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            border: 1px solid #e2e8f0;
-            border-left: 4px solid #667eea;
-        }
-        
-        .request-item.approved {
-            border-left-color: #38a169;
-        }
-        
-        .request-item.pending {
-            border-left-color: #ed8936;
-        }
-        
-        .request-item.rejected {
-            border-left-color: #e53e3e;
-        }
-        
-        .request-dates {
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 0.5rem;
-            font-size: 0.925rem;
-        }
-        
-        .request-details {
-            font-size: 0.8125rem;
-            color: #4a5568;
-            line-height: 1.5;
-        }
-        
-        .request-status {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            border-radius: 12px;
-            font-size: 0.6875rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            margin-top: 0.5rem;
-            letter-spacing: 0.05em;
-        }
-        
-        .status-approved {
-            background: #c6f6d5;
-            color: #22543d;
-        }
-        
-        .status-pending {
-            background: #feebc8;
-            color: #9c4221;
-        }
-        
-        .status-rejected {
-            background: #fed7d7;
-            color: #742a2a;
-        }
-        
-        .no-selection {
-            text-align: center;
-            padding: 2rem 1rem;
-            color: #718096;
-            font-style: italic;
-        }
-        
-        .no-selection-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-        }
-        
-        .tooltip {
-            position: fixed;
-            background: rgba(45, 55, 72, 0.95);
-            color: white;
-            padding: 0.5rem 0.75rem;
-            border-radius: 6px;
-            font-size: 0.8125rem;
-            z-index: 1000;
-            pointer-events: none;
-            max-width: 200px;
-            line-height: 1.4;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
+    <title>Kerr &amp; Smith — Holiday Management</title>
 
-        .popover {
-            position: fixed;
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            z-index: 1001;
-            max-width: 280px;
-            min-width: 220px;
-            max-height: 350px;
-            overflow-y: auto;
-        }
+    <!-- Typography: Fraunces (display), Inter Tight (body), JetBrains Mono (numerics) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-        .popover-header {
-            background: #667eea;
-            color: white;
-            padding: 0.75rem 1rem;
-            border-radius: 12px 12px 0 0;
-            font-weight: 600;
-            text-align: center;
-            position: relative;
-            font-size: 0.875rem;
-        }
-
-        .popover-close {
-            position: absolute;
-            top: 0.375rem;
-            right: 0.5rem;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.1rem;
-            cursor: pointer;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s ease;
-            font-weight: bold;
-            line-height: 1;
-        }
-
-        .popover-close:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .popover-content {
-            padding: 0.75rem;
-        }
-
-        .popover-employee {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.5rem 0.75rem;
-            margin-bottom: 0.375rem;
-            background: #f8fafc;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .popover-employee:hover {
-            background: #edf2f7;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .popover-employee:last-child {
-            margin-bottom: 0;
-        }
-
-        .popover-employee-name {
-            font-weight: 600;
-            color: #2d3748;
-            font-size: 0.8125rem;
-        }
-
-        .popover-employee-type {
-            font-size: 0.625rem;
-            padding: 0.1875rem 0.375rem;
-            border-radius: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.025em;
-        }
-
-        .popover-employee-type.full-day {
-            background: #667eea;
-            color: white;
-        }
-
-        .popover-employee-type.half-day {
-            background: #ed8936;
-            color: white;
-        }
-
-        .popover-no-employees {
-            text-align: center;
-            color: #718096;
-            font-style: italic;
-            padding: 1.5rem 1rem;
-            font-size: 0.875rem;
-        }
-
-        .popover-backdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 1000;
-            background: rgba(0, 0, 0, 0.1);
-        }
-        
-        @media (max-width: 1400px) {
-            .main-layout {
-                grid-template-columns: 1fr 350px;
-            }
-        }
-        
-        @media (max-width: 1200px) {
-            .main-layout {
-                grid-template-columns: 1fr;
-                gap: 1.5rem;
-            }
-            
-            .employee-details {
-                position: static;
-                max-height: none;
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .content {
-                padding: 1rem;
-            }
-            
-            .controls-section {
-                grid-template-columns: 1fr;
-                gap: 1.5rem;
-                text-align: center;
-            }
-            
-            .month-navigation {
-                justify-content: center;
-            }
-            
-            .nav-button {
-                padding: 0.625rem 1rem;
-                font-size: 0.875rem;
-            }
-            
-            .month-year {
-                font-size: 1.25rem;
-            }
-            
-            .calendar th {
-                padding: 0.75rem 0.25rem;
-                font-size: 0.75rem;
-            }
-            
-            .calendar td {
-                height: 100px;
-            }
-            
-            .employee-chip {
-                font-size: 0.625rem;
-                padding: 0.125rem 0.375rem;
-            }
-            
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .employee-stats {
-                grid-template-columns: 1fr;
-            }
-
-            .day-info-button {
-                width: 18px;
-                height: 18px;
-                font-size: 0.625rem;
-            }
-
-            .popover {
-                max-width: 90vw;
-                min-width: 280px;
-            }
-        }
-    </style>
+    <link href="style.css?v=20260504b" rel="stylesheet"/>
+    <!-- EmailJS SDK for email notifications -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
+
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📅 Holiday Calendar</h1>
-            <p>Professional holiday management and planning</p>
+    <!-- Toast notification container -->
+    <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+    <!-- Confirm dialog (re-used for all confirms) -->
+    <div id="confirm-modal" class="confirm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+        <div class="confirm-content">
+            <div class="confirm-icon" id="confirm-icon"></div>
+            <h3 id="confirm-title">Are you sure?</h3>
+            <p id="confirm-message">This action cannot be undone.</p>
+            <div class="confirm-actions">
+                <button type="button" class="btn-ghost" id="confirm-cancel">Cancel</button>
+                <button type="button" id="confirm-ok">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile menu toggle (hidden on desktop via CSS) -->
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle menu" onclick="toggleSidebar()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+            <line x1="3" y1="6"  x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
+
+    <div class="app-shell">
+        <!-- =================== SIDEBAR =================== -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <img src="/images/kandslogo.png"
+                     alt="Kerr &amp; Smith"
+                     class="sidebar-logo"
+                     onerror="this.style.display='none'; var fb=document.getElementById('logo-fallback'); if(fb){fb.style.display='flex';}">
+                <div id="logo-fallback" class="sidebar-wordmark" style="display:none;" aria-hidden="true">
+                    <span class="wm-name">Kerr</span><span class="wm-amp">&amp;</span><span class="wm-name">Smith</span>
+                </div>
+                <div class="sidebar-product">Holiday Management</div>
+            </div>
+
+            <nav class="sidebar-nav" aria-label="Primary navigation">
+                <button class="nav-item active" data-tab="employee" onclick="showTab('employee')">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <span>Employees</span>
+                </button>
+                <button class="nav-item" data-tab="calendar" onclick="showTab('calendar')">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    <span>Calendar</span>
+                </button>
+                <button class="nav-item" data-tab="analytics" onclick="showTab('analytics')">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                    <span>Analytics</span>
+                </button>
+                <button class="nav-item" data-tab="admin" onclick="showTab('admin')">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    <span>Admin</span>
+                    <span class="nav-badge" id="nav-pending-badge"></span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="year-block">
+                    <label for="year-select">Reporting Year</label>
+                    <div class="year-select-wrap">
+                        <select id="year-select" onchange="changeYear()">
+                            <!-- Years populated by JavaScript -->
+                        </select>
+                        <svg class="year-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </div>
+                </div>
+                <div class="admin-status" id="admin-status">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Standard view</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- =================== MAIN CONTENT =================== -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="topbar-titles">
+                    <div class="topbar-eyebrow" id="topbar-eyebrow">Kerr &amp; Smith Cumnock</div>
+                    <h1 class="page-title" id="page-title">Employees</h1>
+                    <p class="page-subtitle" id="page-subtitle">Submit and manage holiday requests</p>
+                </div>
+                <div class="topbar-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Today</span>
+                        <span class="meta-value" id="topbar-today"></span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-area">
+
+
+        <!-- Employee Portal -->
+        <div id="employee-tab" class="content">
+            <div class="loading" id="employee-loading">Loading employees...</div>
+            <div id="employee-error" class="error hidden"></div>
+            
+            <div id="employee-content" class="hidden">
+                <h3 style="margin-bottom: 20px; color: #333; font-weight: 500;">Select Employee</h3>
+
+                <!-- Search input -->
+                <div style="margin-bottom: 20px;">
+                    <input type="text" id="employee-search" placeholder="Search employees..." oninput="filterEmployeeCards()" style="padding: 10px; width: 100%; font-size: 16px; border: 2px solid #e9ecef; border-radius: 8px;">
+                </div>
+
+                <div id="employee-cards" class="employee-cards-grid"></div>
+                
+                <div id="employee-info" class="hidden">
+                    <div class="allowance-info">
+                      <h3 style="margin: 0 0 10px 0; font-weight: 500;">
+  Holiday Allowance for <span id="employee-name" style="font-weight: 600;">[Employee Name]</span>
+</h3>
+<p style="margin: 0; font-size: 16px;">
+  <span id="remaining-days">0</span> days remaining out of <span id="total-days">0</span> total days
+</p>
+
+                    </div>
+                    
+                    <form id="holiday-form" onsubmit="submitHolidayRequest(event)">
+                        <div class="grid">
+                            <div>
+                                <!-- Request Type Selection -->
+                                <div class="form-group">
+                                    <label for="request-type">Request Type:</label>
+                                    <select id="request-type" required onchange="updateRequestTypeOptions()">
+                                        <option value="holiday">Holiday</option>
+                                        <option value="sick">Sick Leave</option>
+                                        <option value="bereavement">Bereavement Leave</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Date Range Inputs -->
+                                <div id="date-range-inputs">
+                                    <div class="form-group">
+                                        <label for="start-date">Start Date:</label>
+                                        <input type="date" id="start-date" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="end-date">End Date:</label>
+                                        <input type="date" id="end-date" required>
+                                    </div>
+                                </div>
+                                
+                                <!-- Block Booking Calendar -->
+                                <div id="block-booking-calendar" class="hidden">
+                                    <div class="form-group">
+                                        <label>Select Dates (click to select/deselect):</label>
+                                        <div class="block-calendar-container">
+                                            <div class="block-calendar-header">
+                                                <button type="button" class="calendar-nav" onclick="changeBlockMonth(-1)">❮</button>
+                                                <h4 id="block-calendar-title"></h4>
+                                                <button type="button" class="calendar-nav" onclick="changeBlockMonth(1)">❯</button>
+                                            </div>
+                                            <div class="block-calendar-grid" id="block-calendar-grid"></div>
+                                        </div>
+                                        <div id="selected-dates-summary" class="selected-dates-summary hidden">
+                                            <h5>Selected Dates:</h5>
+                                            <div id="selected-dates-list"></div>
+                                            <div id="booking-groups-preview" class="booking-groups-preview"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Block Booking Toggle -->
+                                <div class="form-group">
+                                    <div class="half-day-container">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="block-booking-toggle" onchange="toggleBlockBooking()">
+                                            <span class="checkbox-custom"></span>
+                                            Block Booking (Select multiple dates)
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <div class="half-day-container">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="half-day-toggle" onchange="toggleHalfDay()">
+                                            <span class="checkbox-custom"></span>
+                                            Half Day Request
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group hidden" id="half-day-options">
+                                    <label for="half-day-period">Time Period:</label>
+                                    <select id="half-day-period">
+                                        <option value="morning">Morning (AM)</option>
+                                        <option value="afternoon">Afternoon (PM)</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Deduct from Holiday Allowance Toggle -->
+                                <div class="form-group" id="deduct-toggle-container" style="display: none;">
+                                    <div class="half-day-container">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="deduct-from-holiday" onchange="updateDaysPreview()">
+                                            <span class="checkbox-custom"></span>
+                                            Deduct from Holiday Allowance
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="form-group">
+                                    <label for="reason">Reason (optional):</label>
+                                    <textarea id="reason" rows="4" placeholder="Family vacation, medical appointment, etc."></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <div class="days-calculator" id="days-preview">
+                                        <strong>Days to be deducted from holiday allowance:</strong> <span id="calculated-days">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit">Submit Request</button>
+                    </form>
+                    
+                    <h3 style="margin: 40px 0 20px 0; color: #333; font-weight: 500;">Your Requests</h3>
+                    <div id="employee-requests"></div>
+                </div>
+            </div>
         </div>
         
-        <div class="content">
-            <div id="loading" class="loading">
-                <div class="loading-spinner"></div>
-                <div>Loading holiday data...</div>
+        <!-- Calendar View -->
+        <div id="calendar-tab" class="content hidden">
+            <!-- Holiday display toggles -->
+            <div class="calendar-toggles">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="show-bank-holidays" checked onchange="renderCalendar()">
+                    <span class="checkbox-custom"></span>
+                    🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland Bank Holidays
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="show-school-holidays" checked onchange="renderCalendar()">
+                    <span class="checkbox-custom"></span>
+                    🎒 East Ayrshire School Holidays
+                </label>
+            </div>
+
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <button class="calendar-nav" onclick="changeMonth(-1)">❮</button>
+                    <h3 id="calendar-title"></h3>
+                    <button class="calendar-nav" onclick="changeMonth(1)">❯</button>
+                </div>
+                <div class="calendar-grid" id="calendar-grid"></div>
+            </div>
+
+            <!-- Legend -->
+            <div class="calendar-legend">
+                <div class="legend-item"><span class="legend-swatch swatch-employee"></span>Employee holiday</div>
+                <div class="legend-item"><span class="legend-swatch swatch-bank"></span>Bank holiday</div>
+                <div class="legend-item"><span class="legend-swatch swatch-school"></span>School holiday</div>
+                <div class="legend-item"><span class="legend-swatch swatch-inservice"></span>In-service day</div>
+            </div>
+
+            <p style="color: #6c757d; text-align: center; margin-top: 10px;">
+                💡 Click on any date to see detailed information
+            </p>
+        </div>
+        
+        <!-- Analytics Tab -->
+        <div id="analytics-tab" class="content hidden">
+            <h2 style="margin-bottom: 30px; color: #333;">📊 Holiday Analytics & Insights</h2>
+            
+            <!-- Year Filter -->
+            <div style="margin-bottom: 30px;">
+                <label for="analytics-year-select" style="font-weight: 500; margin-right: 10px;">Reporting Year:</label>
+                <select id="analytics-year-select" onchange="refreshAnalytics()" style="padding: 8px 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 16px;">
+                    <!-- Years will be dynamically populated by JavaScript -->
+                </select>
             </div>
             
-            <div id="error-message" class="error hidden"></div>
+            <!-- Key Metrics Overview -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Days Taken</div>
+                    <div id="analytics-total-days" class="stat-value">0</div>
+                    <div class="stat-accent" data-tone="primary"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg Days Per Employee</div>
+                    <div id="analytics-avg-days" class="stat-value">0</div>
+                    <div class="stat-accent" data-tone="warning"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Requests</div>
+                    <div id="analytics-total-requests" class="stat-value">0</div>
+                    <div class="stat-accent" data-tone="info"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Approval Rate</div>
+                    <div id="analytics-approval-rate" class="stat-value">0%</div>
+                    <div class="stat-accent" data-tone="success"></div>
+                </div>
+            </div>
             
-            <div id="calendar-section" class="hidden">
-                <div class="controls-section">
-                    <div class="year-picker">
-                        <label class="control-label" for="year-select">Year</label>
-                        <select id="year-select" class="year-select">
-                            <!-- Populated dynamically -->
-                        </select>
-                    </div>
-                    
-                    <div class="month-navigation">
-                        <button class="nav-button" id="prev-month">
-                            ← Previous
-                        </button>
-                        <div class="month-year" id="current-month-year"></div>
-                        <button class="nav-button" id="next-month">
-                            Next →
-                        </button>
-                    </div>
-                    
-                    <div class="employee-picker">
-                        <label class="control-label" for="employee-select">Employee</label>
-                        <select id="employee-select" class="employee-select">
-                            <option value="">Select an employee...</option>
-                        </select>
+            <!-- Monthly Usage Trends -->
+            <div class="card-panel">
+                <h3 style="margin-bottom: 20px; color: #333;">Monthly Holiday Usage Trends</h3>
+                <div id="monthly-chart" style="height: 300px;"></div>
+            </div>
+            
+            <!-- Side by side charts -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 30px; margin-bottom: 30px;">
+                <!-- Request Type Breakdown -->
+                <div class="card-panel">
+                    <h3 style="margin-bottom: 20px; color: #333;">Request Type Distribution</h3>
+                    <div id="request-type-chart" style="height: 250px;"></div>
+                </div>
+                
+                <!-- Status Breakdown -->
+                <div class="card-panel">
+                    <h3 style="margin-bottom: 20px; color: #333;">Request Status Distribution</h3>
+                    <div id="status-chart" style="height: 250px;"></div>
+                </div>
+            </div>
+            
+            <!-- Team Coverage Heatmap -->
+            <div class="card-panel">
+                <h3 style="margin-bottom: 20px; color: #333;">Team Coverage Heatmap (People Available per Day)</h3>
+                <div id="coverage-heatmap"></div>
+            </div>
+            
+            <!-- Employee Utilization Ranking -->
+            <div class="card-panel">
+                <h3 style="margin-bottom: 20px; color: #333;">Employee Holiday Utilization</h3>
+                <div id="employee-utilization"></div>
+            </div>
+            
+            <!-- Busiest Months & Insights -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-bottom: 30px;">
+                <div class="card-panel">
+                    <h3 style="margin-bottom: 15px; color: #333;">📈 Busiest Months</h3>
+                    <div id="busiest-months"></div>
+                </div>
+                
+                <div class="card-panel">
+                    <h3 style="margin-bottom: 15px; color: #333;">🎯 Key Insights</h3>
+                    <div id="key-insights"></div>
+                </div>
+                
+                <div class="card-panel">
+                    <h3 style="margin-bottom: 15px; color: #333;">🔮 Forecasting</h3>
+                    <div id="forecasting"></div>
+                </div>
+            </div>
+            
+            <!-- Year Comparison -->
+            <div class="card-panel">
+                <h3 style="margin-bottom: 20px; color: #333;">Year-over-Year Comparison</h3>
+                <div id="year-comparison"></div>
+            </div>
+        </div>
+        
+        <!-- Admin Panel -->
+        <div id="admin-tab" class="content hidden">
+            <div class="loading" id="admin-loading">Loading admin data...</div>
+            <div id="admin-error" class="error hidden"></div>
+            
+            <div id="admin-content" class="hidden">
+                <!-- Admin Header with Logout -->
+                <div class="admin-header-bar">
+                    <button onclick="openBulkHolidayModal()" class="btn-success">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -3px; margin-right: 6px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><line x1="12" y1="14" x2="12" y2="18"></line><line x1="10" y1="16" x2="14" y2="16"></line></svg>
+                        Bulk Add Holidays
+                    </button>
+                    <button onclick="logoutAdmin()" class="btn-ghost">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -3px; margin-right: 6px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                        Sign out
+                    </button>
+                </div>
+                
+                <!-- Admin Navigation Tabs -->
+                <div class="tabs-container">
+                    <button class="admin-tab-btn active" onclick="showAdminSection('pending')">Pending Requests</button>
+                    <button class="admin-tab-btn" onclick="showAdminSection('employees')">Employee Management</button>
+                    <button class="admin-tab-btn" onclick="showAdminSection('all-requests')">All Requests</button>
+                    <button class="admin-tab-btn" onclick="showAdminSection('employee-view')">Employee Quick View</button>
+                    <button class="admin-tab-btn" onclick="showAdminSection('attendance')">🧾 Attendance Review</button>
+                    <button class="admin-tab-btn" onclick="showAdminSection('reports')">📄 Reports</button>
+                </div>
+                
+                <!-- Pending Requests Section -->
+                <div id="admin-pending" class="admin-section">
+                    <h3>🕒 Pending Requests</h3>
+                    <div id="pending-requests"></div>
+                </div>
+                
+                <!-- Employee Management Section -->
+                <div id="admin-employees" class="admin-section hidden">
+                    <h3>👥 Employee Management</h3>
+                    <div class="compact-grid">
+                        <div>
+                            <h4>Add New Employee</h4>
+                            <form id="add-employee-form" onsubmit="addEmployee(event)">
+                                <div class="form-group">
+                                    <label for="employee-name">Employee Name:</label>
+                             <input type="text" id="new-employee-name" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="employee-allowance">Annual Holiday Allowance:</label>
+                                  <input type="number" id="employee-allowance" value="30" min="1" step="0.5" required>
+                                </div>
+
+                                  <!-- Add this to the employee management form -->
+                                <div class="form-group">
+                                    <div class="half-day-container">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="include-saturday-deduction">
+                                            <span class="checkbox-custom"></span>
+                                            Include Saturday Deduction (Saturday holidays deduct from allowance)
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit">Add Employee</button>
+                            </form>
+                        </div>
+                        
+                        <div>
+                            <h4>Current Employees</h4>
+                            <div id="employee-list"></div>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="summary-stats">
-                    <div class="stats-grid" id="summary-stats"></div>
+                <!-- All Requests Section -->
+                <div id="admin-all-requests" class="admin-section hidden">
+                    <h3>📋 All Requests</h3>
+                    <div id="all-requests"></div>
                 </div>
                 
-                <div class="legend">
-                    <div class="legend-item">
-                        <span class="legend-chip legend-full"></span>
-                        <span>Full Day Holiday</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-chip legend-half"></span>
-                        <span>Half Day Holiday</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-chip legend-selected"></span>
-                        <span>Selected Employee</span>
-                    </div>
+                <!-- Employee Quick View Section -->
+                <div id="admin-employee-view" class="admin-section hidden">
+                    <h3>👤 Employee Quick View</h3>
+                    <p style="color: #6c757d; margin-bottom: 15px;">Click on any employee to view their history</p>
+                    <div id="employee-quick-view"></div>
                 </div>
                 
-                <div class="main-layout">
-                    <div class="calendar-section">
-                        <table class="calendar" id="calendar">
-                            <thead>
-                                <tr>
-                                    <th>Sunday</th>
-                                    <th>Monday</th>
-                                    <th>Tuesday</th>
-                                    <th>Wednesday</th>
-                                    <th>Thursday</th>
-                                    <th>Friday</th>
-                                    <th>Saturday</th>
-                                </tr>
-                            </thead>
-                            <tbody id="calendar-body">
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <div class="employee-details">
-                        <h3>👤 Employee Details</h3>
-                        <div id="employee-info">
-                            <div class="no-selection">
-                                <div class="no-selection-icon">👆</div>
-                                <p>Select an employee from the dropdown above or click on a name in the calendar to view their holiday details.</p>
+                <!-- Attendance Review Section -->
+                <div id="admin-attendance" class="admin-section hidden">
+                    <h3>🧾 Attendance Review</h3>
+                    <p style="color: #6c757d; margin-bottom: 15px;">Review individual attendance, sick leave patterns and short-notice requests for 1-on-1 meetings.</p>
+
+                    <!-- List view -->
+                    <div id="attendance-list-view">
+                        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px;">
+                            <div style="flex: 1; min-width: 220px;">
+                                <input type="text" id="attendance-search" placeholder="Search employees..." oninput="filterAttendanceList()" style="padding: 10px; width: 100%; font-size: 16px; border: 2px solid #e9ecef; border-radius: 8px;">
                             </div>
+                            <div>
+                                <label for="attendance-year-select" style="font-weight: 500; margin-right: 8px;">Year:</label>
+                                <select id="attendance-year-select" onchange="changeAttendanceYear()" style="padding: 8px 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 16px;"></select>
+                            </div>
+                        </div>
+                        <div id="attendance-employee-grid"></div>
+                    </div>
+
+                    <!-- Detail view (populated by JS) -->
+                    <div id="attendance-detail-view" class="hidden"></div>
+                </div>
+
+                <!-- Employee Reports Section -->
+                <div id="admin-reports" class="admin-section hidden">
+                    <h3>📄 Employee Reports</h3>
+                    <p style="color: #6c757d; margin-bottom: 20px;">Generate detailed reports for individual employees or all employees</p>
+                    
+                    <div class="compact-grid">
+                        <div>
+                            <h4>Individual Employee Report</h4>
+                            <div class="form-group">
+                                <label for="report-employee-select">Select Employee:</label>
+                                <select id="report-employee-select">
+                                    <option value="">Choose an employee...</option>
+                                </select>
+                            </div>
+                            <button onclick="exportEmployeeReport()" id="export-single-btn" disabled>Export Employee Report</button>
+                        </div>
+                        
+                        <div>
+                            <h4>All Employees Report</h4>
+                            <p style="font-size: 14px; color: #6c757d; margin-bottom: 15px;">
+                                Generate a comprehensive report containing data for all employees.
+                            </p>
+                            <button onclick="exportAllEmployeesReport()">Export All Employees Report</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
+            </div><!-- /content-area -->
+        </main>
+    </div><!-- /app-shell -->
+    
+    <!-- PIN Modal -->
+    <div id="pin-modal" class="pin-modal hidden">
+        <div class="pin-content" id="pin-content">
+            <button class="pin-close" onclick="closePinModal()" aria-label="Close">×</button>
+
+            <div class="pin-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+            </div>
+
+            <h3>Admin Access</h3>
+            <p>Enter your 4-digit PIN to continue</p>
+
+            <!-- Hidden input keeps the existing checkPin() logic working -->
+            <input type="password" id="pin-input" class="pin-input-hidden" maxlength="4" inputmode="numeric" autocomplete="off">
+
+            <!-- Visual PIN dots -->
+            <div class="pin-dots" id="pin-dots">
+                <div class="pin-dot" data-index="0"></div>
+                <div class="pin-dot" data-index="1"></div>
+                <div class="pin-dot" data-index="2"></div>
+                <div class="pin-dot" data-index="3"></div>
+            </div>
+
+            <div class="pin-error-msg" id="pin-error-msg">Incorrect PIN — try again</div>
+
+            <!-- On-screen numeric keypad -->
+            <div class="pin-keypad" id="pin-keypad">
+                <button type="button" class="pin-key" data-digit="1">1</button>
+                <button type="button" class="pin-key" data-digit="2">2</button>
+                <button type="button" class="pin-key" data-digit="3">3</button>
+                <button type="button" class="pin-key" data-digit="4">4</button>
+                <button type="button" class="pin-key" data-digit="5">5</button>
+                <button type="button" class="pin-key" data-digit="6">6</button>
+                <button type="button" class="pin-key" data-digit="7">7</button>
+                <button type="button" class="pin-key" data-digit="8">8</button>
+                <button type="button" class="pin-key" data-digit="9">9</button>
+                <button type="button" class="pin-key pin-key-action" id="pin-key-cancel">Cancel</button>
+                <button type="button" class="pin-key" data-digit="0">0</button>
+                <button type="button" class="pin-key pin-key-action" id="pin-key-back" aria-label="Backspace">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+                        <path d="M21 5H7L2 12l5 7h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"></path>
+                        <line x1="18" y1="9" x2="12" y2="15"></line>
+                        <line x1="12" y1="9" x2="18" y2="15"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
     </div>
     
-    <div id="tooltip" class="tooltip hidden"></div>
-
-    <script>
-        // GitHub Configuration
-        const GITHUB_CONFIG = {
-            owner: 'KSCumnock',
-            repo: 'Holidays',
-            branch: 'main'
-        };
-        
-        const GITHUB_RAW_BASE = `https://raw.githubusercontent.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/${GITHUB_CONFIG.branch}/`;
-        
-        let employeesData = [];
-        let holidayRequestsData = [];
-        let currentDate = new Date();
-        let selectedEmployeeId = null;
-        let currentYear = new Date().getFullYear();
-        let availableYears = [];
-        let tooltip = null;
-        let dataCache = new Map(); // Cache for loaded data
-        let currentPopover = null; // Track current popover
-
-        // Helper function to get local date string in YYYY-MM-DD format
-        function getLocalDateString(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-
-        // Dynamic file names based on year
-        function getFileNames(year) {
-            return {
-                employees: `employees${year}.json`,
-                holidayRequests: `holiday-requests${year}.json`
-            };
-        }
-
-        // Check if year data is available with retry
-        async function checkYearAvailability(year, retries = 2) {
-            for (let i = 0; i <= retries; i++) {
-                try {
-                    const fileNames = getFileNames(year);
-                    const response = await fetch(GITHUB_RAW_BASE + fileNames.employees);
-                    return response.ok;
-                } catch (error) {
-                    if (i === retries) {
-                        console.warn(`Failed to check availability for ${year} after ${retries + 1} attempts`);
-                        return false;
-                    }
-                    // Wait before retry
-                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-                }
-            }
-            return false;
-        }
-
-        // Find all available years (optimized to reduce requests)
-        async function findAvailableYears() {
-            const currentYear = new Date().getFullYear();
-            // Start with current year, then check adjacent years
-            const yearsToCheck = [currentYear, currentYear + 1, currentYear - 1, currentYear + 2, currentYear - 2];
-            const available = [];
-            
-            // Check years sequentially to avoid overwhelming the server
-            for (const year of yearsToCheck) {
-                if (await checkYearAvailability(year)) {
-                    available.push(year);
-                }
-                // Small delay between requests to be respectful
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-            
-            return available.sort((a, b) => a - b);
-        }
-
-        function populateYearDropdown(years) {
-    const yearSelect = document.getElementById('year-select');
-    yearSelect.innerHTML = '';
-    
-    years.forEach(year => {
-        const option = document.createElement('option');
-        option.value = year;
-        option.textContent = year;
-        if (year === currentYear) {
-            option.selected = true;
-        }
-        yearSelect.appendChild(option);
-    });
-}
-
-// Populate employee dropdown
-function populateEmployeeDropdown() {
-    const employeeSelect = document.getElementById('employee-select');
-    employeeSelect.innerHTML = '<option value="">Select an employee...</option>';
-    
-    // Sort employees alphabetically
-    const sortedEmployees = [...employeesData].sort((a, b) => a.name.localeCompare(b.name));
-    
-    sortedEmployees.forEach(employee => {
-        const option = document.createElement('option');
-        option.value = employee.id;
-        option.textContent = employee.name;
-        employeeSelect.appendChild(option);
-    });
-}
-
-// Close popover
-function closePopover() {
-    if (currentPopover) {
-        if (currentPopover.backdrop) {
-            currentPopover.backdrop.remove();
-        }
-        if (currentPopover.popover) {
-            currentPopover.popover.remove();
-        }
-        if (currentPopover.closeButton) {
-            currentPopover.closeButton.remove();
-        }
-        currentPopover = null;
-    }
-}
-
-// Show popover with employees for a specific date
-function showDayPopover(event, dateStr, employeesOnHoliday) {
-    // Close any existing popover
-    closePopover();
-
-    // Create backdrop
-    const backdrop = document.createElement('div');
-    backdrop.className = 'popover-backdrop';
-    backdrop.addEventListener('click', closePopover);
-
-    // Create popover
-    const popover = document.createElement('div');
-    popover.className = 'popover';
-
-    // Format date for display
-    const date = new Date(dateStr);
-    const formattedDate = date.toLocaleDateString('en-GB', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-
-    // Create header
-    const header = document.createElement('div');
-    header.className = 'popover-header';
-    header.innerHTML = `
-        ${formattedDate}
-        <button class="popover-close">×</button>
-    `;
-
-    // Add event listener to close button
-    const closeButton = header.querySelector('.popover-close');
-    closeButton.addEventListener('click', (e) => {
-        e.stopPropagation();
-        closePopover();
-    });
-
-    // Create content
-    const content = document.createElement('div');
-    content.className = 'popover-content';
-
-    if (employeesOnHoliday.length === 0) {
-        content.innerHTML = `
-            <div class="popover-no-employees">
-                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">😊</div>
-                <p>No employees on holiday</p>
+    <!-- Employee Detail Modal -->
+    <div id="employee-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="employee-modal-title">Employee History</h3>
+                <button class="close-btn" onclick="closeEmployeeModal()">×</button>
             </div>
-        `;
-    } else {
-        employeesOnHoliday.forEach(holiday => {
-            const employeeDiv = document.createElement('div');
-            employeeDiv.className = 'popover-employee';
-            employeeDiv.addEventListener('click', () => {
-                selectEmployee(holiday.employeeId);
-                document.getElementById('employee-select').value = holiday.employeeId;
-                closePopover();
-            });
+            <div id="employee-modal-content"></div>
+        </div>
+    </div>
 
-            const typeClass = holiday.isHalfDay ? 'half-day' : 'full-day';
-            const typeText = holiday.isHalfDay ? `${holiday.halfDayPeriod} Half` : 'Full Day';
-
-            employeeDiv.innerHTML = `
-                <div class="popover-employee-name">${holiday.employeeName}</div>
-                <div class="popover-employee-type ${typeClass}">${typeText}</div>
-            `;
-
-            content.appendChild(employeeDiv);
-        });
-    }
-
-    popover.appendChild(header);
-    popover.appendChild(content);
-
-    // Position popover
-    const buttonRect = event.target.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-
-    // Initial positioning (top-right of button)
-    let left = buttonRect.right + 10;
-    let top = buttonRect.top;
-
-    // Adjust if popover would go off-screen horizontally
-    if (left + 300 > viewportWidth) {
-        left = buttonRect.left - 310; // Position to the left of button
-    }
-
-    // Adjust if popover would go off-screen vertically
-    if (top + 200 > viewportHeight) {
-        top = viewportHeight - 210; // Position near bottom of viewport
-    }
-
-    popover.style.left = Math.max(10, left) + 'px';
-    popover.style.top = Math.max(10, top) + 'px';
-
-    // Position close button relative to popover
-    const popoverRect = popover.getBoundingClientRect();
-    closeButton.style.left = (left + 280 - 12) + 'px'; // Adjust based on popover width
-    closeButton.style.top = (top - 12) + 'px';
-
-    // Add to DOM
-    document.body.appendChild(backdrop);
-    document.body.appendChild(popover);
-    currentPopover = { popover, backdrop };
-
-    // Prevent event bubbling
-    event.stopPropagation();
-}
-
-// Initialize the app
-async function init() {
-    try {
-        // Find available years first
-        availableYears = await findAvailableYears();
-        if (availableYears.length === 0) {
-            throw new Error('No holiday data files found');
-        }
-        
-        // Set current year to latest available if current year not available
-        if (!availableYears.includes(currentYear)) {
-            currentYear = availableYears[availableYears.length - 1];
-        }
-        
-        populateYearDropdown(availableYears);
-        
-        await loadDataFromGitHub();
-        populateEmployeeDropdown();
-        setupEventListeners();
-        renderCalendar();
-        
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('calendar-section').classList.remove('hidden');
-    } catch (error) {
-        console.error('Error loading data:', error);
-        document.getElementById('loading').classList.add('hidden');
-        showError(`Failed to load holiday data. ${error.message}`);
-    }
-}
-
-// Load data from GitHub with caching
-async function loadDataFromGitHub() {
-    try {
-        const cacheKey = `data-${currentYear}`;
-        
-        // Check if data is already cached
-        if (dataCache.has(cacheKey)) {
-            const cachedData = dataCache.get(cacheKey);
-            employeesData = cachedData.employees;
-            holidayRequestsData = cachedData.holidayRequests;
-            console.log(`Data loaded from cache for ${currentYear}`);
-            return;
-        }
-        
-        const fileNames = getFileNames(currentYear);
-        
-        // Load employees
-        const employeesResponse = await fetch(GITHUB_RAW_BASE + fileNames.employees);
-        if (!employeesResponse.ok) {
-            throw new Error(`Failed to fetch employees for ${currentYear}: ${employeesResponse.statusText}`);
-        }
-        employeesData = await employeesResponse.json();
-
-        // Load holiday requests
-        const requestsResponse = await fetch(GITHUB_RAW_BASE + fileNames.holidayRequests);
-        if (!requestsResponse.ok) {
-            throw new Error(`Failed to fetch holiday requests for ${currentYear}: ${requestsResponse.statusText}`);
-        }
-        holidayRequestsData = await requestsResponse.json();
-
-        // Cache the data
-        dataCache.set(cacheKey, {
-            employees: employeesData,
-            holidayRequests: holidayRequestsData
-        });
-
-        console.log(`Data loaded and cached for ${currentYear}`);
-    } catch (error) {
-        console.error('Error loading from GitHub:', error);
-        throw error;
-    }
-}
-
-function setupEventListeners() {
-    document.getElementById('prev-month').addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() - 1);
-        renderCalendar();
-    });
-    
-    document.getElementById('next-month').addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        renderCalendar();
-    });
-    
-    document.getElementById('year-select').addEventListener('change', async (e) => {
-        const newYear = parseInt(e.target.value);
-        if (newYear !== currentYear) {
-            currentYear = newYear;
-            selectedEmployeeId = null;
-            
-            // Update employee dropdown to show loading
-            const employeeSelect = document.getElementById('employee-select');
-            employeeSelect.innerHTML = '<option value="">Loading employees...</option>';
-            
-            // Show loading
-            document.getElementById('loading').classList.remove('hidden');
-            document.getElementById('calendar-section').classList.add('hidden');
-            
-            try {
-                await loadDataFromGitHub();
-                populateEmployeeDropdown();
-                renderCalendar();
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('calendar-section').classList.remove('hidden');
-            } catch (error) {
-                console.error('Error loading new year data:', error);
-                document.getElementById('loading').classList.add('hidden');
-                showError(`Failed to load data for ${currentYear}. Please try again later.`);
-            }
-        }
-    });
-    
-    document.getElementById('employee-select').addEventListener('change', (e) => {
-        const employeeId = parseInt(e.target.value);
-        if (employeeId) {
-            selectEmployee(employeeId);
-        } else {
-            selectedEmployeeId = null;
-            renderCalendar();
-            showNoSelection();
-        }
-    });
-    
-    tooltip = document.getElementById('tooltip');
-    
-    // Hide tooltip when mouse leaves the document
-    document.addEventListener('mouseleave', hideTooltip);
-
-    // Close popover when clicking outside or pressing escape
-    document.addEventListener('click', (e) => {
-        if (currentPopover && !e.target.closest('.popover') && !e.target.closest('.day-info-button')) {
-            closePopover();
-        }
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && currentPopover) {
-            closePopover();
-        }
-    });
-}
-
-function renderCalendar() {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    
-    // Update current date to match selected year if needed
-    if (year !== currentYear) {
-        currentDate.setFullYear(currentYear);
-    }
-    
-    // Update month/year display
-    document.getElementById('current-month-year').textContent = 
-        new Date(currentYear, month).toLocaleDateString('en-GB', { 
-            month: 'long', 
-            year: 'numeric' 
-        });
-    
-    // Calculate calendar grid
-    const firstDay = new Date(currentYear, month, 1).getDay();
-    const daysInMonth = new Date(currentYear, month + 1, 0).getDate();
-    const daysInPrevMonth = new Date(currentYear, month, 0).getDate();
-    
-    const calendarBody = document.getElementById('calendar-body');
-    calendarBody.innerHTML = '';
-    
-    let date = 1;
-    let nextMonthDate = 1;
-    const today = new Date();
-    const todayStr = getLocalDateString(today);
-    
-    // Calculate summary stats for current month
-    updateSummaryStats(currentYear, month);
-    
-    // Create 6 weeks (rows)
-    for (let week = 0; week < 6; week++) {
-        const row = calendarBody.insertRow();
-        
-        // Create 7 days (columns)
-        for (let day = 0; day < 7; day++) {
-            const cell = row.insertCell();
-            let cellDate, dateStr, isCurrentMonth = true;
-            
-            if (week === 0 && day < firstDay) {
-                // Previous month days
-                cellDate = daysInPrevMonth - firstDay + day + 1;
-                dateStr = getLocalDateString(new Date(currentYear, month - 1, cellDate));
-                isCurrentMonth = false;
-                cell.classList.add('other-month');
-            } else if (date > daysInMonth) {
-                // Next month days
-                cellDate = nextMonthDate++;
-                dateStr = getLocalDateString(new Date(currentYear, month + 1, cellDate));
-                isCurrentMonth = false;
-                cell.classList.add('other-month');
-            } else {
-                // Current month days
-                cellDate = date++;
-                dateStr = getLocalDateString(new Date(currentYear, month, cellDate));
-            }
-            
-            // Add day number
-            const dayNumber = document.createElement('div');
-            dayNumber.className = 'day-number';
-            dayNumber.textContent = cellDate;
-            cell.appendChild(dayNumber);
-
-            // Get employees on holiday for this date
-            const employeesOnHoliday = getEmployeesOnHoliday(dateStr);
-
-            // Add info button (only if there are holidays or it's current month)
-            if (isCurrentMonth) {
-                const infoButton = document.createElement('button');
-                infoButton.className = `day-info-button ${employeesOnHoliday.length === 0 ? 'no-holidays' : ''}`;
-                infoButton.textContent = employeesOnHoliday.length || 'i';
-                infoButton.title = employeesOnHoliday.length > 0 ? 
-                    `${employeesOnHoliday.length} employee${employeesOnHoliday.length !== 1 ? 's' : ''} on holiday` : 
-                    'View day info';
+    <!-- Edit Employee Modal -->
+    <div id="edit-employee-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Edit Employee</h3>
+                <button class="close-btn" onclick="closeEditEmployeeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-employee-id">
                 
-                infoButton.addEventListener('click', (e) => {
-                    showDayPopover(e, dateStr, employeesOnHoliday);
-                });
-
-                cell.appendChild(infoButton);
-            }
-            
-            // Check if it's today
-            if (dateStr === todayStr) {
-                cell.classList.add('today');
-            }
-            
-            // Check if it's weekend
-            const dayOfWeek = new Date(dateStr).getDay();
-            if (dayOfWeek === 0 || dayOfWeek === 6) {
-                cell.classList.add('weekend');
-            }
-            
-            // Add holidays for this date
-            const holidaysContainer = document.createElement('div');
-            holidaysContainer.className = 'holidays-container';
-            
-            if (employeesOnHoliday.length > 0) {
-                employeesOnHoliday.forEach(holiday => {
-                    const chip = document.createElement('div');
-                    chip.className = `employee-chip ${holiday.isHalfDay ? 'half-day' : ''}`;
-                    if (holiday.employeeId === selectedEmployeeId) {
-                        chip.classList.add('selected');
-                    }
-                    chip.textContent = holiday.employeeName;
-                    chip.title = `${holiday.employeeName} - ${holiday.isHalfDay ? holiday.halfDayPeriod + ' half-day' : 'Full day'}`;
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 id="edit-employee-name-display" style="margin: 0 0 10px 0; color: #333;"></h4>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;">
+                        <div>
+                            <div style="font-size: 24px; font-weight: 600; color: #258bca;" id="edit-employee-current-allowance">0</div>
+                            <div style="font-size: 12px; color: #666;">Total Allowance</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 24px; font-weight: 600; color: #dc3545;" id="edit-employee-used-days">0</div>
+                            <div style="font-size: 12px; color: #666;">Used Days</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 24px; font-weight: 600; color: #28a745;" id="edit-employee-remaining">0</div>
+                            <div style="font-size: 12px; color: #666;">Remaining</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <form onsubmit="saveEmployeeEdit(event)">
+                    <div class="form-group">
+                        <label for="edit-allowance-adjustment">Adjust Allowance:</label>
+                        <input type="number" id="edit-allowance-adjustment" step="0.5" placeholder="e.g., 2 to add, -2 to deduct">
+                        <p style="font-size: 12px; color: #666; margin-top: 5px;">Enter a positive number to add days, negative to deduct</p>
+                    </div>
                     
-                    // Add click functionality
-                    chip.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        selectEmployee(holiday.employeeId);
-                        // Update dropdown to match selection
-                        document.getElementById('employee-select').value = holiday.employeeId;
-                    });
+                    <div class="form-group">
+                        <label for="edit-adjustment-reason">Reason for Adjustment (optional):</label>
+                        <textarea id="edit-adjustment-reason" rows="2" placeholder="e.g., Carry over from last year, Correction, etc."></textarea>
+                    </div>
                     
-                    // Add tooltip functionality
-                    chip.addEventListener('mouseenter', (e) => showTooltip(e, holiday));
-                    chip.addEventListener('mouseleave', hideTooltip);
+                    <div class="form-group">
+                        <div class="half-day-container">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="edit-saturday-deduction">
+                                <span class="checkbox-custom"></span>
+                                Include Saturday Deduction
+                            </label>
+                        </div>
+                    </div>
                     
-                    holidaysContainer.appendChild(chip);
-                });
-            }
-            
-            cell.appendChild(holidaysContainer);
-        }
-    }
-    
-    // Update employee details if someone is selected
-    if (selectedEmployeeId) {
-        displayEmployeeDetails(selectedEmployeeId);
-    }
-}
-
-function getEmployeesOnHoliday(date) {
-    const approvedRequests = holidayRequestsData.filter(req => 
-        req.status === 'approved' && 
-        req.startDate <= date && 
-        req.endDate >= date
-    );
-    
-    return approvedRequests.map(request => {
-        const employee = employeesData.find(emp => emp.id === request.employeeId);
-        return {
-            employeeId: request.employeeId,
-            employeeName: employee ? employee.name : 'Unknown Employee',
-            requestId: request.id,
-            isHalfDay: request.isHalfDay,
-            halfDayPeriod: request.halfDayPeriod,
-            reason: request.reason
-        };
-    }).sort((a, b) => a.employeeName.localeCompare(b.employeeName));
-}
-
-function selectEmployee(employeeId) {
-    selectedEmployeeId = employeeId;
-    renderCalendar(); // Re-render to update selected state
-    displayEmployeeDetails(employeeId);
-}
-
-function displayEmployeeDetails(employeeId) {
-    const employee = employeesData.find(emp => emp.id === employeeId);
-    const employeeRequests = holidayRequestsData.filter(req => req.employeeId === employeeId);
-    
-    if (!employee) {
-        document.getElementById('employee-info').innerHTML = `
-            <div class="no-selection">
-                <div class="no-selection-icon">❌</div>
-                <p>Employee not found.</p>
-            </div>
-        `;
-        return;
-    }
-    
-    const approvedRequests = employeeRequests.filter(req => req.status === 'approved');
-    const pendingRequests = employeeRequests.filter(req => req.status === 'pending');
-    const rejectedRequests = employeeRequests.filter(req => req.status === 'rejected');
-    
-    const usedDays = approvedRequests.reduce((sum, req) => sum + req.days, 0);
-    const remainingDays = employee.totalAllowance - usedDays;
-    
-    // Sort requests by start date (newest first)
-    const sortedRequests = [...employeeRequests].sort((a, b) => 
-        new Date(b.startDate) - new Date(a.startDate)
-    );
-    
-    const requestsHtml = sortedRequests.map(request => {
-        const dateRange = request.startDate === request.endDate ? 
-            formatDate(request.startDate) : 
-            `${formatDate(request.startDate)} to ${formatDate(request.endDate)}`;
-        
-        const dayText = request.isHalfDay ? 
-            `${request.days} day (${request.halfDayPeriod} half-day)` : 
-            `${request.days} days`;
-        
-        return `
-            <div class="request-item ${request.status}">
-                <div class="request-dates">${dateRange}</div>
-                <div class="request-details">
-                    <strong>Duration:</strong> ${dayText}<br>
-                    <strong>Reason:</strong> ${request.reason || 'Not specified'}<br>
-                    <strong>Submitted:</strong> ${formatDate(request.submittedDate)}
-                </div>
-                <span class="request-status status-${request.status}">
-                    ${request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                </span>
-            </div>
-        `;
-    }).join('');
-    
-    document.getElementById('employee-info').innerHTML = `
-        <div class="selected-employee">
-            <div class="employee-name">${employee.name}</div>
-            <div class="employee-stats">
-                <div class="employee-stat">
-                    <span class="employee-stat-number">${employee.totalAllowance}</span>
-                    <div class="employee-stat-label">Total Allowance</div>
-                </div>
-                <div class="employee-stat">
-                    <span class="employee-stat-number">${usedDays}</span>
-                    <div class="employee-stat-label">Days Used</div>
-                </div>
-                <div class="employee-stat">
-                    <span class="employee-stat-number">${remainingDays}</span>
-                    <div class="employee-stat-label">Remaining</div>
-                </div>
-                <div class="employee-stat">
-                    <span class="employee-stat-number">${employeeRequests.length}</span>
-                    <div class="employee-stat-label">Total Requests</div>
-                </div>
-            </div>
-            <div class="requests-header">Holiday Requests (${currentYear})</div>
-            <div class="employee-requests">
-                ${requestsHtml || '<p style="text-align: center; color: #718096; font-style: italic; padding: 2rem;">No holiday requests found</p>'}
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="submit">Save Changes</button>
+                        <button type="button" onclick="closeEditEmployeeModal()" style="background: #6c757d;">Cancel</button>
+                    </div>
+                </form>
             </div>
         </div>
-    `;
-}
+    </div>
 
-function showNoSelection() {
-    document.getElementById('employee-info').innerHTML = `
-        <div class="no-selection">
-            <div class="no-selection-icon">👆</div>
-            <p>Select an employee from the dropdown above or click on a name in the calendar to view their holiday details.</p>
+    <!-- Bulk Holiday Modal -->
+    <div id="bulk-holiday-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>📅 Bulk Add Holidays for All Employees</h3>
+                <button class="close-btn" onclick="closeBulkHolidayModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #666; margin-bottom: 20px;">
+                    Select dates to add as holidays for ALL employees (e.g., Christmas, Bank Holidays).
+                    These will be automatically approved.
+                </p>
+                
+                <!-- Calendar for selecting dates -->
+                <div class="block-calendar-container">
+                    <div class="block-calendar-header">
+                        <button type="button" class="calendar-nav" onclick="changeBulkMonth(-1)">❮</button>
+                        <h4 id="bulk-calendar-title"></h4>
+                        <button type="button" class="calendar-nav" onclick="changeBulkMonth(1)">❯</button>
+                    </div>
+                    <div class="block-calendar-grid" id="bulk-calendar-grid"></div>
+                </div>
+                
+                <!-- Selected dates summary -->
+                <div style="margin-top: 20px;">
+                    <h4 style="margin-bottom: 10px;">Selected Dates (<span id="bulk-dates-count">0</span>)</h4>
+                    <div id="bulk-selected-dates-list" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; background: #f8f9fa; padding: 10px; border-radius: 8px;"></div>
+                    <div id="bulk-preview"></div>
+                </div>
+                
+                <!-- Options -->
+                <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px;">
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label for="bulk-holiday-reason">Reason/Description:</label>
+                        <input type="text" id="bulk-holiday-reason" value="Company Holiday" placeholder="e.g., Christmas Day, Bank Holiday">
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <div class="half-day-container">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="bulk-deduct-allowance" checked>
+                                <span class="checkbox-custom"></span>
+                                Deduct from employee holiday allowance
+                            </label>
+                        </div>
+                        <p style="font-size: 12px; color: #856404; margin-top: 5px;">
+                            Uncheck if this is a company-provided holiday that shouldn't reduce employee allowances
+                        </p>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button onclick="submitBulkHolidays()" class="btn-success">
+                        Add Holidays for All Employees
+                    </button>
+                    <button type="button" onclick="closeBulkHolidayModal()" class="btn-ghost">Cancel</button>
+                </div>
+            </div>
         </div>
-    `;
-}
+    </div>
 
-function updateSummaryStats(year, month) {
-    const monthStart = getLocalDateString(new Date(year, month, 1));
-    const monthEnd = getLocalDateString(new Date(year, month + 1, 0));
-    
-    // Get all approved requests that overlap with this month
-    const monthlyRequests = holidayRequestsData.filter(req => 
-        req.status === 'approved' && 
-        req.startDate <= monthEnd && 
-        req.endDate >= monthStart
-    );
-    
-    // Count unique employees on holiday this month
-    const uniqueEmployees = new Set(monthlyRequests.map(req => req.employeeId));
-    
-    // Count total holiday days in this month
-    let totalHolidayDays = 0;
-    monthlyRequests.forEach(req => {
-        const requestStart = new Date(Math.max(new Date(req.startDate), new Date(monthStart)));
-        const requestEnd = new Date(Math.min(new Date(req.endDate), new Date(monthEnd)));
-        const days = Math.ceil((requestEnd - requestStart) / (1000 * 60 * 60 * 24)) + 1;
-        totalHolidayDays += req.isHalfDay ? days * 0.5 : days;
-    });
-    
-    // Count pending requests for this month
-    const pendingRequests = holidayRequestsData.filter(req => 
-        req.status === 'pending' && 
-        req.startDate <= monthEnd && 
-        req.endDate >= monthStart
-    );
-    
-    const statsHtml = `
-        <div class="stat-item">
-            <span class="stat-number">${uniqueEmployees.size}</span>
-            <div class="stat-label">Employees on Holiday</div>
-        </div>
-        <div class="stat-item">
-            <span class="stat-number">${monthlyRequests.length}</span>
-            <div class="stat-label">Holiday Periods</div>
-        </div>
-        <div class="stat-item">
-            <span class="stat-number">${totalHolidayDays}</span>
-            <div class="stat-label">Total Holiday Days</div>
-        </div>
-        <div class="stat-item">
-            <span class="stat-number">${pendingRequests.length}</span>
-            <div class="stat-label">Pending Requests</div>
-        </div>
-    `;
-    
-    document.getElementById('summary-stats').innerHTML = statsHtml;
-}
 
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
-}
+ <script src="script.js?v=20260504b"></script>
 
-function showTooltip(event, holiday) {
-    let content = `<strong>${holiday.employeeName}</strong>`;
-    
-    if (holiday.details) {
-        content += `<br>${holiday.details}`;
-    } else {
-        content += `<br>${holiday.isHalfDay ? holiday.halfDayPeriod + ' half-day' : 'Full day'}`;
-        if (holiday.reason) {
-            content += `<br>Reason: ${holiday.reason}`;
-        }
-    }
-    
-    tooltip.innerHTML = content;
-    tooltip.classList.remove('hidden');
-    
-    // Position tooltip
-    const rect = tooltip.getBoundingClientRect();
-    const x = event.clientX + 10;
-    const y = event.clientY - rect.height - 10;
-    
-    tooltip.style.left = x + 'px';
-    tooltip.style.top = Math.max(10, y) + 'px';
-}
-
-function hideTooltip() {
-    if (tooltip) {
-        tooltip.classList.add('hidden');
-    }
-}
-
-function showError(message) {
-    const errorDiv = document.getElementById('error-message');
-    errorDiv.textContent = message;
-    errorDiv.classList.remove('hidden');
-}
-
-// Initialize app when page loads
-document.addEventListener('DOMContentLoaded', init);
-    </script>
 </body>
 </html>
