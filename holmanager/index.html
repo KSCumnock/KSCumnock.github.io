@@ -498,13 +498,34 @@
 
                     <!-- List view -->
                     <div id="attendance-list-view">
-                        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px;">
-                            <div style="flex: 1; min-width: 220px;">
-                                <input type="text" id="attendance-search" placeholder="Search employees..." oninput="filterAttendanceList()" style="padding: 10px; width: 100%; font-size: 16px; border: 2px solid #e9ecef; border-radius: 8px;">
+                        <div class="emp-toolbar" id="attendance-toolbar">
+                            <div class="emp-toolbar-search">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                <input type="text" id="attendance-search" placeholder="Search employees…" autocomplete="off">
+                                <button type="button" class="emp-search-clear hidden" id="attendance-search-clear" aria-label="Clear search">×</button>
                             </div>
-                            <div>
-                                <label for="attendance-year-select" style="font-weight: 500; margin-right: 8px;">Year:</label>
-                                <select id="attendance-year-select" onchange="changeAttendanceYear()" style="padding: 8px 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 16px;"></select>
+                            <div class="emp-toolbar-right">
+                                <div class="emp-filter-chips" id="attendance-filter-chips">
+                                    <button type="button" class="filter-chip active" data-filter="all">All <span class="chip-count" data-count="all">0</span></button>
+                                    <button type="button" class="filter-chip" data-filter="has-pending">Has pending <span class="chip-count" data-count="has-pending">0</span></button>
+                                    <button type="button" class="filter-chip" data-filter="on-leave-now">On leave now <span class="chip-count" data-count="on-leave-now">0</span></button>
+                                    <button type="button" class="filter-chip" data-filter="low-days">Low days left <span class="chip-count" data-count="low-days">0</span></button>
+                                </div>
+                                <div class="select-wrap emp-sort-wrap">
+                                    <select id="attendance-sort">
+                                        <option value="name-asc">Name · A–Z</option>
+                                        <option value="name-desc">Name · Z–A</option>
+                                        <option value="days-desc">Most days left</option>
+                                        <option value="days-asc">Fewest days left</option>
+                                        <option value="pending-desc">Most pending</option>
+                                        <option value="next-leave">Next leave soonest</option>
+                                    </select>
+                                    <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                </div>
+                                <div class="select-wrap emp-sort-wrap" title="Year">
+                                    <select id="attendance-year-select" onchange="changeAttendanceYear()"></select>
+                                    <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                </div>
                             </div>
                         </div>
                         <div id="attendance-employee-grid"></div>

@@ -23,6 +23,27 @@ function persistEmpViewState() {
     } catch {}
 }
 
+// Mirrors EMP_VIEW_STATE for the Admin → Attendance Review grid so the
+// same filter/sort pipeline can drive both views independently.
+const ATT_VIEW_STATE = (() => {
+    let stored = {};
+    try { stored = JSON.parse(localStorage.getItem('ks-att-view') || '{}'); } catch {}
+    return {
+        search:  '',
+        filter:  stored.filter || 'all',
+        sort:    stored.sort   || 'name-asc'
+    };
+})();
+
+function persistAttViewState() {
+    try {
+        localStorage.setItem('ks-att-view', JSON.stringify({
+            filter: ATT_VIEW_STATE.filter,
+            sort:   ATT_VIEW_STATE.sort
+        }));
+    } catch {}
+}
+
 // Build a per-employee summary used by both filters and the card render.
 function summariseEmployee(employee) {
     const reqs = holidayRequests.filter(r => r.employeeId === employee.id);
@@ -95,14 +116,16 @@ function sortSummaries(list, sort) {
 }
 
 // Update the chip counts (and the All count) for the current employee set.
-function updateFilterChipCounts(summaries) {
+// `scope` defaults to document for backwards compatibility, but call sites
+// should pass their toolbar element so two grids on the page don't fight.
+function updateFilterChipCounts(summaries, scope = document) {
     const counts = {
         'all':          summaries.length,
         'has-pending':  summaries.filter(s => s.hasPending).length,
         'on-leave-now': summaries.filter(s => s.onLeaveNow).length,
         'low-days':     summaries.filter(s => s.lowDays).length
     };
-    document.querySelectorAll('.chip-count[data-count]').forEach(el => {
+    scope.querySelectorAll('.chip-count[data-count]').forEach(el => {
         const key = el.dataset.count;
         const n = counts[key] || 0;
         el.textContent = n;
@@ -822,7 +845,7 @@ function populateEmployeeCards() {
 
     // Build summaries once — used for chip counts AND filtering AND rendering.
     const allSummaries = employees.map(summariseEmployee);
-    updateFilterChipCounts(allSummaries);
+    updateFilterChipCounts(allSummaries, document.getElementById('emp-filter-chips'));
 
     // Apply filter + search, then sort.
     const filtered = allSummaries
@@ -4711,18 +4734,63 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    document.querySelectorAll('.filter-chip[data-filter]').forEach(chip => {
-        // Restore active state from persisted filter
-        chip.classList.toggle('active', chip.dataset.filter === EMP_VIEW_STATE.filter);
-        chip.addEventListener('click', () => {
-            EMP_VIEW_STATE.filter = chip.dataset.filter;
-            persistEmpViewState();
-            document.querySelectorAll('.filter-chip[data-filter]').forEach(c => {
-                c.classList.toggle('active', c.dataset.filter === EMP_VIEW_STATE.filter);
+    const empChipScope = document.getElementById('emp-filter-chips');
+    if (empChipScope) {
+        empChipScope.querySelectorAll('.filter-chip[data-filter]').forEach(chip => {
+            // Restore active state from persisted filter
+            chip.classList.toggle('active', chip.dataset.filter === EMP_VIEW_STATE.filter);
+            chip.addEventListener('click', () => {
+                EMP_VIEW_STATE.filter = chip.dataset.filter;
+                persistEmpViewState();
+                empChipScope.querySelectorAll('.filter-chip[data-filter]').forEach(c => {
+                    c.classList.toggle('active', c.dataset.filter === EMP_VIEW_STATE.filter);
+                });
+                populateEmployeeCards();
             });
-            populateEmployeeCards();
         });
-    });
+    }
+
+    // Attendance Review toolbar — same pipeline as the Employees portal,
+    // independent state so each grid remembers its own filter/sort.
+    const attSearch = document.getElementById('attendance-search');
+    if (attSearch) {
+        attSearch.addEventListener('input', filterAttendanceList);
+    }
+
+    const attSearchClear = document.getElementById('attendance-search-clear');
+    if (attSearchClear) {
+        attSearchClear.addEventListener('click', () => {
+            const input = document.getElementById('attendance-search');
+            if (input) input.value = '';
+            filterAttendanceList();
+            input?.focus();
+        });
+    }
+
+    const attSort = document.getElementById('attendance-sort');
+    if (attSort) {
+        attSort.value = ATT_VIEW_STATE.sort;
+        attSort.addEventListener('change', () => {
+            ATT_VIEW_STATE.sort = attSort.value;
+            persistAttViewState();
+            renderAttendanceEmployeeList();
+        });
+    }
+
+    const attChipScope = document.getElementById('attendance-filter-chips');
+    if (attChipScope) {
+        attChipScope.querySelectorAll('.filter-chip[data-filter]').forEach(chip => {
+            chip.classList.toggle('active', chip.dataset.filter === ATT_VIEW_STATE.filter);
+            chip.addEventListener('click', () => {
+                ATT_VIEW_STATE.filter = chip.dataset.filter;
+                persistAttViewState();
+                attChipScope.querySelectorAll('.filter-chip[data-filter]').forEach(c => {
+                    c.classList.toggle('active', c.dataset.filter === ATT_VIEW_STATE.filter);
+                });
+                renderAttendanceEmployeeList();
+            });
+        });
+    }
 
     // TOIL grant modal — live preview + employee search
     const toilDaysInput = document.getElementById('toil-days');
@@ -4838,6 +4906,11 @@ function changeAttendanceYear() {
 }
 
 function filterAttendanceList() {
+    // Legacy entry point — kept so the previous oninput handler (if cached anywhere)
+    // still works. Pulls the current search input value and re-renders.
+    ATT_VIEW_STATE.search = (document.getElementById('attendance-search')?.value || '').toLowerCase().trim();
+    const clearBtn = document.getElementById('attendance-search-clear');
+    if (clearBtn) clearBtn.classList.toggle('hidden', !ATT_VIEW_STATE.search);
     renderAttendanceEmployeeList();
 }
 
@@ -4845,29 +4918,48 @@ function renderAttendanceEmployeeList() {
     const container = document.getElementById('attendance-employee-grid');
     if (!container) return;
 
-    const searchEl = document.getElementById('attendance-search');
-    const searchTerm = (searchEl?.value || '').toLowerCase();
+    if (employees.length === 0) {
+        renderEmptyState(container, {
+            icon: 'users',
+            title: 'No employees',
+            description: 'Add employees from the Employee Management section to review their attendance here.'
+        });
+        return;
+    }
 
-    const filtered = employees.filter(emp => emp.name.toLowerCase().includes(searchTerm));
+    // Reuse the same summarise / filter / sort pipeline as the Employees portal.
+    const allSummaries = employees.map(summariseEmployee);
+    updateFilterChipCounts(allSummaries, document.getElementById('attendance-filter-chips'));
 
-    if (filtered.length === 0) {
-        if (searchTerm) {
+    const filtered = allSummaries
+        .filter(s => passesFilter(s, ATT_VIEW_STATE.filter))
+        .filter(s => passesSearch(s, ATT_VIEW_STATE.search));
+    const visible = sortSummaries(filtered, ATT_VIEW_STATE.sort);
+
+    if (visible.length === 0) {
+        if (ATT_VIEW_STATE.search) {
             renderEmptyState(container, {
                 icon: 'search',
                 title: 'No matches',
-                description: `No employees match "${searchTerm}". Try a different search term.`
+                description: `No employees match "${ATT_VIEW_STATE.search}". Try a different search or clear the active filter.`
             });
         } else {
+            const filterLabels = {
+                'has-pending':  'with pending requests',
+                'on-leave-now': 'on leave today',
+                'low-days':     `with ${EMP_LOW_DAYS_THRESHOLD} or fewer days remaining`
+            };
             renderEmptyState(container, {
-                icon: 'users',
-                title: 'No employees',
-                description: 'Add employees from the Employee Management section to review their attendance here.'
+                icon: 'check',
+                tone: 'success',
+                title: 'No matches for this filter',
+                description: `No employees ${filterLabels[ATT_VIEW_STATE.filter] || 'match'}. Try the "All" filter to see everyone.`
             });
         }
         return;
     }
 
-    container.innerHTML = filtered.map(employee => {
+    container.innerHTML = visible.map(({ employee }) => {
         const stats = getAttendanceStats(employee.id, attendanceReviewYear);
 
         // Concern flags for at-a-glance triage
