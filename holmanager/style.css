@@ -171,25 +171,25 @@ body {
     transition: all var(--transition);
 }
 
-.nav-item:hover {
+.nav-item:hover:not(.active) {
     background: var(--neutral-100);
     color: var(--neutral-900);
+    border-color: transparent;
+    box-shadow: none;
+    transform: none;
 }
 
-.nav-item.active {
-    background: var(--ks-blue-50);
-    color: var(--ks-blue-700);
-}
-
-.nav-item.active::before {
-    content: '';
-    position: absolute;
-    left: -12px;
-    top: 8px;
-    bottom: 8px;
-    width: 3px;
+.nav-item.active,
+.nav-item.active:hover {
     background: var(--ks-blue);
-    border-radius: 0 3px 3px 0;
+    color: #fff;
+    border-color: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+.nav-item.active .nav-icon {
+    color: #fff;
 }
 
 .nav-icon {
