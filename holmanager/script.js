@@ -4750,48 +4750,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Attendance Review toolbar — same pipeline as the Employees portal,
-    // independent state so each grid remembers its own filter/sort.
-    const attSearch = document.getElementById('attendance-search');
-    if (attSearch) {
-        attSearch.addEventListener('input', filterAttendanceList);
-    }
-
-    const attSearchClear = document.getElementById('attendance-search-clear');
-    if (attSearchClear) {
-        attSearchClear.addEventListener('click', () => {
-            const input = document.getElementById('attendance-search');
-            if (input) input.value = '';
-            filterAttendanceList();
-            input?.focus();
-        });
-    }
-
-    const attSort = document.getElementById('attendance-sort');
-    if (attSort) {
-        attSort.value = ATT_VIEW_STATE.sort;
-        attSort.addEventListener('change', () => {
-            ATT_VIEW_STATE.sort = attSort.value;
-            persistAttViewState();
-            renderAttendanceEmployeeList();
-        });
-    }
-
-    const attChipScope = document.getElementById('attendance-filter-chips');
-    if (attChipScope) {
-        attChipScope.querySelectorAll('.filter-chip[data-filter]').forEach(chip => {
-            chip.classList.toggle('active', chip.dataset.filter === ATT_VIEW_STATE.filter);
-            chip.addEventListener('click', () => {
-                ATT_VIEW_STATE.filter = chip.dataset.filter;
-                persistAttViewState();
-                attChipScope.querySelectorAll('.filter-chip[data-filter]').forEach(c => {
-                    c.classList.toggle('active', c.dataset.filter === ATT_VIEW_STATE.filter);
-                });
-                renderAttendanceEmployeeList();
-            });
-        });
-    }
-
     // TOIL grant modal — live preview + employee search
     const toilDaysInput = document.getElementById('toil-days');
     if (toilDaysInput) toilDaysInput.addEventListener('input', updateToilPreview);
@@ -4868,6 +4826,54 @@ document.addEventListener('click', (e) => {
 let currentAttendanceEmployeeId = null;
 let attendanceReviewYear = null;
 
+// Wire up the attendance toolbar (search, filter chips, sort dropdown).
+// Idempotent — runs once per page load. Called from loadAttendanceReview so
+// it fires the moment the section is opened, not on DOMContentLoaded, which
+// avoids any timing or cache weirdness during deployment.
+let __attToolbarWired = false;
+function wireAttendanceToolbar() {
+    if (__attToolbarWired) return;
+
+    const attSearch = document.getElementById('attendance-search');
+    const attSearchClear = document.getElementById('attendance-search-clear');
+    const attSort = document.getElementById('attendance-sort');
+    const attChipScope = document.getElementById('attendance-filter-chips');
+
+    // If any of the toolbar elements are missing, abort and try again next time.
+    if (!attSearch || !attSort || !attChipScope) return;
+
+    attSearch.addEventListener('input', filterAttendanceList);
+
+    if (attSearchClear) {
+        attSearchClear.addEventListener('click', () => {
+            attSearch.value = '';
+            filterAttendanceList();
+            attSearch.focus();
+        });
+    }
+
+    attSort.value = ATT_VIEW_STATE.sort;
+    attSort.addEventListener('change', () => {
+        ATT_VIEW_STATE.sort = attSort.value;
+        persistAttViewState();
+        renderAttendanceEmployeeList();
+    });
+
+    attChipScope.querySelectorAll('.filter-chip[data-filter]').forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.filter === ATT_VIEW_STATE.filter);
+        chip.addEventListener('click', () => {
+            ATT_VIEW_STATE.filter = chip.dataset.filter;
+            persistAttViewState();
+            attChipScope.querySelectorAll('.filter-chip[data-filter]').forEach(c => {
+                c.classList.toggle('active', c.dataset.filter === ATT_VIEW_STATE.filter);
+            });
+            renderAttendanceEmployeeList();
+        });
+    });
+
+    __attToolbarWired = true;
+}
+
 function loadAttendanceReview() {
     const yearSelect = document.getElementById('attendance-year-select');
     if (!yearSelect) return;
@@ -4887,6 +4893,9 @@ function loadAttendanceReview() {
     }
 
     if (attendanceReviewYear === null) attendanceReviewYear = currentYear;
+
+    // Wire toolbar listeners (idempotent)
+    wireAttendanceToolbar();
 
     // Show list, hide detail
     document.getElementById('attendance-list-view').classList.remove('hidden');
