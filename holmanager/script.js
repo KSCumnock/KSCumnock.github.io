@@ -939,7 +939,13 @@ function selectEmployee(employeeId) {
 
     if (currentEmployee) {
         document.getElementById('employee-info').classList.remove('hidden');
-        
+
+        // Show/hide admin backdate notice on the booking form
+        const adminNotice = document.getElementById('admin-backdate-notice');
+        if (adminNotice) {
+            adminNotice.classList.toggle('hidden', !isAdminAuthenticated);
+        }
+
         // Calculate remaining days dynamically
         const employeeRequests = holidayRequests.filter(req => req.employeeId === employeeId);
         const approvedRequests = employeeRequests.filter(req => req.status === 'approved');
@@ -1096,33 +1102,42 @@ function renderBlockCalendar() {
         const dayOfWeek = date.getDay();
         
         // Add classes based on date properties
+        const isPast = date < today;
+
         if (date.getMonth() !== month) {
             dayElement.classList.add('other-month');
-        } else if (date < today) {
+        } else if (isPast && !isAdminAuthenticated) {
+            // Non-admins cannot select past dates
             dayElement.classList.add('past-date');
         } else {
             // Add weekend class for styling
             if (dayOfWeek === 0 || dayOfWeek === 6) {
                 dayElement.classList.add('weekend');
             }
-            
+
             // Check if date is today
             if (date.getTime() === today.getTime()) {
                 dayElement.classList.add('today');
             }
-            
+
+            // Admin-only: visually mark past dates that are still selectable
+            if (isPast && isAdminAuthenticated) {
+                dayElement.classList.add('admin-past-date');
+                dayElement.title = 'Past date — admin backdated entry';
+            }
+
             // Check if this date is already booked by this employee
             const alreadyBooked = currentEmployee && getEmployeeOverlappingDates(currentEmployee.id, [dateStr]).length > 0;
             if (alreadyBooked) {
                 dayElement.classList.add('already-booked');
                 dayElement.title = 'Already booked';
             }
-            
+
             // Check if date is selected
             if (selectedDates.includes(dateStr)) {
                 dayElement.classList.add('selected');
             }
-            
+
             // Add click handler for selectable dates (but not already booked ones)
             if (!alreadyBooked) {
                 dayElement.addEventListener('click', () => toggleDateSelection(dateStr));
@@ -1532,10 +1547,12 @@ async function submitHolidayRequest(event) {
         // Add all requests
         holidayRequests.push(...newRequests);
         await saveHolidayRequests();
-        
-        // Send email notification to admins for each request in the block
+
+        // Send email notifications to admins for each request in the block.
+        // Fire-and-forget — don't gate UI refresh on the network round-trip.
         for (const request of newRequests) {
-            await sendEmailNotification(currentEmployee, request, 'new_request');
+            sendEmailNotification(currentEmployee, request, 'new_request')
+                .catch(err => console.error('Email notification failed:', err));
         }
         
         const typeText = requestType === 'holiday' ? 'Holiday' : 
@@ -1616,11 +1633,12 @@ async function submitHolidayRequest(event) {
         
         holidayRequests.push(newRequest);
         await saveHolidayRequests();
-        
-        // Send email notification to admins
-        // For sick leave, this is informational (already approved)
-        // For holidays/bereavement, this is a request for approval
-        await sendEmailNotification(currentEmployee, newRequest, 'new_request');
+
+        // Send email notification to admins (fire-and-forget so the UI refreshes immediately).
+        // For sick leave, this is informational (already approved).
+        // For holidays/bereavement, this is a request for approval.
+        sendEmailNotification(currentEmployee, newRequest, 'new_request')
+            .catch(err => console.error('Email notification failed:', err));
         
         const typeText = requestType === 'holiday' ? 'Holiday' : 
                         requestType === 'sick' ? 'Sick Leave' : 'Bereavement Leave';
@@ -1641,12 +1659,29 @@ async function submitHolidayRequest(event) {
     }
     
     updateDaysPreview();
-    
+
     // Refresh displays
     loadEmployeeRequests();
+    refreshEmployeeAllowanceDisplay();
     populateEmployeeCards();
     renderCalendar();
     updatePendingBadge(); // Update badge count
+}
+
+// Recalculate the "X days remaining out of Y total" line shown on the booking panel
+// when the currently selected employee's request list changes.
+function refreshEmployeeAllowanceDisplay() {
+    if (!currentEmployee) return;
+    const employeeRequests = holidayRequests.filter(req => req.employeeId === currentEmployee.id);
+    const approvedRequests = employeeRequests.filter(req => req.status === 'approved');
+    const usedDays = approvedRequests.reduce((sum, req) => {
+        return sum + ((req.deductFromHoliday || req.requestType === 'holiday') ? req.days : 0);
+    }, 0);
+    const remainingDays = currentEmployee.totalAllowance - usedDays;
+    const remainingEl = document.getElementById('remaining-days');
+    if (remainingEl) remainingEl.textContent = remainingDays;
+    const totalEl = document.getElementById('total-days');
+    if (totalEl) totalEl.textContent = currentEmployee.totalAllowance;
 }
 
 function loadEmployeeRequests() {
@@ -1764,7 +1799,9 @@ async function cancelHolidayRequest(requestId) {
     try {
         if (wasApprovedAndDeducted) await saveEmployees();
         await saveHolidayRequests();
-        if (employee) await sendEmailNotification(employee, request, 'cancelled');
+        // Email is best-effort — don't keep the loading toast spinning if it's slow.
+        if (employee) sendEmailNotification(employee, request, 'cancelled')
+            .catch(err => console.error('Cancel email failed:', err));
         loading.success('Request cancelled');
     } catch (err) {
         Object.assign(request, snapshot.request);
@@ -2777,12 +2814,22 @@ toast.loading = (msg, title = '') => {
     };
 };
 
-// Backward compat — old code still calls showEmailToast()
+// Backward compat — old code still calls showEmailToast() / removeToast()
 function showEmailToast(title, message, type = 'success', duration = 4000) {
     const mapped = type === 'sending' ? 'loading' : type;
     return _showToast({ type: mapped, title, message, duration: type === 'sending' ? 0 : duration });
 }
-function removeToast(/* legacy - now a no-op since toasts auto-dismiss */) {}
+function removeToast(handle) {
+    // _showToast returns an object handle { id, dismiss, update }, but legacy callers
+    // may pass either the handle or a raw id string. Support both.
+    if (!handle) return;
+    if (typeof handle === 'string') {
+        _dismissToast(handle);
+    } else if (typeof handle === 'object') {
+        if (typeof handle.dismiss === 'function') handle.dismiss();
+        else if (handle.id) _dismissToast(handle.id);
+    }
+}
 
 // ============ CONFIRM DIALOG ============
 function confirmDialog({
@@ -2918,7 +2965,8 @@ async function approveRequest(requestId) {
     try {
         if (willDeductDays) await saveEmployees();
         await saveHolidayRequests();
-        if (employee) await sendEmailNotification(employee, request, 'approved');
+        if (employee) sendEmailNotification(employee, request, 'approved')
+            .catch(err => console.error('Approve email failed:', err));
         loading.success(`Approved · ${request.employeeName}`);
     } catch (err) {
         // ----- Rollback -----
@@ -2965,7 +3013,8 @@ async function rejectRequest(requestId) {
     try {
         if (wasApprovedAndDeducted) await saveEmployees();
         await saveHolidayRequests();
-        if (employee) await sendEmailNotification(employee, request, 'declined');
+        if (employee) sendEmailNotification(employee, request, 'declined')
+            .catch(err => console.error('Reject email failed:', err));
         loading.success(`Rejected · ${request.employeeName}`);
     } catch (err) {
         Object.assign(request, snapshot.request);

@@ -2837,6 +2837,37 @@ body {
     cursor: not-allowed;
 }
 
+/* Admin-only: past dates that are still selectable for backdated entries.
+   Distinct amber/yellow tint with diagonal stripe so it's obvious you're booking in the past. */
+.block-calendar-day.admin-past-date {
+    background:
+        repeating-linear-gradient(
+            45deg,
+            #fff8e1,
+            #fff8e1 6px,
+            #ffecb3 6px,
+            #ffecb3 12px
+        );
+    color: #8d6e00;
+    cursor: pointer;
+    position: relative;
+}
+
+.block-calendar-day.admin-past-date:hover {
+    background: #ffe082;
+    transform: scale(1.05);
+}
+
+.block-calendar-day.admin-past-date.selected {
+    background: #f57c00;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(245, 124, 0, 0.45);
+}
+
+.block-calendar-day.admin-past-date.selected:hover {
+    background: #ef6c00;
+}
+
 .block-calendar-day.today {
     background: #e3f2fd;
     color: #1976d2;
