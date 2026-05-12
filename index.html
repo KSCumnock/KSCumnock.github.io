@@ -1306,6 +1306,26 @@ kbd {
     color: var(--text-tertiary);
     margin-top: 2px;
 }
+.emp-list-meta .hm-missing {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px;
+    background: var(--amber-soft);
+    color: var(--amber-fg);
+    border: 1px solid var(--amber-border);
+    border-radius: 4px;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Hint text under form fields (e.g. holiday manager link explanation) */
+.field-hint {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.45;
+}
 .emp-list-actions { display: flex; gap: 4px; }
 .icon-btn {
     background: transparent;
@@ -2085,6 +2105,86 @@ kbd {
 const WORKER_URL = 'https://timekeeper-admin.ske-d03.workers.dev';
 const AUTH_TOKEN_KEY = 'ks-tk-admin-token';
 const AUTH_EXPIRES_KEY = 'ks-tk-admin-expires';
+
+// Holiday Manager — separate system, lets us check leave status for employees.
+// We map each TimeKeeper employee to a Holiday Manager employee by integer ID
+// (stored in the `holidayManagerId` field). HM uses a year-based file structure
+// (`employees2026.json`, `employees2027.json`), so we always look up the current
+// year. The IDs are stable across years.
+const HOLIDAY_MANAGER = {
+    workerUrl: 'https://ks-holiday-manager.ske-d03.workers.dev/api/github',
+    owner: 'KSCumnock',
+    repo: 'Holidays',
+};
+let _hmEmployeesCache = null;   // [{ id, name, totalAllowance, usedDays, ... }]
+let _hmEmployeesFetchedAt = 0;
+async function fetchHolidayManagerEmployees(force = false) {
+    // 5-min cache — modal will open many times but we don't need fresh data per open
+    const FIVE_MIN = 5 * 60_000;
+    if (!force && _hmEmployeesCache && (Date.now() - _hmEmployeesFetchedAt) < FIVE_MIN) {
+        return _hmEmployeesCache;
+    }
+    const year = new Date().getFullYear();
+    const resp = await fetch(HOLIDAY_MANAGER.workerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            action: 'get',
+            owner: HOLIDAY_MANAGER.owner,
+            repo: HOLIDAY_MANAGER.repo,
+            path: `employees${year}.json`,
+        }),
+    });
+    if (!resp.ok) throw new Error(`Holiday Manager fetch failed (${resp.status})`);
+    const data = await resp.json();
+    const list = Array.isArray(data.content) ? data.content : [];
+    _hmEmployeesCache = list.slice().sort((a, b) => a.name.localeCompare(b.name));
+    _hmEmployeesFetchedAt = Date.now();
+    return _hmEmployeesCache;
+}
+
+// Populate the <select id="fldHmId"> in the employee modal. Tries to auto-suggest
+// the best match by exact name when adding a new employee or one without a mapping.
+async function populateHolidayManagerSelect(currentHmId, tkName) {
+    const sel = document.getElementById('fldHmId');
+    const hint = document.getElementById('fldHmHint');
+    if (!sel) return;
+    try {
+        const hmList = await fetchHolidayManagerEmployees();
+        // Build options — group "currently mapped" elsewhere at the top with a note,
+        // then everyone else alphabetically.
+        const mappedByOtherTk = new Map();
+        for (const tk of state.employees) {
+            if (tk.holidayManagerId && (!currentHmId || tk.holidayManagerId !== currentHmId)) {
+                mappedByOtherTk.set(tk.holidayManagerId, tk.name);
+            }
+        }
+        sel.innerHTML = '<option value="">— Not linked —</option>'
+            + hmList.map(hm => {
+                const otherTk = mappedByOtherTk.get(hm.id);
+                const suffix = otherTk ? ` · already linked to ${otherTk}` : '';
+                return `<option value="${hm.id}">${hm.name}${suffix}</option>`;
+            }).join('');
+
+        // Pre-select: explicit currentHmId wins; else try exact-name match suggestion
+        if (currentHmId) {
+            sel.value = String(currentHmId);
+        } else if (tkName) {
+            const tkLower = tkName.trim().toLowerCase();
+            const match = hmList.find(hm => hm.name.trim().toLowerCase() === tkLower);
+            if (match) {
+                sel.value = String(match.id);
+                if (hint) hint.textContent = `Auto-matched by name — confirm and save.`;
+            }
+        }
+    } catch (err) {
+        sel.innerHTML = '<option value="">— Not linked —</option>';
+        if (hint) {
+            hint.textContent = `Couldn't load Holiday Manager (${err.message}). You can save and try again later.`;
+            hint.style.color = 'var(--red-fg)';
+        }
+    }
+}
 
 // Data reads go through the Worker (not raw.githubusercontent) to bypass
 // the GitHub CDN's ~5min cache. The Worker uses GitHub Contents + Blobs
@@ -3667,12 +3767,19 @@ function renderEmployeesDrawer() {
         groups.get(d).push(e);
     }
 
+    const mappedCount = employees.filter(e => e.holidayManagerId).length;
+    const totalCount = employees.length;
+
     let html = `
         <div class="drawer-header">
             <div class="drawer-title">
                 <div class="name">Manage employees</div>
-                <div class="dept">${employees.length} total</div>
+                <div class="dept">${totalCount} total · ${mappedCount}/${totalCount} linked to Holiday Manager</div>
             </div>
+            <button class="btn" id="empAutoLinkBtn" title="Auto-link employees to Holiday Manager records by exact name match">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                Auto-link
+            </button>
             <button class="btn btn-primary" id="empAddBtn">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
                 Add
@@ -3697,7 +3804,7 @@ function renderEmployeesDrawer() {
                     <div class="avatar" data-color="${c}">${initials(e.name)}</div>
                     <div class="emp-list-info">
                         <div class="emp-list-name">${e.name}</div>
-                        <div class="emp-list-meta">PIN ${e.pin} · ${hours}</div>
+                        <div class="emp-list-meta">PIN ${e.pin} · ${hours}${e.holidayManagerId ? '' : ' <span class="hm-missing">no leave link</span>'}</div>
                     </div>
                     <div class="emp-list-actions">
                         <button class="icon-btn" data-action="edit-emp" data-empid="${e.id}" aria-label="Edit">
@@ -3718,12 +3825,74 @@ function renderEmployeesDrawer() {
 
     document.getElementById('empDrawerCloseBtn').addEventListener('click', closeEmployeesDrawer);
     document.getElementById('empAddBtn').addEventListener('click', () => openEmployeeForm(null));
+    document.getElementById('empAutoLinkBtn').addEventListener('click', autoLinkHolidayManager);
     document.querySelectorAll('[data-action="edit-emp"]').forEach(btn => {
         btn.addEventListener('click', () => openEmployeeForm(btn.dataset.empid));
     });
     document.querySelectorAll('[data-action="delete-emp"]').forEach(btn => {
         btn.addEventListener('click', () => confirmDeleteEmployee(btn.dataset.empid));
     });
+}
+
+// Auto-link every unmapped TimeKeeper employee to a Holiday Manager record
+// by exact (case-insensitive, trimmed) name match. Shows a preview before
+// committing so the admin can sanity-check.
+async function autoLinkHolidayManager() {
+    const btn = document.getElementById('empAutoLinkBtn');
+    if (!btn || btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = 'Loading…';
+    try {
+        const hmList = await fetchHolidayManagerEmployees(true);  // bypass cache
+        const hmByName = new Map(hmList.map(hm => [hm.name.trim().toLowerCase(), hm]));
+        const alreadyMapped = new Set(state.employees.map(e => e.holidayManagerId).filter(Boolean));
+
+        const proposals = [];
+        for (const tk of state.employees) {
+            if (tk.holidayManagerId) continue;          // already mapped
+            const match = hmByName.get(tk.name.trim().toLowerCase());
+            if (!match) continue;                        // no name match
+            if (alreadyMapped.has(match.id)) continue;   // HM record taken by another TK row
+            proposals.push({ tk, hm: match });
+            alreadyMapped.add(match.id);
+        }
+
+        if (proposals.length === 0) {
+            alert('No new auto-links possible.\n\nEither all employees are already linked, or those without links have no matching name in Holiday Manager (check spelling, or add them to HM first).');
+            return;
+        }
+
+        const preview = proposals.map(p => `• ${p.tk.name}  →  ${p.hm.name} (HM #${p.hm.id})`).join('\n');
+        if (!confirm(`Link ${proposals.length} employee${proposals.length > 1 ? 's' : ''} to Holiday Manager?\n\n${preview}`)) {
+            return;
+        }
+
+        // Apply sequentially so we get clear error attribution if one fails
+        let success = 0;
+        const failures = [];
+        for (const p of proposals) {
+            try {
+                await auth.api('PUT', `/employees/${p.tk.id}`, { holidayManagerId: p.hm.id });
+                success++;
+            } catch (err) {
+                failures.push(`${p.tk.name}: ${err.message}`);
+            }
+        }
+
+        await refresh();
+        renderEmployeesDrawer();
+
+        if (failures.length) {
+            alert(`Linked ${success}, but ${failures.length} failed:\n\n${failures.join('\n')}`);
+        } else {
+            alert(`Linked ${success} employee${success > 1 ? 's' : ''} to Holiday Manager.`);
+        }
+    } catch (err) {
+        alert('Auto-link failed: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Auto-link';
+    }
 }
 
 // startTime/finishTime are full ISO datetimes — only the time of day matters
@@ -3789,6 +3958,13 @@ function openEmployeeForm(empId) {
                     <label for="fldFlex">Flexible schedule (can take break or lunch in any order)</label>
                 </div>
             </div>
+            <div class="field-group">
+                <label for="fldHmId">Holiday Manager record</label>
+                <select id="fldHmId">
+                    <option value="">— loading holiday manager… —</option>
+                </select>
+                <div class="field-hint" id="fldHmHint">Used to check leave status in the daily no-show email.</div>
+            </div>
         </div>
         <div class="modal-actions">
             <button class="btn" data-action="close">Cancel</button>
@@ -3798,7 +3974,11 @@ function openEmployeeForm(empId) {
 
     document.querySelectorAll('[data-action="close"]').forEach(b => b.addEventListener('click', closeModal));
 
+    // Populate holiday-manager dropdown asynchronously
+    populateHolidayManagerSelect(editing ? editing.holidayManagerId : null, editing ? editing.name : '');
+
     document.getElementById('empSaveBtn').addEventListener('click', async () => {
+        const hmVal = document.getElementById('fldHmId').value;
         const payload = {
             name: document.getElementById('fldName').value.trim(),
             department: document.getElementById('fldDept').value.trim(),
@@ -3806,6 +3986,7 @@ function openEmployeeForm(empId) {
             startTime: timeToIso(document.getElementById('fldStart').value),
             finishTime: timeToIso(document.getElementById('fldFinish').value),
             hasFlexibleSchedule: document.getElementById('fldFlex').checked,
+            holidayManagerId: hmVal === '' ? null : Number(hmVal),
         };
         if (!payload.name) return modalError('Name required');
         if (!payload.department) return modalError('Department required');
