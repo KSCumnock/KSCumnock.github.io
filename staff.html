@@ -15,7 +15,12 @@
 
 <!-- iOS standalone PWA -->
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<!-- black-translucent: iOS status bar overlays content (transparent).
+     This means our screensaver can render edge-to-edge dark behind the
+     system status text, no white strip clashing. Trade-off: idle/action
+     screens need padding-top: env(safe-area-inset-top) so their content
+     doesn't slip under the status bar text. -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="K&amp;S Time" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="theme-color" content="#fafafa" />
@@ -117,7 +122,10 @@ body {
     width: 100%;
     max-width: 720px;
     margin: 0 auto;
-    padding: 24px;
+    /* Top padding accommodates the iOS status bar (which now overlays content
+       via black-translucent). On non-iOS or non-standalone, env() returns 0
+       and we fall back to the standard 24px. */
+    padding: max(24px, env(safe-area-inset-top, 24px)) 24px 24px;
     transition: opacity 0.2s ease, transform 0.25s ease;
 }
 .screen.hidden {
@@ -651,8 +659,8 @@ body {
 }
 
 /* Screensaver overlay — appears after IDLE_TIMEOUT_MS of no input.
-   Dark background, large monospaced time, gentle fade in/out.
-   Kept invisible-but-rendered when not active so the clock keeps updating. */
+   Dark, edge-to-edge (extends under the iOS status bar via black-translucent).
+   Kept invisible-but-rendered when not active so flips queue up correctly. */
 .screensaver {
     position: fixed;
     inset: 0;
@@ -666,6 +674,7 @@ body {
     cursor: pointer;
     -webkit-user-select: none;
     user-select: none;
+    overflow: hidden;
 }
 .screensaver.show {
     opacity: 1;
@@ -675,76 +684,221 @@ body {
     text-align: center;
     color: #fafafa;
     padding: 40px;
+    width: 100%;
+    max-width: 100%;
 }
 .screensaver-brand {
     display: inline-flex;
     align-items: center;
     gap: 14px;
-    margin-bottom: 56px;
-    opacity: 0.55;
-    transition: opacity 1.2s ease;
-}
-.screensaver.show .screensaver-brand {
+    margin-bottom: 48px;
     opacity: 0.55;
 }
 .ss-mark {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     background: #18181b;
     border: 1px solid #27272a;
-    border-radius: 10px;
+    border-radius: 9px;
     display: grid;
     place-items: center;
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 13px;
     letter-spacing: -0.04em;
     color: #fafafa;
 }
 .ss-mark-text { text-align: left; }
 .ss-name {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
     letter-spacing: -0.01em;
     line-height: 1.1;
     color: #fafafa;
 }
 .ss-sub {
-    font-size: 11px;
+    font-size: 10px;
     color: #71717a;
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     margin-top: 3px;
 }
-.screensaver-time {
-    font-size: clamp(120px, 22vw, 280px);
-    font-weight: 200;
-    letter-spacing: -0.04em;
-    line-height: 0.95;
-    color: #fafafa;
-    font-variant-numeric: tabular-nums;
-    margin-bottom: 16px;
-}
 .screensaver-date {
-    font-size: clamp(18px, 2.5vw, 26px);
+    font-size: clamp(16px, 2.2vw, 24px);
     font-weight: 400;
     color: #71717a;
     letter-spacing: 0.01em;
-    margin-bottom: 80px;
+    margin-top: 40px;
 }
-.screensaver-hint {
-    font-size: 12px;
-    color: #52525b;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    font-family: ui-monospace, "SF Mono", Menlo, monospace;
-    animation: ssHintPulse 3s ease-in-out infinite;
+
+/* ============================================================
+   FLIP CLOCK — Stephen Shaw's technique, used verbatim
+   Original: https://codepen.io/shshaw/pen/BzObXp
+   Adapted: rescaled font-size for iPad kiosk + dark-theme colors.
+   Class names kept identical to Shaw's so the code is easy to compare.
+   ============================================================ */
+
+.flip-clock {
+    text-align: center;
+    perspective: 600px;
+    margin: 0 auto;
+    /* Sized for iPad kiosk display — significantly bigger than Shaw's
+       original (which was a 3rem countdown). Use clamp so this works
+       across iPad mini → Pro without overflowing. */
+    font-family: var(--font-mono);
+    font-weight: 600;
 }
-@keyframes ssHintPulse {
-    0%, 100% { opacity: 0.45; }
-    50%      { opacity: 1.0; }
+.flip-clock *,
+.flip-clock *:before,
+.flip-clock *:after {
+    box-sizing: border-box;
 }
+.flip-clock__piece {
+    display: inline-block;
+    margin: 0 0.2vw;
+    vertical-align: middle;
+}
+@media (min-width: 1000px) {
+    .flip-clock__piece { margin: 0 5px; }
+}
+.flip-clock__sep {
+    display: inline-block;
+    vertical-align: middle;
+    /* Scaled down 25% to match the clock cards. */
+    font-size: clamp(38px, 5.25vw, 71px);
+    color: #71717a;
+    font-weight: 200;
+    padding: 0 8px;
+    line-height: 1;
+    margin-bottom: 0.4em; /* tweak so the colon sits at the seam height */
+    /* Blinks once per second — synchronised roughly with the seconds tick.
+       Bright at the start of the second, fades to dim by the end. Creates
+       a steady "heartbeat" pulse matching the seconds flip. */
+    animation: sepBlink 1s linear infinite;
+}
+@keyframes sepBlink {
+    0%   { opacity: 1;    color: #71717a; }
+    50%  { opacity: 0.5;  color: #52525b; }
+    100% { opacity: 0.25; color: #3f3f46; }
+}
+
+.flip-card {
+    display: block;
+    position: relative;
+    padding-bottom: 0.72em;
+    /* Scaled down 25% from original (8.5vw) to fit landscape iPad on one line. */
+    font-size: clamp(42px, 6.4vw, 98px);
+    line-height: 0.95;
+}
+
+.flip-card__top,
+.flip-card__bottom,
+.flip-card__back-bottom,
+.flip-card__back::before,
+.flip-card__back::after {
+    display: block;
+    height: 0.72em;
+    /* Dark theme — top is darker/dimmer, bottom is lighter/brighter,
+       creating the "shadow on top" effect. */
+    color: #a1a1aa;
+    background: #18181b;
+    padding: 0.23em 0.25em 0.4em;
+    border-radius: 0.15em 0.15em 0 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
+    width: 1.8em;
+    /* Explicit font-family so pseudo-elements never fall back to the
+       browser default. (Safari has been known to mis-inherit on ::before
+       with content: attr().) */
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.flip-card__bottom,
+.flip-card__back-bottom {
+    color: #fafafa;
+    position: absolute;
+    top: 50%;
+    left: 0;
+    border-top: solid 1px #000;
+    background: #2a2a2d;
+    border-radius: 0 0 0.15em 0.15em;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 2;
+}
+.flip-card__back-bottom {
+    z-index: 1;
+}
+.flip-card__bottom::after,
+.flip-card__back-bottom::after {
+    display: block;
+    margin-top: -0.72em;
+}
+.flip-card__back::before,
+.flip-card__bottom::after,
+.flip-card__back-bottom::after {
+    content: attr(data-value);
+}
+.flip-card__back {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    left: 0%;
+    pointer-events: none;
+}
+.flip-card__back::before {
+    position: relative;
+    overflow: hidden;
+    z-index: -1;
+}
+.flip.flip-card .flip-card__back::before,
+.flip-card.flip .flip-card__back::before {
+    z-index: 1;
+    animation: flipTop 0.3s cubic-bezier(0.37, 0.01, 0.94, 0.35);
+    animation-fill-mode: both;
+    transform-origin: center bottom;
+}
+.flip.flip-card .flip-card__bottom,
+.flip-card.flip .flip-card__bottom {
+    transform-origin: center top;
+    animation-fill-mode: both;
+    animation: flipBottom 0.6s cubic-bezier(0.15, 0.45, 0.28, 1);
+}
+
+@keyframes flipTop {
+    0% {
+        transform: rotateX(0deg);
+        z-index: 2;
+    }
+    0%, 99% {
+        opacity: 1;
+    }
+    100% {
+        transform: rotateX(-90deg);
+        opacity: 0;
+    }
+}
+@keyframes flipBottom {
+    0%, 50% {
+        z-index: -1;
+        transform: rotateX(90deg);
+        opacity: 0;
+    }
+    51% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 1;
+        transform: rotateX(0deg);
+        z-index: 5;
+    }
+}
+
+/* ============================================================ */
 
 /* Build version — tiny, in the corner of the idle screen. Pure diagnostic. */
 .build-version {
@@ -1063,8 +1217,10 @@ body {
 </div>
 
 <!-- Screensaver — fades in after IDLE_TIMEOUT_MS of no activity. Shows a
-     clean clock + date display. Any tap dismisses it back to the PIN screen.
-     Kept in the DOM (not destroyed) so the time keeps ticking underneath. -->
+     6-digit flip clock (HH:MM:SS) on a dark background. Tap anywhere to
+     wake. Each digit is two stacked half-cards; when a digit changes, a
+     "flipping" element animates the change with two phases: top half drops
+     down (0→-90deg), then bottom half settles up (90→0deg, with overshoot). -->
 <div class="screensaver" id="screensaver" aria-hidden="true">
     <div class="screensaver-inner">
         <div class="screensaver-brand">
@@ -1074,9 +1230,61 @@ body {
                 <div class="ss-sub">Kerr &amp; Smith</div>
             </div>
         </div>
-        <div class="screensaver-time mono" id="ssClockTime">--:--</div>
+
+        <div class="flip-clock" id="flipClock">
+            <span class="flip-clock__piece">
+                <span class="flip-clock__card flip-card" data-unit="h1">
+                    <b class="flip-card__top">0</b>
+                    <b class="flip-card__bottom" data-value="0"></b>
+                    <b class="flip-card__back" data-value="0"></b>
+                    <b class="flip-card__back-bottom" data-value="0"></b>
+                </span>
+            </span>
+            <span class="flip-clock__piece">
+                <span class="flip-clock__card flip-card" data-unit="h2">
+                    <b class="flip-card__top">0</b>
+                    <b class="flip-card__bottom" data-value="0"></b>
+                    <b class="flip-card__back" data-value="0"></b>
+                    <b class="flip-card__back-bottom" data-value="0"></b>
+                </span>
+            </span>
+            <span class="flip-clock__sep">:</span>
+            <span class="flip-clock__piece">
+                <span class="flip-clock__card flip-card" data-unit="m1">
+                    <b class="flip-card__top">0</b>
+                    <b class="flip-card__bottom" data-value="0"></b>
+                    <b class="flip-card__back" data-value="0"></b>
+                    <b class="flip-card__back-bottom" data-value="0"></b>
+                </span>
+            </span>
+            <span class="flip-clock__piece">
+                <span class="flip-clock__card flip-card" data-unit="m2">
+                    <b class="flip-card__top">0</b>
+                    <b class="flip-card__bottom" data-value="0"></b>
+                    <b class="flip-card__back" data-value="0"></b>
+                    <b class="flip-card__back-bottom" data-value="0"></b>
+                </span>
+            </span>
+            <span class="flip-clock__sep">:</span>
+            <span class="flip-clock__piece">
+                <span class="flip-clock__card flip-card" data-unit="s1">
+                    <b class="flip-card__top">0</b>
+                    <b class="flip-card__bottom" data-value="0"></b>
+                    <b class="flip-card__back" data-value="0"></b>
+                    <b class="flip-card__back-bottom" data-value="0"></b>
+                </span>
+            </span>
+            <span class="flip-clock__piece">
+                <span class="flip-clock__card flip-card" data-unit="s2">
+                    <b class="flip-card__top">0</b>
+                    <b class="flip-card__bottom" data-value="0"></b>
+                    <b class="flip-card__back" data-value="0"></b>
+                    <b class="flip-card__back-bottom" data-value="0"></b>
+                </span>
+            </span>
+        </div>
+
         <div class="screensaver-date" id="ssClockDate">&nbsp;</div>
-        <div class="screensaver-hint">Tap anywhere to wake</div>
     </div>
 </div>
 
@@ -1104,7 +1312,7 @@ const IDLE_TIMEOUT_MS = 20 * 1000;          // 20s of no input → screensaver
 // Build version — bumped on each deploy. The boot routine compares this to
 // the version embedded in the (no-cache) HTML and reloads if mismatched, so
 // kiosks don't get stuck on stale code after a deploy.
-const BUILD_VERSION = '2026-05-12-15.10';
+const BUILD_VERSION = '2026-05-12-16.30-75pct-blink';
 
 // ════════════════════════════════════════════════════════════════════════
 // STATE
@@ -1552,13 +1760,86 @@ function tickClock() {
     const now = new Date();
     $('clockTime').textContent = fmtTime(now);
     $('clockDate').textContent = fmtDate(now);
-    // Also update the screensaver clock — it's always in the DOM, just hidden
-    // most of the time. Keeping it ticking means it's correct the instant
-    // the overlay fades in (no flash of stale "--:--").
-    const ssTime = document.getElementById('ssClockTime');
+    // Drive the flip clock + date on the screensaver. The flip clock keeps
+    // ticking even when the overlay is hidden — so when the screensaver
+    // fades in, the digits already show the correct time. (We do skip the
+    // visible animation when hidden, to avoid wasted GPU work.)
+    updateFlipClock(now);
     const ssDate = document.getElementById('ssClockDate');
-    if (ssTime) ssTime.textContent = fmtTimeShort(now); // HH:MM only — cleaner big display
     if (ssDate) ssDate.textContent = fmtDate(now);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// FLIP CLOCK  (Stephen Shaw's technique — see screensaver markup)
+// ════════════════════════════════════════════════════════════════════════
+// Per digit, four <b> children inside the .flip-card span:
+//   .flip-card__top         — shows current value (set via textContent)
+//   .flip-card__bottom      — shows current value via [data-value]
+//   .flip-card__back        — shows previous value; its ::before flips down
+//   .flip-card__back-bottom — shows previous; visible during phase 1 of flip
+//
+// On each tick, for each digit whose value changed: set the OLD value on the
+// back elements, set the NEW value on the front elements, toggle the .flip
+// class to retrigger the animation. Force-reflow trick (void offsetWidth)
+// ensures the CSS animation replays when class is removed-and-readded.
+
+const flipUnits = ['h1', 'h2', 'm1', 'm2', 's1', 's2'];
+const lastFlipValue = { h1: null, h2: null, m1: null, m2: null, s1: null, s2: null };
+
+function updateFlipClock(now) {
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    const values = { h1: hh[0], h2: hh[1], m1: mm[0], m2: mm[1], s1: ss[0], s2: ss[1] };
+
+    const screensaverVisible = document.getElementById('screensaver').classList.contains('show');
+
+    for (const unit of flipUnits) {
+        const newVal = values[unit];
+        const oldVal = lastFlipValue[unit];
+        if (oldVal === newVal) continue;
+
+        const el = document.querySelector(`.flip-card[data-unit="${unit}"]`);
+        if (!el) continue;
+
+        if (screensaverVisible && oldVal !== null) {
+            flipDigit(el, oldVal, newVal);
+        } else {
+            setDigitInstant(el, newVal);
+        }
+        lastFlipValue[unit] = newVal;
+    }
+}
+
+function setDigitInstant(el, value) {
+    const top = el.querySelector('.flip-card__top');
+    const bottom = el.querySelector('.flip-card__bottom');
+    const back = el.querySelector('.flip-card__back');
+    const backBottom = el.querySelector('.flip-card__back-bottom');
+    if (top) top.textContent = value;
+    if (bottom) bottom.setAttribute('data-value', value);
+    if (back) back.setAttribute('data-value', value);
+    if (backBottom) backBottom.setAttribute('data-value', value);
+}
+
+function flipDigit(el, oldVal, newVal) {
+    const top = el.querySelector('.flip-card__top');
+    const bottom = el.querySelector('.flip-card__bottom');
+    const back = el.querySelector('.flip-card__back');
+    const backBottom = el.querySelector('.flip-card__back-bottom');
+
+    // Back elements → OLD value (what we see during the flip)
+    if (back) back.setAttribute('data-value', oldVal);
+    if (backBottom) backBottom.setAttribute('data-value', oldVal);
+
+    // Front elements → NEW value (revealed after flip completes)
+    if (top) top.textContent = newVal;
+    if (bottom) bottom.setAttribute('data-value', newVal);
+
+    // Toggle .flip class with a forced-reflow to restart the CSS animation
+    el.classList.remove('flip');
+    void el.offsetWidth;
+    el.classList.add('flip');
 }
 
 // ════════════════════════════════════════════════════════════════════════
