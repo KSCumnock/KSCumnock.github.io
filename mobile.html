@@ -249,6 +249,56 @@ body {
     transform: scale(0.94);
     border-color: var(--border-strong);
 }
+/* Tap animation — triggered by adding .tapped class on press. Key flashes
+   to dark (filled), then fades back to default over 280ms. Gives clear
+   visual confirmation that the tap registered, especially useful on
+   touchscreens where the :active state is too brief to notice. */
+.pin-key.tapped {
+    animation: pinKeyTap 320ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+@keyframes pinKeyTap {
+    0% {
+        background: var(--text);
+        color: #fff;
+        border-color: var(--text);
+        transform: scale(0.92);
+    }
+    35% {
+        background: var(--text);
+        color: #fff;
+        border-color: var(--text);
+        transform: scale(1);
+    }
+    100% {
+        background: var(--bg);
+        color: var(--text);
+        border-color: var(--border);
+        transform: scale(1);
+    }
+}
+/* Utility key (backspace) — flashes red instead of dark, since it's a
+   destructive action and the visual cue should reflect that. */
+.pin-key.utility.tapped {
+    animation: pinKeyTapUtility 320ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+@keyframes pinKeyTapUtility {
+    0% {
+        background: var(--red);
+        border-color: var(--red);
+        transform: scale(0.92);
+    }
+    35% {
+        background: var(--red);
+        border-color: var(--red);
+        transform: scale(1);
+    }
+    100% {
+        background: var(--bg);
+        border-color: var(--border);
+        transform: scale(1);
+    }
+}
+.pin-key.utility.tapped svg { color: #fff; }
 .pin-key.invisible {
     visibility: hidden;
     pointer-events: none;
@@ -257,6 +307,7 @@ body {
     width: 22px;
     height: 22px;
     color: var(--text-tertiary);
+    transition: color 0.2s ease;
 }
 
 /* ────────────────────────────────────────────── */
@@ -1050,11 +1101,13 @@ const GEOFENCE_RADIUS_M = 200;
 // GPS lookup constraints. enableHighAccuracy uses GPS hardware where
 // available (vs cell-tower triangulation). timeout caps how long we wait
 // before giving up. maximumAge lets us reuse a recent fix from a prior
-// action in the same session (avoids re-locking every action).
-const GEO_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 };
+// action in the same session — 2 minutes means a driver doing several
+// quick actions (clock in → start tea → end tea) only sees the spinner
+// on the first one.
+const GEO_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 };
 
 // Build version — bumped on each deploy. Visible bottom-right corner.
-const BUILD_VERSION = '2026-05-12-mobile-v2-retry';
+const BUILD_VERSION = '2026-05-12-mobile-v4-keytap';
 
 // ════════════════════════════════════════════════════════════════════════
 // STATE
@@ -1070,6 +1123,7 @@ const state = {
     // doesn't see "Locating…" before every action.
     lastLocation: null,         // { lat, lng, accuracy, capturedAt: epochMs }
     pendingClockType: null,     // the action waiting for offsite-reason answer
+    watchId: null,              // navigator.geolocation.watchPosition id; null when not watching
 };
 
 const $ = (id) => document.getElementById(id);
@@ -1386,6 +1440,34 @@ function enterActionScreen(employee) {
     $('actionScreen').classList.remove('hidden');
     renderActionScreen();
     workTimeTimer = setInterval(updateWorkTimeDisplay, 1000);
+
+    // Start continuous GPS while the action screen is visible. This keeps
+    // state.lastLocation fresh in the background, so when the driver taps
+    // an action button there's no spinner — we already have a current fix.
+    // Errors here are non-blocking (just logged) — if watchPosition fails,
+    // onActionClick falls back to a synchronous getCurrentLocation.
+    if (navigator.geolocation && state.watchId === null) {
+        state.watchId = navigator.geolocation.watchPosition(
+            (pos) => {
+                state.lastLocation = {
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy,
+                    capturedAt: Date.now(),
+                };
+                // Re-render the location badge in case the driver moved
+                // in/out of the geofence while the screen is open
+                renderLocationBadge();
+            },
+            (err) => {
+                // Silent — don't show error UI for watch failures. The
+                // synchronous fallback in onActionClick will surface any
+                // real problem when the driver actually taps a button.
+                console.warn('watchPosition error', err.code, err.message);
+            },
+            GEO_OPTIONS
+        );
+    }
 }
 
 function exitActionScreen() {
@@ -1394,6 +1476,12 @@ function exitActionScreen() {
     clearInterval(workTimeTimer);
     actionReturnTimer = null;
     workTimeTimer = null;
+    // Stop the GPS watch — battery-friendly, and avoids stale fixes from
+    // a previous session leaking into a new PIN entry.
+    if (state.watchId !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(state.watchId);
+        state.watchId = null;
+    }
     $('actionScreen').classList.add('hidden');
     $('locatingScreen').classList.add('hidden');
     $('pinScreen').classList.remove('hidden');
@@ -1411,8 +1499,24 @@ function renderActionScreen() {
     $('statusText').textContent = status;
     updateWorkTimeDisplay();
 
-    // Location badge — based on cached location
+    renderLocationBadge();
+
+    // Action buttons — visible always, muted if not allowed
+    document.querySelectorAll('.action-btn[data-type]').forEach(btn => {
+        const result = evaluateAction(status, btn.dataset.type);
+        btn.dataset.allowed = result.allowed ? 'yes' : 'no';
+        btn.dataset.disallowMessage = result.allowed ? '' : (result.message || '');
+        btn.classList.toggle('muted', !result.allowed);
+        btn.classList.remove('loading');
+    });
+}
+
+// Renders the on-site / off-site badge based on the current cached
+// location. Called from renderActionScreen and from watchPosition's
+// success callback (so the badge updates in real time as the driver moves).
+function renderLocationBadge() {
     const badge = $('locationBadge');
+    if (!badge) return;
     const badgeText = $('locationBadgeText');
     if (state.lastLocation) {
         const dist = distanceMetres(state.lastLocation.lat, state.lastLocation.lng, KS_LAT, KS_LNG);
@@ -1427,15 +1531,6 @@ function renderActionScreen() {
     } else {
         badge.style.display = 'none';
     }
-
-    // Action buttons — visible always, muted if not allowed
-    document.querySelectorAll('.action-btn[data-type]').forEach(btn => {
-        const result = evaluateAction(status, btn.dataset.type);
-        btn.dataset.allowed = result.allowed ? 'yes' : 'no';
-        btn.dataset.disallowMessage = result.allowed ? '' : (result.message || '');
-        btn.classList.toggle('muted', !result.allowed);
-        btn.classList.remove('loading');
-    });
 }
 
 function updateWorkTimeDisplay() {
@@ -1643,6 +1738,11 @@ function bindEvents() {
     $('pinKeypad').addEventListener('click', (e) => {
         const key = e.target.closest('.pin-key');
         if (!key || key.classList.contains('invisible')) return;
+        // Trigger the dark-flash animation. remove + reflow + add ensures the
+        // animation restarts cleanly when the same key is tapped repeatedly.
+        key.classList.remove('tapped');
+        void key.offsetWidth;
+        key.classList.add('tapped');
         if (key.dataset.digit) pressDigit(key.dataset.digit);
         else if (key.dataset.action === 'backspace') backspace();
     });
