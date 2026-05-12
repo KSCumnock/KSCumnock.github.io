@@ -341,6 +341,14 @@ button { font-family: inherit; }
 .backup-pill[data-state="stale"] { color: var(--amber-fg); border-color: var(--amber-border); background: var(--amber-soft); }
 .backup-pill[data-state="missing"] { color: var(--red-fg); border-color: var(--red-border); background: var(--red-soft); }
 
+/* Spinning state for the manual backup button */
+.btn.spinning svg {
+    animation: btn-spin 0.9s linear infinite;
+}
+@keyframes btn-spin {
+    to { transform: rotate(360deg); }
+}
+
 /* ────────────────────────────────────────────────────────── */
 /* MAIN LAYOUT                                                 */
 /* ────────────────────────────────────────────────────────── */
@@ -1914,6 +1922,9 @@ kbd {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
             <span id="backupPillLabel">Backup: —</span>
         </a>
+        <button class="btn btn-icon desktop-only" id="backupNowBtn" title="Run backup now">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        </button>
     </div>
 </header>
 
@@ -3928,6 +3939,31 @@ async function fetchBackupStatus() {
     }
 }
 
+// Manual backup trigger — same code path as the scheduled cron. Admin-auth gated.
+async function runBackupNow() {
+    const btn = document.getElementById('backupNowBtn');
+    const label = document.getElementById('backupPillLabel');
+    if (!btn || btn.disabled) return;
+
+    btn.disabled = true;
+    btn.classList.add('spinning');
+    if (label) label.textContent = 'Backing up…';
+
+    try {
+        await auth.api('POST', '/backup/now');
+        // Refresh status pill to show the new "just now" timestamp
+        await fetchBackupStatus();
+    } catch (err) {
+        console.error('Backup failed:', err);
+        alert(`Backup failed: ${err.message}`);
+        // Restore previous pill state
+        await fetchBackupStatus();
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('spinning');
+    }
+}
+
 // ════════════════════════════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════════════════════════════
@@ -3992,11 +4028,12 @@ async function init() {
     // Bind PIN screen handlers
     bindPinScreen();
 
-    // Bind the always-available buttons (manage / sign out)
+    // Bind the always-available buttons (manage / sign out / backup-now)
     document.getElementById('manageBtn').addEventListener('click', openEmployeesDrawer);
     document.getElementById('signOutBtn').addEventListener('click', () => {
         if (confirm('Sign out?')) auth.signOut();
     });
+    document.getElementById('backupNowBtn').addEventListener('click', runBackupNow);
 
     // If we have a valid session, skip the PIN screen and boot directly
     if (auth.getToken()) {
