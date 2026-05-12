@@ -3965,6 +3965,22 @@ function openEmployeeForm(empId) {
                 </select>
                 <div class="field-hint" id="fldHmHint">Used to check leave status in the daily no-show email.</div>
             </div>
+            <div class="field-row">
+                <div class="field-group">
+                    <label for="fldSatPattern">Saturday schedule</label>
+                    <select id="fldSatPattern">
+                        <option value="none"${editing && editing.saturdayPattern === 'none' ? ' selected' : (!editing ? ' selected' : '')}>None — never works Saturdays</option>
+                        <option value="weekly"${editing && editing.saturdayPattern === 'weekly' ? ' selected' : ''}>Every Saturday</option>
+                        <option value="fortnightly"${editing && editing.saturdayPattern === 'fortnightly' ? ' selected' : ''}>Every 2nd Saturday</option>
+                        <option value="fourweekly"${editing && editing.saturdayPattern === 'fourweekly' ? ' selected' : ''}>Every 4th Saturday</option>
+                    </select>
+                </div>
+                <div class="field-group" id="satAnchorWrap">
+                    <label for="fldSatAnchor">First working Saturday</label>
+                    <input type="date" id="fldSatAnchor" value="${editing && editing.saturdayAnchor ? editing.saturdayAnchor : ''}" />
+                </div>
+            </div>
+            <div class="field-hint" id="satHint" style="margin-top:-12px;">For fortnightly/4-weekly patterns, pick any Saturday they work — the rotation calculates from there.</div>
         </div>
         <div class="modal-actions">
             <button class="btn" data-action="close">Cancel</button>
@@ -3977,8 +3993,22 @@ function openEmployeeForm(empId) {
     // Populate holiday-manager dropdown asynchronously
     populateHolidayManagerSelect(editing ? editing.holidayManagerId : null, editing ? editing.name : '');
 
+    // Saturday-anchor field is only relevant for fortnightly/fourweekly. Toggle on change.
+    const satPattern = document.getElementById('fldSatPattern');
+    const satAnchorWrap = document.getElementById('satAnchorWrap');
+    const satHint = document.getElementById('satHint');
+    function updateSatVisibility() {
+        const needsAnchor = ['fortnightly', 'fourweekly'].includes(satPattern.value);
+        satAnchorWrap.style.display = needsAnchor ? '' : 'none';
+        satHint.style.display = needsAnchor ? '' : 'none';
+    }
+    updateSatVisibility();
+    satPattern.addEventListener('change', updateSatVisibility);
+
     document.getElementById('empSaveBtn').addEventListener('click', async () => {
         const hmVal = document.getElementById('fldHmId').value;
+        const satPatternVal = document.getElementById('fldSatPattern').value;
+        const satAnchorVal = document.getElementById('fldSatAnchor').value;
         const payload = {
             name: document.getElementById('fldName').value.trim(),
             department: document.getElementById('fldDept').value.trim(),
@@ -3987,7 +4017,16 @@ function openEmployeeForm(empId) {
             finishTime: timeToIso(document.getElementById('fldFinish').value),
             hasFlexibleSchedule: document.getElementById('fldFlex').checked,
             holidayManagerId: hmVal === '' ? null : Number(hmVal),
+            saturdayPattern: satPatternVal,
+            saturdayAnchor: ['fortnightly', 'fourweekly'].includes(satPatternVal) ? (satAnchorVal || null) : null,
         };
+        // Validate saturday anchor when needed
+        if (['fortnightly', 'fourweekly'].includes(satPatternVal)) {
+            if (!satAnchorVal) return modalError('Pick a first working Saturday for the rotation');
+            const [yy, mm, dd] = satAnchorVal.split('-').map(Number);
+            const anchorDate = new Date(Date.UTC(yy, mm - 1, dd));
+            if (anchorDate.getUTCDay() !== 6) return modalError('First working Saturday must actually be a Saturday');
+        }
         if (!payload.name) return modalError('Name required');
         if (!payload.department) return modalError('Department required');
         if (!/^\d{4}$/.test(payload.pin)) return modalError('PIN must be 4 digits');
