@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>K&amp;S Time Keeper · Recovery</title>
+
+<!-- Cache-busting so deploys land immediately on the home-screen PWA -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+
+<!-- iOS standalone PWA -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="K&amp;S Recovery" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#fafafa" />
+<meta name="color-scheme" content="light" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+    --bg-base: #fafafa;
+    --bg: #ffffff;
+    --bg-muted: #f4f4f5;
+    --bg-input: #fff;
+    --text: #18181b;
+    --text-secondary: #52525b;
+    --text-tertiary: #71717a;
+    --border: #e4e4e7;
+    --border-strong: #d4d4d8;
+    --green: #16a34a;
+    --green-bg: #f0fdf4;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --amber: #d97706;
+    --amber-bg: #fef3c7;
+    --blue: #2563eb;
+    --blue-bg: #eff6ff;
+
+    --radius-sm: 8px;
+    --radius: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+
+    --font-ui: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    background: var(--bg-base);
+    color: var(--text);
+    font-family: var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    min-height: 100dvh;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    overflow-x: hidden;
+}
+body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+}
+
+.mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ────────────────────────────────────────────── */
+/* SCREEN CONTAINER                                */
+/* ────────────────────────────────────────────── */
+.screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    /* Respect iOS safe areas — status bar at top, home indicator at bottom */
+    padding: max(20px, env(safe-area-inset-top, 20px)) 20px max(20px, env(safe-area-inset-bottom, 20px));
+}
+.screen.hidden { display: none; }
+
+/* ────────────────────────────────────────────── */
+/* BRAND HEADER                                    */
+/* ────────────────────────────────────────────── */
+.brand-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+.brand-mark {
+    width: 38px;
+    height: 38px;
+    background: var(--text);
+    color: #fafafa;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: -0.04em;
+}
+.brand-text { flex: 1; line-height: 1.1; }
+.brand-text .name {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+.brand-text .sub {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 3px;
+}
+.connection-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: var(--bg-muted);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.connection-pill .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+}
+.connection-pill.online .dot {
+    background: var(--green);
+    box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.18);
+}
+
+/* ────────────────────────────────────────────── */
+/* PIN SCREEN                                      */
+/* ────────────────────────────────────────────── */
+.pin-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+.pin-prompt {
+    text-align: center;
+    margin-bottom: 18px;
+}
+.pin-prompt h2 {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+.pin-dots {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 14px;
+    height: 16px;
+    align-items: center;
+}
+.pin-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--border-strong);
+    background: transparent;
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+}
+.pin-dot.filled {
+    background: var(--text);
+    border-color: var(--text);
+    transform: scale(1.08);
+}
+#pinScreen.error .pin-dot { border-color: var(--red); }
+#pinScreen.error .pin-dot.filled { background: var(--red); }
+#pinScreen.error .pin-keypad { animation: pinShake 0.4s; }
+@keyframes pinShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+}
+.pin-error-text {
+    height: 18px;
+    text-align: center;
+    color: var(--red);
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+#pinScreen.error .pin-error-text { opacity: 1; }
+
+.pin-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    width: 100%;
+    max-width: 320px;
+}
+.pin-key {
+    aspect-ratio: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.12s ease, transform 0.12s ease, border-color 0.12s ease;
+    font-family: var(--font-mono);
+    display: grid;
+    place-items: center;
+    user-select: none;
+}
+.pin-key:active {
+    background: var(--bg-muted);
+    transform: scale(0.94);
+    border-color: var(--border-strong);
+}
+.pin-key.invisible {
+    visibility: hidden;
+    pointer-events: none;
+}
+.pin-key.utility svg {
+    width: 22px;
+    height: 22px;
+    color: var(--text-tertiary);
+}
+
+/* ────────────────────────────────────────────── */
+/* LOCATING SCREEN                                 */
+/* ────────────────────────────────────────────── */
+.locating-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    text-align: center;
+}
+.locating-spinner {
+    width: 56px;
+    height: 56px;
+    position: relative;
+}
+.spinner-svg {
+    width: 100%;
+    height: 100%;
+    animation: spin 1.2s linear infinite;
+}
+.spinner-track {
+    stroke: var(--border);
+}
+.spinner-head {
+    stroke: var(--text);
+    stroke-dasharray: 100;
+    stroke-dashoffset: 75;
+}
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+.locating-label {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text);
+}
+.locating-sub {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    max-width: 280px;
+    line-height: 1.5;
+}
+.locating-cancel {
+    margin-top: 8px;
+    padding: 10px 20px;
+    background: var(--bg-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-family: inherit;
+    cursor: pointer;
+}
+
+/* Location-error inline state — same layout, different content */
+.locating-error-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--red-bg);
+    color: var(--red);
+    display: grid;
+    place-items: center;
+}
+.locating-error-icon svg { width: 32px; height: 32px; }
+
+/* ────────────────────────────────────────────── */
+/* ACTION SCREEN                                   */
+/* ────────────────────────────────────────────── */
+.action-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.action-back {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+}
+.action-back svg { width: 18px; height: 18px; color: var(--text-secondary); }
+.action-greeting { flex: 1; }
+.action-greeting .welcome {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+.action-greeting .name {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-top: 2px;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 12px 0 4px;
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    align-self: flex-start;
+}
+.status-pill[data-state="working"] {
+    background: var(--green-bg);
+    color: var(--green);
+    border-color: rgba(22, 163, 74, 0.2);
+}
+.status-pill[data-state="break"] {
+    background: var(--amber-bg);
+    color: var(--amber);
+    border-color: rgba(217, 119, 6, 0.2);
+}
+.status-pill[data-state="lunch"] {
+    background: var(--blue-bg);
+    color: var(--blue);
+    border-color: rgba(37, 99, 235, 0.2);
+}
+.status-pill .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.work-time {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    margin-bottom: 16px;
+}
+
+.location-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+    margin-bottom: 12px;
+    align-self: flex-start;
+}
+.location-badge.onsite {
+    background: var(--green-bg);
+    color: var(--green);
+}
+.location-badge.offsite {
+    background: var(--amber-bg);
+    color: var(--amber);
+}
+.location-badge svg { width: 11px; height: 11px; }
+
+.actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+}
+.action-row {
+    display: flex;
+    gap: 12px;
+}
+.action-row .action-btn { flex: 1; }
+.action-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 16px;
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-family: inherit;
+    min-height: 72px;
+    transition: background 0.12s ease, transform 0.12s ease, opacity 0.12s ease;
+}
+.action-btn:active {
+    background: var(--bg-muted);
+    transform: scale(0.98);
+}
+.action-btn svg {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    stroke-width: 2;
+}
+.action-btn.clock-in {
+    background: var(--green);
+    color: #fff;
+    border-color: var(--green);
+    min-height: 96px;
+    font-size: 20px;
+}
+.action-btn.clock-in svg { width: 28px; height: 28px; }
+.action-btn.clock-out {
+    background: var(--red);
+    color: #fff;
+    border-color: var(--red);
+    min-height: 92px;
+    font-size: 19px;
+}
+.action-btn.clock-out svg { width: 26px; height: 26px; }
+.action-btn.loading { opacity: 0.55; pointer-events: none; }
+.action-btn.muted { opacity: 0.42; }
+
+/* ────────────────────────────────────────────── */
+/* OFFSITE REASON OVERLAY                          */
+/* ────────────────────────────────────────────── */
+.offsite-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 90;
+    display: grid;
+    place-items: end center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    padding: 0;
+}
+.offsite-overlay.show { opacity: 1; visibility: visible; }
+.offsite-card {
+    background: #fff;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: 28px 24px max(28px, env(safe-area-inset-bottom, 28px));
+    width: 100%;
+    max-width: 480px;
+    transform: translateY(20px);
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.offsite-overlay.show .offsite-card { transform: translateY(0); }
+.offsite-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--amber-bg);
+    color: var(--amber);
+    display: grid;
+    place-items: center;
+    margin: 0 auto 14px;
+}
+.offsite-icon svg { width: 24px; height: 24px; }
+.offsite-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.offsite-sub {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-tertiary);
+    margin-bottom: 22px;
+    line-height: 1.5;
+}
+.offsite-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.offsite-option {
+    padding: 16px;
+    background: var(--bg-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: background 0.12s ease;
+}
+.offsite-option:active { background: var(--border); }
+.offsite-option.cancel {
+    background: transparent;
+    color: var(--text-tertiary);
+    border-color: transparent;
+    justify-content: center;
+    margin-top: 4px;
+}
+.offsite-option-text { flex: 1; }
+.offsite-option-text .title { font-size: 15px; font-weight: 600; }
+.offsite-option-text .desc {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+    font-weight: 400;
+}
+
+.offsite-form { display: none; }
+.offsite-form.active { display: block; }
+.offsite-form label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+    margin-bottom: 6px;
+    margin-top: 12px;
+}
+.offsite-form label:first-child { margin-top: 0; }
+.offsite-form input,
+.offsite-form textarea {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 16px; /* 16px prevents iOS Safari zoom-on-focus */
+    font-family: inherit;
+    background: var(--bg-muted);
+    color: var(--text);
+    -webkit-user-select: text;
+    user-select: text;
+}
+.offsite-form textarea { min-height: 80px; resize: vertical; }
+.offsite-form input:focus,
+.offsite-form textarea:focus {
+    outline: none;
+    border-color: var(--text);
+    background: var(--bg);
+}
+.offsite-form-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+}
+.offsite-form-back,
+.offsite-form-submit {
+    padding: 14px;
+    border-radius: var(--radius);
+    font-size: 16px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+}
+.offsite-form-back {
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    flex: 0 0 auto;
+    min-width: 90px;
+}
+.offsite-form-submit {
+    background: var(--text);
+    color: #fff;
+    flex: 1;
+}
+.offsite-form-submit:disabled { opacity: 0.4; }
+
+/* ────────────────────────────────────────────── */
+/* RECORDING OVERLAY                               */
+/* ────────────────────────────────────────────── */
+.recording-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 95;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.18s ease, visibility 0.18s ease;
+}
+.recording-overlay.show { opacity: 1; visibility: visible; }
+.recording-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 28px 22px;
+}
+.recording-label {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    font-family: var(--font-mono);
+}
+.recording-sub {
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+/* ────────────────────────────────────────────── */
+/* TOAST                                           */
+/* ────────────────────────────────────────────── */
+.toast-container {
+    position: fixed;
+    bottom: max(20px, env(safe-area-inset-bottom, 20px));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 110;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+}
+.toast {
+    background: var(--text);
+    color: #fafafa;
+    padding: 12px 18px;
+    border-radius: 99px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    animation: toastIn 0.25s ease;
+    max-width: calc(100vw - 32px);
+}
+.toast.success { background: var(--green); }
+.toast.error { background: var(--red); }
+@keyframes toastIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ────────────────────────────────────────────── */
+/* BOOT SCREEN                                     */
+/* ────────────────────────────────────────────── */
+.boot-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-base);
+    z-index: 50;
+    display: grid;
+    place-items: center;
+    transition: opacity 0.3s ease;
+}
+.boot-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+.boot-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+.boot-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--text);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+.boot-text {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+.boot-error {
+    color: var(--red);
+    font-size: 13px;
+    text-align: center;
+    padding: 0 24px;
+    max-width: 340px;
+    line-height: 1.5;
+}
+.boot-retry {
+    margin-top: 12px;
+    padding: 10px 22px;
+    background: var(--text);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+/* Build version corner stamp */
+.build-version {
+    position: fixed;
+    bottom: max(8px, env(safe-area-inset-bottom, 8px));
+    right: 10px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-tertiary);
+    opacity: 0.4;
+    letter-spacing: 0.04em;
+    pointer-events: none;
+    z-index: 2;
+}
+</style>
+</head>
+<body>
+
+<!-- Boot screen -->
+<div class="boot-screen" id="bootScreen">
+    <div class="boot-content">
+        <div class="boot-spinner" id="bootSpinner"></div>
+        <div class="boot-text" id="bootText">Loading…</div>
+        <div class="boot-error" id="bootError" hidden></div>
+        <button class="boot-retry" id="bootRetry" hidden>Retry</button>
+    </div>
+</div>
+
+<!-- ─── PIN SCREEN ────────────────────────────── -->
+<main class="screen" id="pinScreen">
+    <header class="brand-header">
+        <div class="brand-mark">K&amp;S</div>
+        <div class="brand-text">
+            <div class="name">Time Keeper</div>
+            <div class="sub">Recovery</div>
+        </div>
+        <div class="connection-pill online" id="connectionPill">
+            <span class="dot"></span>
+            <span id="connectionLabel">Online</span>
+        </div>
+    </header>
+
+    <div class="pin-block">
+        <div class="pin-prompt">
+            <h2>Enter your PIN</h2>
+        </div>
+
+        <div class="pin-dots" id="pinDots">
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+        </div>
+
+        <div class="pin-error-text" id="pinErrorText">Invalid PIN</div>
+
+        <div class="pin-keypad" id="pinKeypad">
+            <button class="pin-key" data-digit="1" type="button">1</button>
+            <button class="pin-key" data-digit="2" type="button">2</button>
+            <button class="pin-key" data-digit="3" type="button">3</button>
+            <button class="pin-key" data-digit="4" type="button">4</button>
+            <button class="pin-key" data-digit="5" type="button">5</button>
+            <button class="pin-key" data-digit="6" type="button">6</button>
+            <button class="pin-key" data-digit="7" type="button">7</button>
+            <button class="pin-key" data-digit="8" type="button">8</button>
+            <button class="pin-key" data-digit="9" type="button">9</button>
+            <button class="pin-key invisible" type="button"></button>
+            <button class="pin-key" data-digit="0" type="button">0</button>
+            <button class="pin-key utility" data-action="backspace" type="button" aria-label="Backspace">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="build-version" id="buildVersion"></div>
+</main>
+
+<!-- ─── LOCATING SCREEN ──────────────────────── -->
+<main class="screen hidden" id="locatingScreen">
+    <div class="locating-content">
+        <div id="locatingState">
+            <!-- Default: spinner -->
+            <div class="locating-spinner">
+                <svg viewBox="0 0 50 50" class="spinner-svg">
+                    <circle class="spinner-track" cx="25" cy="25" r="20" fill="none" stroke-width="4"/>
+                    <circle class="spinner-head"  cx="25" cy="25" r="20" fill="none" stroke-width="4" stroke-linecap="round"/>
+                </svg>
+            </div>
+        </div>
+        <div class="locating-label" id="locatingLabel">Finding your location…</div>
+        <div class="locating-sub" id="locatingSub">This usually takes 2&ndash;5 seconds. Please make sure location is enabled for K&amp;S Time Keeper.</div>
+        <button class="locating-cancel" id="locatingCancel" type="button">Cancel</button>
+    </div>
+</main>
+
+<!-- ─── ACTION SCREEN ────────────────────────── -->
+<main class="screen hidden" id="actionScreen">
+    <header class="action-header">
+        <button class="action-back" id="actionBack" type="button" aria-label="Back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="action-greeting">
+            <div class="welcome">Hi</div>
+            <div class="name" id="welcomeName">—</div>
+        </div>
+    </header>
+
+    <div class="location-badge" id="locationBadge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+        </svg>
+        <span id="locationBadgeText">At dealership</span>
+    </div>
+
+    <div class="status-pill" id="statusPill" data-state="out">
+        <span class="dot"></span>
+        <span id="statusText">Clocked out</span>
+    </div>
+    <div class="work-time" id="workTime"></div>
+
+    <div class="actions">
+        <button class="action-btn clock-in" data-type="Clock In" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Clock in</span>
+        </button>
+        <div class="action-row">
+            <button class="action-btn break" data-type="Break Start" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
+                <span>Start tea</span>
+            </button>
+            <button class="action-btn break" data-type="Break End" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>End tea</span>
+            </button>
+        </div>
+        <div class="action-row">
+            <button class="action-btn lunch" data-type="Lunch Start" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z"/></svg>
+                <span>Start lunch</span>
+            </button>
+            <button class="action-btn lunch" data-type="Lunch End" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>End lunch</span>
+            </button>
+        </div>
+        <button class="action-btn clock-out" data-type="Clock Out" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Clock out</span>
+        </button>
+    </div>
+</main>
+
+<!-- ─── OFFSITE REASON MODAL ─────────────────── -->
+<div class="offsite-overlay" id="offsiteOverlay" aria-hidden="true">
+    <div class="offsite-card">
+        <!-- Stage 1: option picker -->
+        <div id="offsitePicker">
+            <div class="offsite-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                </svg>
+            </div>
+            <div class="offsite-title">You're not at the dealership</div>
+            <div class="offsite-sub" id="offsiteSub">Tell us why you're clocking in from here.</div>
+            <div class="offsite-options">
+                <button class="offsite-option" data-reason="callout" type="button">
+                    <div class="offsite-option-text">
+                        <div class="title">Callout</div>
+                        <div class="desc">Recovery job — job number, registration or notes</div>
+                    </div>
+                </button>
+                <button class="offsite-option" data-reason="other" type="button">
+                    <div class="offsite-option-text">
+                        <div class="title">Other</div>
+                        <div class="desc">Anything else — add a note</div>
+                    </div>
+                </button>
+                <button class="offsite-option cancel" id="offsiteCancel" type="button">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Stage 2: callout details form -->
+        <div class="offsite-form" id="offsiteCalloutForm">
+            <div class="offsite-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+            </div>
+            <div class="offsite-title">Callout details</div>
+            <div class="offsite-sub">Enter at least one — job number, registration, or a note.</div>
+            <label for="calloutNote">Job number / Registration / Notes</label>
+            <textarea id="calloutNote" placeholder="e.g. JN12345 or SK24 ABC or 'M77 breakdown'" autocomplete="off"></textarea>
+            <div class="offsite-form-row">
+                <button class="offsite-form-back" type="button" data-back>Back</button>
+                <button class="offsite-form-submit" id="calloutSubmit" type="button" disabled>Clock in</button>
+            </div>
+        </div>
+
+        <!-- Stage 2 alt: other reason form -->
+        <div class="offsite-form" id="offsiteOtherForm">
+            <div class="offsite-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+            </div>
+            <div class="offsite-title">What's the reason?</div>
+            <div class="offsite-sub">Add a short note so it can be reviewed.</div>
+            <label for="otherNote">Reason</label>
+            <textarea id="otherNote" placeholder="e.g. Picking up parts" autocomplete="off"></textarea>
+            <div class="offsite-form-row">
+                <button class="offsite-form-back" type="button" data-back>Back</button>
+                <button class="offsite-form-submit" id="otherSubmit" type="button" disabled>Clock in</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ─── RECORDING OVERLAY ─────────────────────── -->
+<div class="recording-overlay" id="recordingOverlay" aria-hidden="true">
+    <div class="recording-content">
+        <div class="boot-spinner"></div>
+        <div class="recording-label" id="recordingLabel">Recording…</div>
+        <div class="recording-sub">Saving to time records</div>
+    </div>
+</div>
+
+<!-- ─── TOAST CONTAINER ───────────────────────── -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════════════════════
+const WORKER_URL = 'https://timekeeper-admin.ske-d03.workers.dev';
+const ENDPOINT_EMPLOYEES = `${WORKER_URL}/data/employees`;
+const ENDPOINT_ENTRIES   = `${WORKER_URL}/data/entries`;
+const PIN_LENGTH = 4;
+
+// Geofence — Kerr & Smith Cumnock, 200m radius. Anyone clocking in within
+// this radius is considered "on premises" and clocks in normally; outside,
+// they're asked to give a reason (callout / other).
+const KS_LAT = 55.44993422440035;
+const KS_LNG = -4.270202285452328;
+const GEOFENCE_RADIUS_M = 200;
+
+// GPS lookup constraints. enableHighAccuracy uses GPS hardware where
+// available (vs cell-tower triangulation). timeout caps how long we wait
+// before giving up. maximumAge lets us reuse a recent fix from a prior
+// action in the same session (avoids re-locking every action).
+const GEO_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 };
+
+// Build version — bumped on each deploy. Visible bottom-right corner.
+const BUILD_VERSION = '2026-05-12-mobile-v1';
+
+// ════════════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════════════
+const state = {
+    employees: [],
+    entries: [],
+    pin: '',
+    currentEmployee: null,
+    online: navigator.onLine,
+    // Cached location from the last successful GPS lookup, with timestamp.
+    // Reused for subsequent clockings within the session so the driver
+    // doesn't see "Locating…" before every action.
+    lastLocation: null,         // { lat, lng, accuracy, capturedAt: epochMs }
+    pendingClockType: null,     // the action waiting for offsite-reason answer
+};
+
+const $ = (id) => document.getElementById(id);
+
+const ENTRY_TYPES = ['Clock In', 'Break Start', 'Break End',
+                     'Lunch Start', 'Lunch End', 'Clock Out', 'Sick Day'];
+
+const STATUS_FROM_TYPE = {
+    'Clock In':                  { status: 'Clocked In',       state: 'working' },
+    'Break Start':               { status: 'On Break',         state: 'break'   },
+    'Break End':                 { status: 'Back from Break',  state: 'working' },
+    'Lunch Start':               { status: 'At Lunch',         state: 'lunch'   },
+    'Lunch End':                 { status: 'Back from Lunch',  state: 'working' },
+    'Clock Out':                 { status: 'Clocked Out',      state: 'out'     },
+    'Admin Force Clock Out':     { status: 'Clocked Out',      state: 'out'     },
+    'Auto Clock Out At Midnight':{ status: 'Clocked Out',      state: 'out'     },
+    'Sick Day':                  { status: 'Sick Day',         state: 'sick'    },
+};
+
+// ════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════════════════════════════════
+const fmtTimeShort = (d) => d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+const fmtDuration = (ms) => {
+    const total = Math.floor(ms / 1000);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    return `${h}h ${String(m).padStart(2, '0')}m`;
+};
+
+// Haversine distance in metres. Used to test the geofence — driver's GPS
+// fix vs Kerr & Smith Cumnock. Accurate to within a few cm for distances
+// under a few km, which is fine for a 200m fence.
+function distanceMetres(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const toRad = (deg) => deg * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Wrap getCurrentPosition in a Promise with proper error messaging.
+// Resolves to { lat, lng, accuracy }; rejects with a user-friendly Error.
+function getCurrentLocation() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject(new Error('Location is not supported on this device.'));
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+                accuracy: pos.coords.accuracy,
+                capturedAt: Date.now(),
+            }),
+            (err) => {
+                let msg;
+                if (err.code === 1) {
+                    msg = 'Location permission denied. Please enable location for Safari in your phone\'s Settings → Privacy → Location Services.';
+                } else if (err.code === 2) {
+                    msg = 'Location unavailable. Please make sure your phone\'s GPS is enabled and you have a clear view of the sky.';
+                } else if (err.code === 3) {
+                    msg = 'Location request timed out. Please try again.';
+                } else {
+                    msg = 'Could not get your location.';
+                }
+                reject(new Error(msg));
+            },
+            GEO_OPTIONS
+        );
+    });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// DATA — fetch employees & entries
+// ════════════════════════════════════════════════════════════════════════
+async function fetchFresh() {
+    const ts = Date.now();
+    const [empResp, entResp] = await Promise.all([
+        fetch(`${ENDPOINT_EMPLOYEES}?t=${ts}`, { cache: 'no-store' }),
+        fetch(`${ENDPOINT_ENTRIES}?t=${ts}`,   { cache: 'no-store' }),
+    ]);
+    if (!empResp.ok) throw new Error(`Employees fetch failed (${empResp.status})`);
+    if (!entResp.ok) throw new Error(`Entries fetch failed (${entResp.status})`);
+    const [employees, entries] = await Promise.all([empResp.json(), entResp.json()]);
+
+    // Filter to ONLY recovery-department employees. Workshop/admin/etc.
+    // staff PINs simply won't be recognised by this app — a small security
+    // control so workshop staff can't bypass the kiosk by using this URL.
+    state.employees = (Array.isArray(employees) ? employees : [])
+        .filter(e => (e.department || '').toLowerCase() === 'recovery');
+    state.entries = Array.isArray(entries) ? entries : [];
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// STATUS COMPUTATION (same model as kiosk app)
+// ════════════════════════════════════════════════════════════════════════
+function getEmployeeStatus(employee) {
+    const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+    const today = state.entries
+        .filter(e => e.employeeId === employee.id && !e.deleted && new Date(e.timestamp) >= startOfToday)
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    if (today.some(e => e.type === 'Sick Day')) return STATUS_FROM_TYPE['Sick Day'];
+    if (today[0]) return STATUS_FROM_TYPE[today[0].type] || { status: 'Unknown', state: 'out' };
+
+    const last = state.entries
+        .filter(e => e.employeeId === employee.id && !e.deleted)
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+    if (!last) return { status: 'Clocked Out', state: 'out' };
+    if (['Clock Out', 'Admin Force Clock Out', 'Auto Clock Out At Midnight'].includes(last.type)) {
+        return { status: 'Clocked Out', state: 'out' };
+    }
+    return STATUS_FROM_TYPE[last.type] || { status: 'Clocked Out', state: 'out' };
+}
+
+function getTodayWorkTime(employee) {
+    const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+    const today = state.entries
+        .filter(e => e.employeeId === employee.id && !e.deleted && new Date(e.timestamp) >= startOfToday)
+        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    let total = 0;
+    let lastClockIn = null;
+    for (const entry of today) {
+        const t = new Date(entry.timestamp);
+        switch (entry.type) {
+            case 'Clock In': lastClockIn = t; break;
+            case 'Clock Out':
+            case 'Admin Force Clock Out':
+            case 'Auto Clock Out At Midnight':
+            case 'Break Start':
+            case 'Lunch Start':
+                if (lastClockIn) { total += t - lastClockIn; lastClockIn = null; }
+                break;
+            case 'Break End':
+            case 'Lunch End': lastClockIn = t; break;
+            case 'Sick Day': continue;
+        }
+    }
+    if (lastClockIn) total += Date.now() - lastClockIn;
+    return total;
+}
+
+// Recovery drivers have flexible breaks — no time windows on tea/lunch.
+// Only the state-based "forward-only" rules apply (no second tea, no
+// repeating lunch, can't take tea after lunch).
+function evaluateAction(status, action) {
+    if (!status) {
+        return action === 'Clock In'
+            ? { allowed: true }
+            : { allowed: false, message: 'Please clock in first.' };
+    }
+    switch (status) {
+        case 'Clocked Out':
+            return action === 'Clock In'
+                ? { allowed: true }
+                : { allowed: false, message: 'You need to clock in first.' };
+        case 'Clocked In':
+            if (['Break Start', 'Lunch Start', 'Clock Out'].includes(action)) return { allowed: true };
+            return { allowed: false, message: 'That action isn\'t available right now.' };
+        case 'On Break':
+            return action === 'Break End'
+                ? { allowed: true }
+                : { allowed: false, message: 'You\'re on a tea break — tap "End tea" to return to work.' };
+        case 'Back from Break':
+            if (action === 'Break Start') return { allowed: false, message: 'You\'ve already had your tea break today.' };
+            if (['Lunch Start', 'Clock Out'].includes(action)) return { allowed: true };
+            return { allowed: false, message: 'That action isn\'t available right now.' };
+        case 'At Lunch':
+            return action === 'Lunch End'
+                ? { allowed: true }
+                : { allowed: false, message: 'You\'re at lunch — tap "End lunch" to return to work.' };
+        case 'Back from Lunch':
+            if (action === 'Break Start') return { allowed: false, message: 'Tea breaks aren\'t available after lunch.' };
+            if (action === 'Lunch Start') return { allowed: false, message: 'You\'ve already had lunch today.' };
+            if (action === 'Clock Out') return { allowed: true };
+            return { allowed: false, message: 'That action isn\'t available right now.' };
+        case 'Sick Day':
+            return { allowed: false, message: 'You\'re marked as off sick today.' };
+        default:
+            return { allowed: false, message: 'That action isn\'t available right now.' };
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// PIN ENTRY
+// ════════════════════════════════════════════════════════════════════════
+function renderPinDots() {
+    const dots = $('pinDots').querySelectorAll('.pin-dot');
+    dots.forEach((d, i) => d.classList.toggle('filled', i < state.pin.length));
+}
+function pressDigit(d) {
+    if (state.pin.length >= PIN_LENGTH) return;
+    state.pin += d;
+    $('pinScreen').classList.remove('error');
+    renderPinDots();
+    if (state.pin.length === PIN_LENGTH) attemptPinMatch();
+}
+function backspace() {
+    if (!state.pin.length) return;
+    state.pin = state.pin.slice(0, -1);
+    $('pinScreen').classList.remove('error');
+    renderPinDots();
+}
+function clearPin() { state.pin = ''; renderPinDots(); }
+
+function attemptPinMatch() {
+    const employee = state.employees.find(e => e.pin === state.pin);
+    if (!employee) {
+        // Either the PIN is wrong, OR the employee exists but isn't in
+        // Recovery department (in which case they're filtered out of
+        // state.employees and won't match). Same UX either way.
+        $('pinScreen').classList.add('error');
+        setTimeout(() => {
+            $('pinScreen').classList.remove('error');
+            clearPin();
+        }, 900);
+        return;
+    }
+    state.currentEmployee = employee;
+    clearPin();
+    // Move to locating screen — capture GPS before showing actions
+    proceedToLocating();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// LOCATING — capture GPS then route to action screen
+// ════════════════════════════════════════════════════════════════════════
+async function proceedToLocating() {
+    $('pinScreen').classList.add('hidden');
+    $('locatingScreen').classList.remove('hidden');
+    // Reset to spinner state in case we're returning from a prior error
+    $('locatingState').innerHTML = `
+        <div class="locating-spinner">
+            <svg viewBox="0 0 50 50" class="spinner-svg">
+                <circle class="spinner-track" cx="25" cy="25" r="20" fill="none" stroke-width="4"/>
+                <circle class="spinner-head"  cx="25" cy="25" r="20" fill="none" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+        </div>`;
+    $('locatingLabel').textContent = 'Finding your location…';
+    $('locatingSub').innerHTML = 'This usually takes 2&ndash;5 seconds. Please make sure location is enabled for K&amp;S Time Keeper.';
+    $('locatingCancel').style.display = '';
+    $('locatingCancel').textContent = 'Cancel';
+
+    // Reuse a recent fix if we have one (avoids waiting on every action)
+    if (state.lastLocation && (Date.now() - state.lastLocation.capturedAt) < GEO_OPTIONS.maximumAge) {
+        enterActionScreen(state.currentEmployee);
+        return;
+    }
+
+    try {
+        const loc = await getCurrentLocation();
+        state.lastLocation = loc;
+        enterActionScreen(state.currentEmployee);
+    } catch (err) {
+        // Show the error in-place with a Try Again option
+        showLocationError(err.message);
+    }
+}
+
+function showLocationError(message) {
+    $('locatingState').innerHTML = `
+        <div class="locating-error-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+        </div>`;
+    $('locatingLabel').textContent = 'Can\'t get your location';
+    $('locatingSub').textContent = message;
+    $('locatingCancel').textContent = 'Back';
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// ACTION SCREEN
+// ════════════════════════════════════════════════════════════════════════
+let actionReturnTimer = null;
+let workTimeTimer = null;
+
+function enterActionScreen(employee) {
+    state.currentEmployee = employee;
+    $('pinScreen').classList.add('hidden');
+    $('locatingScreen').classList.add('hidden');
+    $('actionScreen').classList.remove('hidden');
+    renderActionScreen();
+    workTimeTimer = setInterval(updateWorkTimeDisplay, 1000);
+}
+
+function exitActionScreen() {
+    state.currentEmployee = null;
+    clearTimeout(actionReturnTimer);
+    clearInterval(workTimeTimer);
+    actionReturnTimer = null;
+    workTimeTimer = null;
+    $('actionScreen').classList.add('hidden');
+    $('locatingScreen').classList.add('hidden');
+    $('pinScreen').classList.remove('hidden');
+    hideOffsiteOverlay();
+}
+
+function renderActionScreen() {
+    const emp = state.currentEmployee;
+    if (!emp) return;
+    $('welcomeName').textContent = emp.name;
+
+    const { status, state: stateKey } = getEmployeeStatus(emp);
+    const pill = $('statusPill');
+    pill.dataset.state = stateKey;
+    $('statusText').textContent = status;
+    updateWorkTimeDisplay();
+
+    // Location badge — based on cached location
+    const badge = $('locationBadge');
+    const badgeText = $('locationBadgeText');
+    if (state.lastLocation) {
+        const dist = distanceMetres(state.lastLocation.lat, state.lastLocation.lng, KS_LAT, KS_LNG);
+        if (dist <= GEOFENCE_RADIUS_M) {
+            badge.className = 'location-badge onsite';
+            badgeText.textContent = 'At dealership';
+        } else {
+            badge.className = 'location-badge offsite';
+            badgeText.textContent = `Off site (${Math.round(dist / 1000 * 10) / 10} km away)`;
+        }
+        badge.style.display = '';
+    } else {
+        badge.style.display = 'none';
+    }
+
+    // Action buttons — visible always, muted if not allowed
+    document.querySelectorAll('.action-btn[data-type]').forEach(btn => {
+        const result = evaluateAction(status, btn.dataset.type);
+        btn.dataset.allowed = result.allowed ? 'yes' : 'no';
+        btn.dataset.disallowMessage = result.allowed ? '' : (result.message || '');
+        btn.classList.toggle('muted', !result.allowed);
+        btn.classList.remove('loading');
+    });
+}
+
+function updateWorkTimeDisplay() {
+    if (!state.currentEmployee) return;
+    const ms = getTodayWorkTime(state.currentEmployee);
+    $('workTime').textContent = ms > 0 ? `Today: ${fmtDuration(ms)}` : '';
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// CLOCKING ACTION (with geofence + offsite reason)
+// ════════════════════════════════════════════════════════════════════════
+async function onActionClick(type) {
+    const emp = state.currentEmployee;
+    if (!emp) return;
+
+    const { status } = getEmployeeStatus(emp);
+    const result = evaluateAction(status, type);
+    if (!result.allowed) {
+        showToast(result.message, 'error');
+        return;
+    }
+
+    // Refresh location if cache is stale (older than maximumAge)
+    if (!state.lastLocation || (Date.now() - state.lastLocation.capturedAt) >= GEO_OPTIONS.maximumAge) {
+        try {
+            state.lastLocation = await getCurrentLocation();
+        } catch (err) {
+            showToast(err.message, 'error');
+            return;
+        }
+    }
+
+    const dist = distanceMetres(state.lastLocation.lat, state.lastLocation.lng, KS_LAT, KS_LNG);
+    const isOffsite = dist > GEOFENCE_RADIUS_M;
+
+    // Offsite reason is only asked on Clock In. Subsequent actions
+    // (breaks, clock-out) capture location silently — they don't re-prompt.
+    if (isOffsite && type === 'Clock In') {
+        state.pendingClockType = type;
+        showOffsiteOverlay();
+        return;
+    }
+
+    // Submit immediately — no offsite reason needed
+    await submitClocking(type, null, null);
+}
+
+async function submitClocking(type, offsiteReason, offsiteNote) {
+    const emp = state.currentEmployee;
+    if (!emp) return;
+    if (!state.lastLocation) {
+        showToast('Location not available. Please try again.', 'error');
+        return;
+    }
+
+    document.querySelectorAll('.action-btn[data-type]').forEach(b => b.classList.add('loading'));
+    showRecordingOverlay(`Recording ${type.toLowerCase()}…`);
+
+    try {
+        const r = await fetch(`${WORKER_URL}/staff/clocking`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                employeeId: emp.id,
+                pin: emp.pin,
+                type,
+                latitude:  state.lastLocation.lat,
+                longitude: state.lastLocation.lng,
+                offsiteReason,
+                offsiteNote,
+            }),
+        });
+        if (!r.ok) {
+            const errBody = await r.text();
+            throw new Error(`Server returned ${r.status}: ${errBody}`);
+        }
+        const data = await r.json();
+        // Add the new entry to local state so the action screen updates immediately
+        state.entries.push(data.entry);
+
+        hideRecordingOverlay();
+        hideOffsiteOverlay();
+        showToast(`${type} at ${fmtTimeShort(new Date(data.entry.timestamp))}`, 'success');
+
+        // Brief delay so they see the new status, then return to PIN screen
+        setTimeout(() => renderActionScreen(), 250);
+        clearTimeout(actionReturnTimer);
+        actionReturnTimer = setTimeout(exitActionScreen, 2500);
+    } catch (err) {
+        console.error('Clocking failed:', err);
+        hideRecordingOverlay();
+        showToast(`Failed: ${err.message}`, 'error');
+        document.querySelectorAll('.action-btn[data-type]').forEach(b => b.classList.remove('loading'));
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// OFFSITE OVERLAY
+// ════════════════════════════════════════════════════════════════════════
+function showOffsiteOverlay() {
+    // Reset to picker stage
+    $('offsitePicker').style.display = '';
+    $('offsiteCalloutForm').classList.remove('active');
+    $('offsiteOtherForm').classList.remove('active');
+    $('calloutNote').value = '';
+    $('otherNote').value = '';
+    $('calloutSubmit').disabled = true;
+    $('otherSubmit').disabled = true;
+
+    // Show distance in the subtitle so the driver knows why this appeared
+    const dist = distanceMetres(state.lastLocation.lat, state.lastLocation.lng, KS_LAT, KS_LNG);
+    $('offsiteSub').innerHTML = `You're <strong>${Math.round(dist / 1000 * 10) / 10}&nbsp;km</strong> from the dealership. Tell us why you're clocking in from here.`;
+
+    const ov = $('offsiteOverlay');
+    ov.classList.add('show');
+    ov.setAttribute('aria-hidden', 'false');
+}
+function hideOffsiteOverlay() {
+    const ov = $('offsiteOverlay');
+    ov.classList.remove('show');
+    ov.setAttribute('aria-hidden', 'true');
+}
+
+function showOffsiteForm(reason) {
+    $('offsitePicker').style.display = 'none';
+    if (reason === 'callout') {
+        $('offsiteCalloutForm').classList.add('active');
+        setTimeout(() => $('calloutNote').focus(), 300); // wait for transition
+    } else if (reason === 'other') {
+        $('offsiteOtherForm').classList.add('active');
+        setTimeout(() => $('otherNote').focus(), 300);
+    }
+}
+
+function backToOffsitePicker() {
+    $('offsiteCalloutForm').classList.remove('active');
+    $('offsiteOtherForm').classList.remove('active');
+    $('offsitePicker').style.display = '';
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// RECORDING OVERLAY + TOAST
+// ════════════════════════════════════════════════════════════════════════
+function showRecordingOverlay(label) {
+    $('recordingLabel').textContent = label || 'Recording…';
+    $('recordingOverlay').classList.add('show');
+}
+function hideRecordingOverlay() {
+    $('recordingOverlay').classList.remove('show');
+}
+
+let toastTimer = null;
+function showToast(message, kind) {
+    const container = $('toastContainer');
+    const el = document.createElement('div');
+    el.className = `toast ${kind || ''}`;
+    el.textContent = message;
+    container.appendChild(el);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 250);
+    }, 3500);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// CONNECTION STATUS
+// ════════════════════════════════════════════════════════════════════════
+function updateConnectionStatus() {
+    const online = navigator.onLine;
+    state.online = online;
+    const pill = $('connectionPill');
+    pill.classList.toggle('online', online);
+    $('connectionLabel').textContent = online ? 'Online' : 'Offline';
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════════════════════════════════
+async function boot(isRetry = false) {
+    if (isRetry) {
+        $('bootSpinner').hidden = false;
+        $('bootError').hidden = true;
+        $('bootRetry').hidden = true;
+        $('bootText').textContent = 'Loading…';
+    }
+    try {
+        await fetchFresh();
+        $('bootScreen').classList.add('hidden');
+    } catch (err) {
+        console.error('Boot failed:', err);
+        $('bootSpinner').hidden = true;
+        $('bootText').hidden = true;
+        $('bootError').hidden = false;
+        $('bootError').textContent = `Couldn't load. ${err.message}`;
+        $('bootRetry').hidden = false;
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// EVENT BINDING
+// ════════════════════════════════════════════════════════════════════════
+function bindEvents() {
+    // Keypad
+    $('pinKeypad').addEventListener('click', (e) => {
+        const key = e.target.closest('.pin-key');
+        if (!key || key.classList.contains('invisible')) return;
+        if (key.dataset.digit) pressDigit(key.dataset.digit);
+        else if (key.dataset.action === 'backspace') backspace();
+    });
+
+    // Action buttons
+    document.querySelectorAll('.action-btn[data-type]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.dataset.allowed === 'no') {
+                showToast(btn.dataset.disallowMessage || 'Not available right now.', 'error');
+                return;
+            }
+            onActionClick(btn.dataset.type);
+        });
+    });
+
+    // Back from action screen
+    $('actionBack').addEventListener('click', exitActionScreen);
+
+    // Locating screen — Cancel button
+    $('locatingCancel').addEventListener('click', exitActionScreen);
+
+    // Offsite reason: pick one of the three options
+    document.querySelectorAll('.offsite-option[data-reason]').forEach(opt => {
+        opt.addEventListener('click', () => showOffsiteForm(opt.dataset.reason));
+    });
+    $('offsiteCancel').addEventListener('click', () => {
+        hideOffsiteOverlay();
+    });
+
+    // Offsite form: back buttons
+    document.querySelectorAll('.offsite-form [data-back]').forEach(b => {
+        b.addEventListener('click', backToOffsitePicker);
+    });
+
+    // Offsite form: typing enables submit
+    $('calloutNote').addEventListener('input', (e) => {
+        $('calloutSubmit').disabled = !e.target.value.trim();
+    });
+    $('otherNote').addEventListener('input', (e) => {
+        $('otherSubmit').disabled = !e.target.value.trim();
+    });
+
+    // Offsite form: submit (clock in with reason + note)
+    $('calloutSubmit').addEventListener('click', async () => {
+        const note = $('calloutNote').value.trim();
+        if (!note) return;
+        const type = state.pendingClockType || 'Clock In';
+        state.pendingClockType = null;
+        await submitClocking(type, 'callout', note);
+    });
+    $('otherSubmit').addEventListener('click', async () => {
+        const note = $('otherNote').value.trim();
+        if (!note) return;
+        const type = state.pendingClockType || 'Clock In';
+        state.pendingClockType = null;
+        await submitClocking(type, 'other', note);
+    });
+
+    // Boot retry
+    $('bootRetry').addEventListener('click', () => boot(true));
+
+    // Online / offline
+    window.addEventListener('online',  updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+
+    // Refresh on visibility change
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            fetchFresh().catch(() => {});
+        }
+    });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════════════
+async function init() {
+    console.log('K&S Recovery mobile — build', BUILD_VERSION);
+    const bv = $('buildVersion');
+    if (bv) bv.textContent = 'build ' + BUILD_VERSION;
+    bindEvents();
+    updateConnectionStatus();
+    await boot();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
