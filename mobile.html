@@ -316,6 +316,37 @@ body {
     cursor: pointer;
 }
 
+/* Button row in the error state — Try again (primary) + Back (secondary).
+   Same shape as the offsite-form-row so the visual language stays consistent. */
+.locating-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+    width: 100%;
+    max-width: 320px;
+}
+.locating-actions button {
+    padding: 14px;
+    border-radius: var(--radius);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+}
+.locating-back-btn {
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+    border: 1px solid var(--border) !important;
+    flex: 0 0 auto;
+    min-width: 90px;
+}
+.locating-retry-btn {
+    background: var(--text);
+    color: #fff;
+    flex: 1;
+}
+
 /* Location-error inline state — same layout, different content */
 .locating-error-icon {
     width: 56px;
@@ -1023,7 +1054,7 @@ const GEOFENCE_RADIUS_M = 200;
 const GEO_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 };
 
 // Build version — bumped on each deploy. Visible bottom-right corner.
-const BUILD_VERSION = '2026-05-12-mobile-v1';
+const BUILD_VERSION = '2026-05-12-mobile-v2-retry';
 
 // ════════════════════════════════════════════════════════════════════════
 // STATE
@@ -1274,7 +1305,9 @@ function attemptPinMatch() {
 async function proceedToLocating() {
     $('pinScreen').classList.add('hidden');
     $('locatingScreen').classList.remove('hidden');
-    // Reset to spinner state in case we're returning from a prior error
+    // Reset to spinner state in case we're returning from a prior error.
+    // This also restores the Cancel button (in case the error state injected
+    // the Try-again / Back button row earlier).
     $('locatingState').innerHTML = `
         <div class="locating-spinner">
             <svg viewBox="0 0 50 50" class="spinner-svg">
@@ -1286,6 +1319,8 @@ async function proceedToLocating() {
     $('locatingSub').innerHTML = 'This usually takes 2&ndash;5 seconds. Please make sure location is enabled for K&amp;S Time Keeper.';
     $('locatingCancel').style.display = '';
     $('locatingCancel').textContent = 'Cancel';
+    const actions = document.getElementById('locatingActions');
+    if (actions) actions.style.display = 'none';
 
     // Reuse a recent fix if we have one (avoids waiting on every action)
     if (state.lastLocation && (Date.now() - state.lastLocation.capturedAt) < GEO_OPTIONS.maximumAge) {
@@ -1314,7 +1349,28 @@ function showLocationError(message) {
         </div>`;
     $('locatingLabel').textContent = 'Can\'t get your location';
     $('locatingSub').textContent = message;
-    $('locatingCancel').textContent = 'Back';
+    // Hide the single Cancel button and show the Try-again / Back button row
+    // instead. Try again is primary (re-runs proceedToLocating); Back returns
+    // to the PIN screen without losing the employee PIN entry.
+    $('locatingCancel').style.display = 'none';
+    let actions = document.getElementById('locatingActions');
+    if (!actions) {
+        actions = document.createElement('div');
+        actions.id = 'locatingActions';
+        actions.className = 'locating-actions';
+        actions.innerHTML = `
+            <button class="locating-back-btn" type="button" id="locatingBackBtn">Back</button>
+            <button class="locating-retry-btn" type="button" id="locatingRetryBtn">Try again</button>
+        `;
+        $('locatingCancel').parentNode.insertBefore(actions, $('locatingCancel').nextSibling);
+        document.getElementById('locatingBackBtn').addEventListener('click', exitActionScreen);
+        document.getElementById('locatingRetryBtn').addEventListener('click', () => {
+            // Drop any stale cached location so the retry actually requests fresh
+            state.lastLocation = null;
+            proceedToLocating();
+        });
+    }
+    actions.style.display = 'flex';
 }
 
 // ════════════════════════════════════════════════════════════════════════
