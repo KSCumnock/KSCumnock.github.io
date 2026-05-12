@@ -1326,6 +1326,41 @@ kbd {
     color: var(--text-tertiary);
     line-height: 1.45;
 }
+
+/* Weekday picker — 5 checkbox chips in a row (Mon Tue Wed Thu Fri) */
+.weekday-row {
+    display: flex;
+    gap: 6px;
+}
+.weekday-chip {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-input);
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+    user-select: none;
+}
+.weekday-chip input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.weekday-chip:hover {
+    border-color: var(--border-strong);
+}
+.weekday-chip.on {
+    background: var(--text);
+    color: #fafafa;
+    border-color: var(--text);
+}
 .emp-list-actions { display: flex; gap: 4px; }
 .icon-btn {
     background: transparent;
@@ -3965,6 +4000,24 @@ function openEmployeeForm(empId) {
                 </select>
                 <div class="field-hint" id="fldHmHint">Used to check leave status in the daily no-show email.</div>
             </div>
+            <div class="field-group">
+                <label>Weekday schedule</label>
+                <div class="weekday-row" id="fldWeekdayRow">
+                    ${(() => {
+                        const pattern = editing && editing.weekdayPattern ? editing.weekdayPattern : 'MTWTF';
+                        const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+                        const letters = ['M', 'T', 'W', 'T', 'F'];
+                        return labels.map((lbl, i) => {
+                            const checked = pattern[i] !== '-';
+                            return `<label class="weekday-chip${checked ? ' on' : ''}">
+                                <input type="checkbox" data-slot="${i}" data-letter="${letters[i]}" ${checked ? 'checked' : ''} />
+                                <span>${lbl}</span>
+                            </label>`;
+                        }).join('');
+                    })()}
+                </div>
+                <div class="field-hint">Tick the weekdays this employee normally works. Used to know who to expect each morning.</div>
+            </div>
             <div class="field-row">
                 <div class="field-group">
                     <label for="fldSatPattern">Saturday schedule</label>
@@ -4005,10 +4058,22 @@ function openEmployeeForm(empId) {
     updateSatVisibility();
     satPattern.addEventListener('change', updateSatVisibility);
 
+    // Weekday checkboxes — visual "on" state on the chip mirrors the checkbox
+    document.querySelectorAll('#fldWeekdayRow input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', () => {
+            cb.closest('.weekday-chip').classList.toggle('on', cb.checked);
+        });
+    });
+
     document.getElementById('empSaveBtn').addEventListener('click', async () => {
         const hmVal = document.getElementById('fldHmId').value;
         const satPatternVal = document.getElementById('fldSatPattern').value;
         const satAnchorVal = document.getElementById('fldSatAnchor').value;
+        // Build "MTWTF"-style pattern from checkboxes
+        const weekdayPattern = Array.from(document.querySelectorAll('#fldWeekdayRow input[type="checkbox"]'))
+            .sort((a, b) => Number(a.dataset.slot) - Number(b.dataset.slot))
+            .map(cb => cb.checked ? cb.dataset.letter : '-')
+            .join('');
         const payload = {
             name: document.getElementById('fldName').value.trim(),
             department: document.getElementById('fldDept').value.trim(),
@@ -4019,6 +4084,7 @@ function openEmployeeForm(empId) {
             holidayManagerId: hmVal === '' ? null : Number(hmVal),
             saturdayPattern: satPatternVal,
             saturdayAnchor: ['fortnightly', 'fourweekly'].includes(satPatternVal) ? (satAnchorVal || null) : null,
+            weekdayPattern,
         };
         // Validate saturday anchor when needed
         if (['fortnightly', 'fourweekly'].includes(satPatternVal)) {
