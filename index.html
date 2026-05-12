@@ -2216,7 +2216,17 @@ async function fetchData() {
 // COMPUTATION
 // ════════════════════════════════════════════════════════════════════════
 // Group clockings by employeeId → date (YYYY-MM-DD) → entries[]
+// Cache the grouped-by-employee map since it's the heaviest part of a render
+// (full pass over all ~17k entries with date parsing). Invalidates whenever
+// the clockings array length changes, which is sufficient — adds, edits and
+// deletes all bump or change the length via the refresh cycle.
+let _groupedCache = null;
+let _groupedCacheKey = null;
+
 function groupClockings(clockings) {
+    const cacheKey = clockings.length + '|' + (state.lastUpdated?.getTime() || 0);
+    if (_groupedCache && _groupedCacheKey === cacheKey) return _groupedCache;
+
     const byEmp = new Map();
     for (const entry of clockings) {
         // Skip soft-deleted entries (admin deletions add { deleted: true })
@@ -2233,6 +2243,9 @@ function groupClockings(clockings) {
             arr.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         }
     }
+
+    _groupedCache = byEmp;
+    _groupedCacheKey = cacheKey;
     return byEmp;
 }
 
@@ -4005,8 +4018,7 @@ async function fetchBackupStatus() {
         if (!data.lastBackupAt) {
             pill.dataset.state = 'missing';
             label.textContent = 'Backup: pending';
-            pill.href = data.repoUrl || '#';
-            pill.title = 'No backup has run yet — the scheduled cron will run every 6 hours.';
+            pill.title = 'No backup has run yet. Tap to run one now, or the scheduled cron will fire every 6 hours.';
             return;
         }
         const ageMin = (Date.now() - new Date(data.lastBackupAt).getTime()) / 60_000;
@@ -4020,8 +4032,7 @@ async function fetchBackupStatus() {
         // 6h is the scheduled cron — anything over 9h is "stale"
         pill.dataset.state = ageMin > 9 * 60 ? 'stale' : '';
         label.textContent = `Backup: ${ageStr}`;
-        pill.href = data.lastBackupUrl || data.repoUrl || '#';
-        pill.title = `Last backup: ${new Date(data.lastBackupAt).toLocaleString('en-GB')}\nClick to view commit on GitHub.`;
+        pill.title = `Last backup: ${new Date(data.lastBackupAt).toLocaleString('en-GB')}\nTap to run a new backup now.`;
     } catch (err) {
         pill.dataset.state = 'missing';
         label.textContent = 'Backup: ?';
@@ -4091,9 +4102,15 @@ function bindEvents() {
         state.filters.sortBy = e.target.value;
         renderRows();
     });
+    // Debounce search by 150ms — typing fast shouldn't trigger a render per keystroke
+    let searchTimer = null;
     document.getElementById('employeeSearch').addEventListener('input', (e) => {
-        state.filters.search = e.target.value;
-        renderRows();
+        const val = e.target.value;
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+            state.filters.search = val;
+            renderRows();
+        }, 150);
     });
     bindPicker();
 }
