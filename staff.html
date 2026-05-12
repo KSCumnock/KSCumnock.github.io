@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>K&amp;S Time Keeper</title>
 
+<!-- Prevent the iPad PWA from caching this HTML. Without these, the
+     home-screen-installed PWA gets stuck on whatever version it was
+     installed with until the user reinstalls. Combined with the
+     BUILD_VERSION constant in the JS, deploys take effect immediately. -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+
 <!-- iOS standalone PWA -->
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -642,6 +650,116 @@ body {
     border-color: var(--border);
 }
 
+/* Screensaver overlay — appears after IDLE_TIMEOUT_MS of no input.
+   Dark background, large monospaced time, gentle fade in/out.
+   Kept invisible-but-rendered when not active so the clock keeps updating. */
+.screensaver {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: #09090b;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.6s ease, visibility 0.6s ease;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.screensaver.show {
+    opacity: 1;
+    visibility: visible;
+}
+.screensaver-inner {
+    text-align: center;
+    color: #fafafa;
+    padding: 40px;
+}
+.screensaver-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 56px;
+    opacity: 0.55;
+    transition: opacity 1.2s ease;
+}
+.screensaver.show .screensaver-brand {
+    opacity: 0.55;
+}
+.ss-mark {
+    width: 44px;
+    height: 44px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: -0.04em;
+    color: #fafafa;
+}
+.ss-mark-text { text-align: left; }
+.ss-name {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+    color: #fafafa;
+}
+.ss-sub {
+    font-size: 11px;
+    color: #71717a;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 3px;
+}
+.screensaver-time {
+    font-size: clamp(120px, 22vw, 280px);
+    font-weight: 200;
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+    color: #fafafa;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 16px;
+}
+.screensaver-date {
+    font-size: clamp(18px, 2.5vw, 26px);
+    font-weight: 400;
+    color: #71717a;
+    letter-spacing: 0.01em;
+    margin-bottom: 80px;
+}
+.screensaver-hint {
+    font-size: 12px;
+    color: #52525b;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    animation: ssHintPulse 3s ease-in-out infinite;
+}
+@keyframes ssHintPulse {
+    0%, 100% { opacity: 0.45; }
+    50%      { opacity: 1.0; }
+}
+
+/* Build version — tiny, in the corner of the idle screen. Pure diagnostic. */
+.build-version {
+    position: fixed;
+    bottom: 12px;
+    right: 14px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    opacity: 0.4;
+    letter-spacing: 0.04em;
+    pointer-events: none;
+    z-index: 2;
+}
+
 .recording-spinner {
     width: 72px;
     height: 72px;
@@ -837,6 +955,11 @@ body {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
         </button>
     </div>
+
+    <!-- Build indicator — populated by JS from BUILD_VERSION constant.
+         Lets you confirm at a glance which deploy this kiosk is running.
+         Useful for diagnosing "is this the new version?" without DevTools. -->
+    <div class="build-version" id="buildVersion"></div>
 </main>
 
 <!-- ──────────────────────────────────────────────────── -->
@@ -939,6 +1062,24 @@ body {
     </div>
 </div>
 
+<!-- Screensaver — fades in after IDLE_TIMEOUT_MS of no activity. Shows a
+     clean clock + date display. Any tap dismisses it back to the PIN screen.
+     Kept in the DOM (not destroyed) so the time keeps ticking underneath. -->
+<div class="screensaver" id="screensaver" aria-hidden="true">
+    <div class="screensaver-inner">
+        <div class="screensaver-brand">
+            <div class="ss-mark">K&amp;S</div>
+            <div class="ss-mark-text">
+                <div class="ss-name">Time Keeper</div>
+                <div class="ss-sub">Kerr &amp; Smith</div>
+            </div>
+        </div>
+        <div class="screensaver-time mono" id="ssClockTime">--:--</div>
+        <div class="screensaver-date" id="ssClockDate">&nbsp;</div>
+        <div class="screensaver-hint">Tap anywhere to wake</div>
+    </div>
+</div>
+
 <script>
 // ════════════════════════════════════════════════════════════════════════
 // CONFIG
@@ -958,6 +1099,12 @@ const PIN_LENGTH = 4;
 const REFRESH_EMPLOYEES_MS = 5 * 60 * 1000; // refetch employee list every 5 mins
 const ACTION_RETURN_DELAY_MS = 3500;        // after a clock action, return to idle
 const ACTION_FEEDBACK_DELAY_MS = 250;       // brief delay before showing toast
+const IDLE_TIMEOUT_MS = 20 * 1000;          // 20s of no input → screensaver
+
+// Build version — bumped on each deploy. The boot routine compares this to
+// the version embedded in the (no-cache) HTML and reloads if mismatched, so
+// kiosks don't get stuck on stale code after a deploy.
+const BUILD_VERSION = '2026-05-12-15.10';
 
 // ════════════════════════════════════════════════════════════════════════
 // STATE
@@ -1405,6 +1552,42 @@ function tickClock() {
     const now = new Date();
     $('clockTime').textContent = fmtTime(now);
     $('clockDate').textContent = fmtDate(now);
+    // Also update the screensaver clock — it's always in the DOM, just hidden
+    // most of the time. Keeping it ticking means it's correct the instant
+    // the overlay fades in (no flash of stale "--:--").
+    const ssTime = document.getElementById('ssClockTime');
+    const ssDate = document.getElementById('ssClockDate');
+    if (ssTime) ssTime.textContent = fmtTimeShort(now); // HH:MM only — cleaner big display
+    if (ssDate) ssDate.textContent = fmtDate(now);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// SCREENSAVER — fades in after IDLE_TIMEOUT_MS of no input
+// ════════════════════════════════════════════════════════════════════════
+let idleTimer = null;
+
+function showScreensaver() {
+    // Only kick in when on the idle PIN screen. If the user is mid-clock
+    // (action screen visible), don't hide their controls under a screensaver.
+    if (!$('actionScreen').classList.contains('hidden')) return;
+    // Also skip if boot is still showing
+    if (!$('bootScreen').classList.contains('hidden')) return;
+    const ss = document.getElementById('screensaver');
+    ss.classList.add('show');
+    ss.setAttribute('aria-hidden', 'false');
+}
+
+function hideScreensaver() {
+    const ss = document.getElementById('screensaver');
+    ss.classList.remove('show');
+    ss.setAttribute('aria-hidden', 'true');
+}
+
+// Any user activity calls this — taps, keys, etc. Resets the idle timer.
+function noteActivity() {
+    hideScreensaver();
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(showScreensaver, IDLE_TIMEOUT_MS);
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -1514,6 +1697,20 @@ function bindEvents() {
     // Boot retry
     $('bootRetry').addEventListener('click', () => boot(true));
 
+    // Screensaver — any tap anywhere on the overlay wakes it up.
+    // Use 'pointerdown' rather than 'click' so the wake feels instant
+    // (don't wait for tap+release).
+    document.getElementById('screensaver').addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        noteActivity();
+    });
+
+    // Activity tracking — any tap/key anywhere resets the idle timer.
+    // We listen at the document level so we don't need to attach to each
+    // button individually. Capture phase so it fires before specific handlers.
+    document.addEventListener('pointerdown', noteActivity, { capture: true });
+    document.addEventListener('keydown',     noteActivity, { capture: true });
+
     // Online/offline
     window.addEventListener('online',  updateConnectionStatus);
     window.addEventListener('offline', updateConnectionStatus);
@@ -1530,12 +1727,17 @@ function bindEvents() {
 // INIT
 // ════════════════════════════════════════════════════════════════════════
 async function init() {
+    console.log('TimeKeeper staff PWA — build', BUILD_VERSION);
+    const bv = document.getElementById('buildVersion');
+    if (bv) bv.textContent = 'build ' + BUILD_VERSION;
     bindEvents();
     tickClock();
     setInterval(tickClock, 1000);
     updateConnectionStatus();
     await boot();
     startPeriodicRefresh();
+    // Start the idle countdown once everything is up
+    noteActivity();
 }
 
 document.addEventListener('DOMContentLoaded', init);
