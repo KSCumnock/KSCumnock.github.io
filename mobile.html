@@ -733,6 +733,328 @@ body {
 .offsite-form-submit:disabled { opacity: 0.4; }
 
 /* ────────────────────────────────────────────── */
+/* TIMESHEETS — secondary button on action screen */
+/* ────────────────────────────────────────────── */
+.action-btn.secondary {
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    font-size: 15px;
+    min-height: 56px;
+    margin-top: 16px;
+    font-weight: 500;
+}
+.action-btn.secondary svg {
+    width: 20px;
+    height: 20px;
+    color: var(--text-tertiary);
+}
+
+/* ────────────────────────────────────────────── */
+/* TIMESHEETS — LIST                              */
+/* ────────────────────────────────────────────── */
+.ts-list-status {
+    text-align: center;
+    padding: 24px 16px;
+    color: var(--text-tertiary);
+    font-size: 13px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.ts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+}
+.ts-row {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: background 0.12s ease, transform 0.12s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.ts-row:active {
+    background: var(--bg-muted);
+    transform: scale(0.99);
+}
+.ts-row-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.ts-row-date {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+}
+.ts-row-hours {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+}
+.ts-row-job {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+}
+.ts-row-customer {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+.ts-row-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+}
+.ts-row-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-size: 10px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.ts-row-badge.sent {
+    background: var(--green-bg);
+    color: var(--green);
+}
+.ts-row-badge.edited {
+    background: var(--blue-bg);
+    color: var(--blue);
+}
+.ts-row-badge svg { width: 10px; height: 10px; }
+
+.ts-list-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 24px;
+    gap: 12px;
+    color: var(--text-tertiary);
+}
+.ts-empty-icon svg {
+    width: 48px;
+    height: 48px;
+    color: var(--border-strong);
+}
+.ts-empty-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+.ts-empty-sub {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    max-width: 280px;
+    line-height: 1.5;
+}
+
+/* ────────────────────────────────────────────── */
+/* TIMESHEETS — FORM                              */
+/* ────────────────────────────────────────────── */
+.ts-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 16px;
+}
+.ts-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.ts-label {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+    color: var(--text-tertiary);
+}
+.ts-label em {
+    font-style: normal;
+    color: var(--text-tertiary);
+    font-weight: 400;
+}
+.ts-label em:only-child,
+.ts-field .ts-label em { font-weight: 400; }
+.ts-form input,
+.ts-form textarea {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 16px; /* 16px prevents iOS Safari zoom-on-focus */
+    font-family: inherit;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-appearance: none;
+    appearance: none;
+}
+.ts-form textarea {
+    min-height: 80px;
+    resize: vertical;
+    font-family: inherit;
+}
+.ts-form input:focus,
+.ts-form textarea:focus {
+    outline: none;
+    border-color: var(--text);
+}
+.ts-field-row {
+    display: flex;
+    gap: 10px;
+}
+.ts-field-row .ts-field { flex: 1; }
+
+.ts-form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+}
+.ts-form-cancel,
+.ts-form-submit {
+    padding: 14px;
+    border-radius: var(--radius);
+    font-size: 16px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+}
+.ts-form-cancel {
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    flex: 0 0 auto;
+    min-width: 100px;
+}
+.ts-form-submit {
+    background: var(--text);
+    color: #fff;
+    flex: 1;
+}
+.ts-form-submit:disabled { opacity: 0.4; pointer-events: none; }
+
+/* Banner shown when editing an already-sent timesheet */
+.ts-sent-banner {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: var(--amber-bg);
+    border: 1px solid rgba(217, 119, 6, 0.2);
+    border-radius: var(--radius);
+    color: var(--amber);
+    font-size: 13px;
+    line-height: 1.45;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+.ts-sent-banner svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* ────────────────────────────────────────────── */
+/* ALREADY-SENT EDIT WARNING MODAL                */
+/* ────────────────────────────────────────────── */
+.warning-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    padding: 20px;
+}
+.warning-overlay.show { opacity: 1; visibility: visible; }
+.warning-card {
+    background: #fff;
+    border-radius: var(--radius-lg);
+    padding: 24px 22px;
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+    transform: scale(0.96);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.warning-overlay.show .warning-card { transform: scale(1); }
+.warning-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--amber-bg);
+    color: var(--amber);
+    display: grid;
+    place-items: center;
+    margin: 0 auto 12px;
+}
+.warning-icon svg { width: 22px; height: 22px; }
+.warning-title {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.warning-message {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+.warning-actions {
+    display: flex;
+    gap: 10px;
+}
+.warning-cancel,
+.warning-confirm {
+    flex: 1;
+    padding: 13px;
+    border-radius: var(--radius);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+}
+.warning-cancel {
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+.warning-confirm {
+    background: var(--amber);
+    color: #fff;
+}
+
+/* ────────────────────────────────────────────── */
 /* RECORDING OVERLAY                               */
 /* ────────────────────────────────────────────── */
 .recording-overlay {
@@ -1007,9 +1329,145 @@ body {
             <span>Clock out</span>
         </button>
     </div>
+
+    <!-- Timesheets entry — visually quieter than clocking actions because
+         it's a secondary feature (drivers use it less often). Opens the
+         list view of their own previously-submitted timesheets. -->
+    <button class="action-btn secondary" id="openTimesheetsBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+            <line x1="8" y1="14" x2="8" y2="14.01"/>
+            <line x1="12" y1="14" x2="12" y2="14.01"/>
+            <line x1="16" y1="14" x2="16" y2="14.01"/>
+            <line x1="8" y1="18" x2="8" y2="18.01"/>
+            <line x1="12" y1="18" x2="12" y2="18.01"/>
+        </svg>
+        <span>Timesheets</span>
+    </button>
 </main>
 
-<!-- ─── OFFSITE REASON MODAL ─────────────────── -->
+<!-- ─── TIMESHEETS LIST SCREEN ────────────────── -->
+<main class="screen hidden" id="timesheetsListScreen">
+    <header class="action-header">
+        <button class="action-back" id="timesheetsListBack" type="button" aria-label="Back to clocking">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="action-greeting">
+            <div class="welcome">Timesheets</div>
+            <div class="name" id="tsListName">—</div>
+        </div>
+    </header>
+
+    <button class="action-btn clock-in" id="newTimesheetBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        <span>New timesheet</span>
+    </button>
+
+    <div class="ts-list-status" id="tsListStatus" hidden></div>
+
+    <div class="ts-list" id="tsList"></div>
+
+    <div class="ts-list-empty" id="tsListEmpty" hidden>
+        <div class="ts-empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+        </div>
+        <div class="ts-empty-title">No timesheets yet</div>
+        <div class="ts-empty-sub">Tap "New timesheet" above to record your first job.</div>
+    </div>
+</main>
+
+<!-- ─── TIMESHEET FORM SCREEN (new + edit) ────── -->
+<main class="screen hidden" id="timesheetFormScreen">
+    <header class="action-header">
+        <button class="action-back" id="timesheetFormBack" type="button" aria-label="Back to list">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="action-greeting">
+            <div class="welcome" id="tsFormSubtitle">New job</div>
+            <div class="name" id="tsFormTitle">Timesheet entry</div>
+        </div>
+    </header>
+
+    <!-- Already-sent warning banner appears when editing an exported entry -->
+    <div class="ts-sent-banner" id="tsSentBanner" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span>This entry has already been sent. Edits will need to be re-exported.</span>
+    </div>
+
+    <div class="ts-form">
+        <label class="ts-field">
+            <span class="ts-label">Job number <em>*</em></span>
+            <input type="text" id="tsJobNumber" autocomplete="off" autocapitalize="characters" placeholder="e.g. JN12345" />
+        </label>
+
+        <label class="ts-field">
+            <span class="ts-label">Customer name <em>*</em></span>
+            <input type="text" id="tsCustomerName" autocomplete="off" placeholder="e.g. John Smith" />
+        </label>
+
+        <div class="ts-field-row">
+            <label class="ts-field">
+                <span class="ts-label">Date <em>*</em></span>
+                <input type="date" id="tsJobDate" />
+            </label>
+            <label class="ts-field">
+                <span class="ts-label">Hours <em>*</em></span>
+                <input type="number" id="tsHours" inputmode="decimal" step="0.25" min="0" max="24" placeholder="2.5" />
+            </label>
+        </div>
+
+        <label class="ts-field">
+            <span class="ts-label">Registration <em>(optional)</em></span>
+            <input type="text" id="tsRegistration" autocomplete="off" autocapitalize="characters" placeholder="e.g. SK24 ABC" />
+        </label>
+
+        <label class="ts-field">
+            <span class="ts-label">Description <em>(optional)</em></span>
+            <textarea id="tsDescription" rows="3" placeholder="What did you do on this job?"></textarea>
+        </label>
+
+        <div class="ts-form-actions">
+            <button class="ts-form-cancel" id="tsFormCancel" type="button">Cancel</button>
+            <button class="ts-form-submit" id="tsFormSubmit" type="button" disabled>Save</button>
+        </div>
+    </div>
+</main>
+
+<!-- ─── ALREADY-SENT EDIT WARNING MODAL ───────── -->
+<div class="warning-overlay" id="sentWarningOverlay" aria-hidden="true">
+    <div class="warning-card">
+        <div class="warning-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        </div>
+        <div class="warning-title">Already sent</div>
+        <div class="warning-message" id="sentWarningMessage">
+            This timesheet has already been sent. If you edit it now, the change will need to be re-exported.
+        </div>
+        <div class="warning-actions">
+            <button class="warning-cancel" id="sentWarningCancel" type="button">Cancel</button>
+            <button class="warning-confirm" id="sentWarningConfirm" type="button">Edit anyway</button>
+        </div>
+    </div>
+</div>
 <div class="offsite-overlay" id="offsiteOverlay" aria-hidden="true">
     <div class="offsite-card">
         <!-- Stage 1: option picker -->
@@ -1096,6 +1554,7 @@ body {
 const WORKER_URL = 'https://timekeeper-admin.ske-d03.workers.dev';
 const ENDPOINT_EMPLOYEES = `${WORKER_URL}/data/employees`;
 const ENDPOINT_ENTRIES   = `${WORKER_URL}/data/entries`;
+const ENDPOINT_TIMESHEETS = `${WORKER_URL}/staff/timesheets`;
 const PIN_LENGTH = 4;
 
 // Geofence — Kerr & Smith Cumnock, 200m radius. Anyone clocking in within
@@ -1114,7 +1573,7 @@ const GEOFENCE_RADIUS_M = 200;
 const GEO_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 };
 
 // Build version — bumped on each deploy. Visible bottom-right corner.
-const BUILD_VERSION = '2026-05-12-mobile-v5-keyfix';
+const BUILD_VERSION = '2026-05-12-mobile-v6-timesheets';
 
 // ════════════════════════════════════════════════════════════════════════
 // STATE
@@ -1131,6 +1590,10 @@ const state = {
     lastLocation: null,         // { lat, lng, accuracy, capturedAt: epochMs }
     pendingClockType: null,     // the action waiting for offsite-reason answer
     watchId: null,              // navigator.geolocation.watchPosition id; null when not watching
+    // Timesheet state
+    timesheets: [],             // cached list of own timesheets
+    editingTimesheetId: null,   // null when creating new, set when editing
+    sentWarningPending: null,   // timesheet id queued for edit after warning confirmation
 };
 
 const $ = (id) => document.getElementById(id);
@@ -1489,10 +1952,18 @@ function exitActionScreen() {
         navigator.geolocation.clearWatch(state.watchId);
         state.watchId = null;
     }
+    // Reset timesheet state — if we don't, the next driver to log in would
+    // briefly see the previous driver's cached timesheet list.
+    state.timesheets = [];
+    state.editingTimesheetId = null;
+    state.sentWarningPending = null;
     $('actionScreen').classList.add('hidden');
     $('locatingScreen').classList.add('hidden');
+    $('timesheetsListScreen').classList.add('hidden');
+    $('timesheetFormScreen').classList.add('hidden');
     $('pinScreen').classList.remove('hidden');
     hideOffsiteOverlay();
+    hideSentWarning();
 }
 
 function renderActionScreen() {
@@ -1715,6 +2186,240 @@ function updateConnectionStatus() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+// TIMESHEETS
+// ════════════════════════════════════════════════════════════════════════
+// Drivers record out-of-hours jobs via /staff/timesheets. PIN-authenticated
+// per request — same model as clockings. Driver only ever sees their own
+// entries (server enforces this even if the client tries to cheat).
+
+const fmtIsoDate = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+};
+const fmtPrettyDate = (yyyymmdd) => {
+    // Input is YYYY-MM-DD. Force noon UTC to avoid timezone slippage on the day boundary.
+    const d = new Date(yyyymmdd + 'T12:00:00Z');
+    return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+};
+const fmtHours = (h) => {
+    // 2.5 → "2.5h"; 1 → "1h"; 1.25 → "1.25h"
+    const trimmed = Math.round(h * 100) / 100;
+    return `${trimmed}h`;
+};
+
+async function fetchTimesheets() {
+    const emp = state.currentEmployee;
+    if (!emp) return;
+    try {
+        const url = `${ENDPOINT_TIMESHEETS}?employeeId=${encodeURIComponent(emp.id)}&pin=${encodeURIComponent(emp.pin)}&t=${Date.now()}`;
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) throw new Error(`Server returned ${r.status}`);
+        const data = await r.json();
+        state.timesheets = data.timesheets || [];
+        renderTimesheetsList();
+    } catch (err) {
+        console.error('Timesheets fetch failed:', err);
+        $('tsListStatus').hidden = false;
+        $('tsListStatus').textContent = `Couldn't load timesheets — ${err.message}`;
+    }
+}
+
+function enterTimesheetsList() {
+    const emp = state.currentEmployee;
+    if (!emp) return;
+    $('actionScreen').classList.add('hidden');
+    $('timesheetsListScreen').classList.remove('hidden');
+    $('tsListName').textContent = emp.name;
+    $('tsListStatus').hidden = false;
+    $('tsListStatus').textContent = 'Loading…';
+    $('tsList').innerHTML = '';
+    $('tsListEmpty').hidden = true;
+    fetchTimesheets();
+}
+
+function exitTimesheetsList() {
+    $('timesheetsListScreen').classList.add('hidden');
+    $('actionScreen').classList.remove('hidden');
+}
+
+function renderTimesheetsList() {
+    const container = $('tsList');
+    container.innerHTML = '';
+    $('tsListStatus').hidden = true;
+    if (!state.timesheets.length) {
+        $('tsListEmpty').hidden = false;
+        return;
+    }
+    $('tsListEmpty').hidden = true;
+
+    for (const ts of state.timesheets) {
+        const row = document.createElement('button');
+        row.className = 'ts-row';
+        row.type = 'button';
+        row.dataset.id = ts.id;
+        // Build inner HTML carefully — escape any user-supplied strings
+        const sentBadge = ts.sentAt
+            ? `<span class="ts-row-badge sent">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Sent
+               </span>`
+            : '';
+        const editedBadge = (ts.updatedAt && ts.sentAt && ts.updatedAt > ts.sentAt)
+            ? `<span class="ts-row-badge edited">Edited since</span>`
+            : '';
+        row.innerHTML = `
+            <div class="ts-row-top">
+                <div class="ts-row-date">${fmtPrettyDate(ts.jobDate)}</div>
+                <div class="ts-row-hours">${fmtHours(ts.hours)}</div>
+            </div>
+            <div class="ts-row-job">${escapeHtml(ts.jobNumber)}</div>
+            <div class="ts-row-customer">${escapeHtml(ts.customerName)}</div>
+            ${(sentBadge || editedBadge) ? `<div class="ts-row-meta">${sentBadge}${editedBadge}</div>` : ''}
+        `;
+        row.addEventListener('click', () => openTimesheetForEdit(ts.id));
+        container.appendChild(row);
+    }
+}
+
+// Cheap HTML escape for inserting untrusted text via innerHTML
+function escapeHtml(s) {
+    return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function openTimesheetForEdit(id) {
+    const ts = state.timesheets.find(t => t.id === id);
+    if (!ts) return;
+    if (ts.sentAt) {
+        // Already exported — confirm via warning modal before letting them edit
+        state.sentWarningPending = id;
+        showSentWarning();
+        return;
+    }
+    enterTimesheetForm(ts);
+}
+
+function enterTimesheetForm(existing) {
+    // existing is the timesheet object when editing; null/undefined when new.
+    state.editingTimesheetId = existing ? existing.id : null;
+    $('timesheetsListScreen').classList.add('hidden');
+    $('actionScreen').classList.add('hidden');
+    $('timesheetFormScreen').classList.remove('hidden');
+
+    // Reset / populate fields
+    $('tsJobNumber').value    = existing ? existing.jobNumber : '';
+    $('tsCustomerName').value = existing ? existing.customerName : '';
+    $('tsRegistration').value = existing ? (existing.registration || '') : '';
+    $('tsDescription').value  = existing ? (existing.description || '')  : '';
+    $('tsJobDate').value      = existing ? existing.jobDate : fmtIsoDate(new Date());
+    $('tsHours').value        = existing ? existing.hours : '';
+
+    $('tsFormSubtitle').textContent = existing ? 'Edit timesheet' : 'New job';
+    $('tsFormTitle').textContent    = existing ? `${existing.jobNumber}` : 'Timesheet entry';
+    $('tsFormSubmit').textContent   = existing ? 'Save changes' : 'Save';
+
+    // Show "already sent" banner if relevant
+    $('tsSentBanner').hidden = !(existing && existing.sentAt);
+
+    updateTimesheetSubmitState();
+    // Don't autofocus on iOS — keyboard pops up immediately, jarring.
+    // User taps the field they want first.
+}
+
+function exitTimesheetForm(returnToList = true) {
+    $('timesheetFormScreen').classList.add('hidden');
+    state.editingTimesheetId = null;
+    if (returnToList) {
+        $('timesheetsListScreen').classList.remove('hidden');
+    } else {
+        $('actionScreen').classList.remove('hidden');
+    }
+}
+
+// Submit button is enabled only when all required fields have values
+function updateTimesheetSubmitState() {
+    const jobNumber    = $('tsJobNumber').value.trim();
+    const customerName = $('tsCustomerName').value.trim();
+    const jobDate      = $('tsJobDate').value;
+    const hours        = $('tsHours').value;
+    const valid = jobNumber && customerName && jobDate && hours && Number(hours) > 0 && Number(hours) <= 24;
+    $('tsFormSubmit').disabled = !valid;
+}
+
+async function submitTimesheet() {
+    const emp = state.currentEmployee;
+    if (!emp) return;
+
+    const payload = {
+        employeeId: emp.id,
+        pin: emp.pin,
+        jobNumber:    $('tsJobNumber').value.trim(),
+        customerName: $('tsCustomerName').value.trim(),
+        registration: $('tsRegistration').value.trim() || null,
+        description:  $('tsDescription').value.trim() || null,
+        jobDate:      $('tsJobDate').value,
+        hours:        Number($('tsHours').value),
+    };
+
+    const editingId = state.editingTimesheetId;
+    const url = editingId ? `${ENDPOINT_TIMESHEETS}/${editingId}` : ENDPOINT_TIMESHEETS;
+    const method = editingId ? 'PATCH' : 'POST';
+
+    $('tsFormSubmit').disabled = true;
+    $('tsFormSubmit').textContent = editingId ? 'Saving…' : 'Saving…';
+
+    try {
+        const r = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (!r.ok) {
+            const txt = await r.text();
+            throw new Error(`Server returned ${r.status}: ${txt}`);
+        }
+        const data = await r.json();
+        // Merge into local cache
+        if (editingId) {
+            const idx = state.timesheets.findIndex(t => t.id === editingId);
+            if (idx >= 0) state.timesheets[idx] = data.timesheet;
+        } else {
+            state.timesheets.unshift(data.timesheet);
+            // Re-sort by job date desc to keep list order consistent
+            state.timesheets.sort((a, b) =>
+                (b.jobDate + b.createdAt).localeCompare(a.jobDate + a.createdAt));
+        }
+        showToast(editingId ? 'Timesheet updated' : 'Timesheet saved', 'success');
+        exitTimesheetForm(true);
+        renderTimesheetsList();
+    } catch (err) {
+        console.error('Timesheet save failed:', err);
+        showToast(`Failed: ${err.message}`, 'error');
+        $('tsFormSubmit').disabled = false;
+        $('tsFormSubmit').textContent = editingId ? 'Save changes' : 'Save';
+    }
+}
+
+// ─── Already-sent warning modal ─────────────────────
+function showSentWarning() {
+    const ov = $('sentWarningOverlay');
+    ov.classList.add('show');
+    ov.setAttribute('aria-hidden', 'false');
+}
+function hideSentWarning() {
+    const ov = $('sentWarningOverlay');
+    ov.classList.remove('show');
+    ov.setAttribute('aria-hidden', 'true');
+    state.sentWarningPending = null;
+}
+
+// ════════════════════════════════════════════════════════════════════════
 // BOOT
 // ════════════════════════════════════════════════════════════════════════
 async function boot(isRetry = false) {
@@ -1810,6 +2515,30 @@ function bindEvents() {
 
     // Boot retry
     $('bootRetry').addEventListener('click', () => boot(true));
+
+    // ─── Timesheets ──────────────────────────────────
+    $('openTimesheetsBtn').addEventListener('click', enterTimesheetsList);
+    $('timesheetsListBack').addEventListener('click', exitTimesheetsList);
+    $('newTimesheetBtn').addEventListener('click', () => enterTimesheetForm(null));
+    $('timesheetFormBack').addEventListener('click', () => exitTimesheetForm(true));
+    $('tsFormCancel').addEventListener('click', () => exitTimesheetForm(true));
+    $('tsFormSubmit').addEventListener('click', submitTimesheet);
+
+    // Input validation listeners — enable Save only when required fields have values
+    ['tsJobNumber', 'tsCustomerName', 'tsJobDate', 'tsHours'].forEach(id => {
+        $(id).addEventListener('input', updateTimesheetSubmitState);
+        $(id).addEventListener('change', updateTimesheetSubmitState);
+    });
+
+    // Already-sent warning modal
+    $('sentWarningCancel').addEventListener('click', hideSentWarning);
+    $('sentWarningConfirm').addEventListener('click', () => {
+        const id = state.sentWarningPending;
+        hideSentWarning();
+        if (!id) return;
+        const ts = state.timesheets.find(t => t.id === id);
+        if (ts) enterTimesheetForm(ts);
+    });
 
     // Online / offline
     window.addEventListener('online',  updateConnectionStatus);
