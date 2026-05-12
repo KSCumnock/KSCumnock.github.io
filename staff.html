@@ -352,7 +352,7 @@ body {
 
 .welcome {
     text-align: center;
-    margin: 12px 0 24px;
+    margin: 8px 0 18px;
 }
 .welcome-label {
     font-size: 13px;
@@ -370,25 +370,25 @@ body {
     line-height: 1.1;
 }
 .status-row {
-    margin-top: 14px;
+    margin-top: 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .status-pill {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    padding: 6px 14px 6px 12px;
+    gap: 8px;
+    padding: 8px 18px 8px 14px;
     border-radius: 999px;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 500;
     border: 1px solid;
     white-space: nowrap;
 }
-.status-pill .pill-dot { width: 8px; height: 8px; border-radius: 50%; }
+.status-pill .pill-dot { width: 9px; height: 9px; border-radius: 50%; }
 .status-pill[data-state="working"]   { background: var(--green-soft); border-color: var(--green-border); color: var(--green-fg); }
 .status-pill[data-state="working"] .pill-dot { background: var(--green); }
 .status-pill[data-state="break"]     { background: var(--amber-soft); border-color: var(--amber-border); color: var(--amber-fg); }
@@ -401,15 +401,16 @@ body {
 .status-pill[data-state="sick"] .pill-dot { background: var(--purple); }
 
 .work-time {
-    font-size: 14px;
+    font-size: 16px;
     color: var(--text-secondary);
+    font-weight: 500;
 }
 
 .actions {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    max-width: 520px;
+    gap: 16px;
+    max-width: 640px;
     margin: 0 auto;
     width: 100%;
     flex: 1;
@@ -419,35 +420,35 @@ body {
 .action-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 16px;
 }
 
 .action-btn {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px 16px;
+    border-radius: var(--radius-lg);
+    padding: 24px 18px;
     font-family: var(--font-ui);
-    font-size: 16px;
+    font-size: 22px;
     font-weight: 600;
     color: var(--text);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 14px;
     transition: background 0.12s ease, border-color 0.12s ease, transform 0.04s ease, opacity 0.12s ease;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     box-shadow: var(--shadow-sm);
-    min-height: 64px;
+    min-height: 104px;
     letter-spacing: -0.01em;
 }
 .action-btn:hover { background: var(--bg-muted); border-color: var(--border-strong); }
 .action-btn:active { transform: scale(0.97); }
-.action-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+.action-btn svg { width: 28px; height: 28px; flex-shrink: 0; stroke-width: 2.25; }
 .action-btn[disabled] {
-    opacity: 0.35;
+    opacity: 0.32;
     cursor: not-allowed;
     pointer-events: none;
 }
@@ -456,18 +457,20 @@ body {
     background: var(--green);
     color: white;
     border-color: var(--green);
-    font-size: 18px;
-    min-height: 72px;
+    font-size: 26px;
+    min-height: 128px;
 }
+.action-btn.clock-in svg { width: 32px; height: 32px; }
 .action-btn.clock-in:hover { background: #15803d; border-color: #15803d; }
 
 .action-btn.clock-out {
     background: var(--red);
     color: white;
     border-color: var(--red);
-    font-size: 18px;
-    min-height: 72px;
+    font-size: 26px;
+    min-height: 128px;
 }
+.action-btn.clock-out svg { width: 32px; height: 32px; }
 .action-btn.clock-out:hover { background: #b91c1c; border-color: #b91c1c; }
 
 .action-btn.break {
@@ -531,6 +534,159 @@ body {
 .toast-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ────────────────────────────────────────────────────────── */
+/* RECORDING OVERLAY — shown during Worker round-trip          */
+/* ────────────────────────────────────────────────────────── */
+.recording-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 95;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.18s ease, visibility 0.18s ease;
+}
+.recording-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+.recording-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding: 32px 24px;
+    transform: scale(0.94);
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.recording-overlay.show .recording-content { transform: scale(1); }
+
+/* Disallowed-action alert overlay. Similar pattern to recording-overlay
+   but with a card, message, and OK button. Shown when a tech taps an
+   action that isn't allowed (e.g. tea after 11:30). */
+.alert-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.18s ease, visibility 0.18s ease;
+    padding: 24px;
+}
+.alert-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+.alert-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 28px 22px;
+    max-width: 480px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    transform: scale(0.94);
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.alert-overlay.show .alert-card { transform: scale(1); }
+.alert-icon {
+    color: #d97706;
+    width: 56px;
+    height: 56px;
+    display: grid;
+    place-items: center;
+    background: #fef3c7;
+    border-radius: 50%;
+}
+.alert-icon svg { width: 32px; height: 32px; }
+.alert-message {
+    font-size: 17px;
+    line-height: 1.45;
+    text-align: center;
+    color: var(--text);
+    font-weight: 500;
+}
+.alert-ok {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    background: var(--text);
+    color: #fafafa;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: opacity 0.12s ease;
+}
+.alert-ok:active { opacity: 0.85; }
+
+/* Muted action button — subtle visual hint that it's not the current
+   primary action, but still tappable so the alert can explain why. */
+.action-btn.muted {
+    opacity: 0.42;
+}
+.action-btn.muted:hover {
+    background: var(--bg-input);
+    border-color: var(--border);
+}
+
+.recording-spinner {
+    width: 72px;
+    height: 72px;
+    position: relative;
+}
+.spinner-svg {
+    width: 100%;
+    height: 100%;
+    animation: spinnerRotate 1.6s linear infinite;
+}
+.spinner-track {
+    stroke: var(--border);
+}
+.spinner-head {
+    stroke: var(--text);
+    stroke-dasharray: 90, 126;          /* arc length, gap */
+    animation: spinnerDash 1.4s ease-in-out infinite;
+    transform-origin: center;
+}
+@keyframes spinnerRotate {
+    to { transform: rotate(360deg); }
+}
+@keyframes spinnerDash {
+    0%   { stroke-dasharray: 1, 126; stroke-dashoffset: 0; }
+    50%  { stroke-dasharray: 90, 126; stroke-dashoffset: -35; }
+    100% { stroke-dasharray: 90, 126; stroke-dashoffset: -124; }
+}
+
+.recording-label {
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    text-align: center;
+}
+.recording-sub {
+    font-size: 12.5px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    text-align: center;
+    margin-top: -10px;
+}
+
+/* ────────────────────────────────────────────────────────── */
 /* LOADING / OFFLINE OVERLAYS                                  */
 /* ────────────────────────────────────────────────────────── */
 .boot-screen {
@@ -584,12 +740,31 @@ body {
 @media (max-width: 480px) {
     .screen { padding: 16px; }
     .clock-display { margin: 20px 0 18px; }
-    .actions { gap: 10px; }
+    .actions { gap: 12px; }
+    .action-row { gap: 12px; }
+    .action-btn {
+        min-height: 84px;
+        font-size: 18px;
+        padding: 18px 12px;
+        gap: 10px;
+    }
+    .action-btn svg { width: 22px; height: 22px; }
+    .action-btn.clock-in,
+    .action-btn.clock-out {
+        min-height: 104px;
+        font-size: 22px;
+    }
+    .action-btn.clock-in svg,
+    .action-btn.clock-out svg { width: 26px; height: 26px; }
     .pin-keypad { gap: 10px; }
 }
 
 @media (min-height: 900px) {
     .clock-display { margin-top: 60px; }
+    /* On tall screens (iPad in portrait), give buttons even more presence */
+    .action-btn { min-height: 120px; }
+    .action-btn.clock-in,
+    .action-btn.clock-out { min-height: 144px; }
 }
 
 </style>
@@ -730,6 +905,38 @@ body {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
     </div>
     <div class="toast-text" id="toastText">Recorded</div>
+</div>
+
+<!-- ──────────────────────────────────────────────────── -->
+<!-- RECORDING OVERLAY — shown during Worker round-trip    -->
+<!-- ──────────────────────────────────────────────────── -->
+<div class="recording-overlay" id="recordingOverlay" aria-hidden="true">
+    <div class="recording-content">
+        <div class="recording-spinner">
+            <svg viewBox="0 0 50 50" class="spinner-svg">
+                <circle class="spinner-track" cx="25" cy="25" r="20" fill="none" stroke-width="4"/>
+                <circle class="spinner-head"  cx="25" cy="25" r="20" fill="none" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <div class="recording-label mono" id="recordingLabel">Recording…</div>
+        <div class="recording-sub">Saving to time records</div>
+    </div>
+</div>
+
+<!-- Disallowed-action alert. Shown when a tech taps an action that isn't
+     allowed by the current state or time window (e.g. tea after 11:30). -->
+<div class="alert-overlay" id="alertOverlay" aria-hidden="true">
+    <div class="alert-card">
+        <div class="alert-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+        </div>
+        <div class="alert-message" id="alertMessage">…</div>
+        <button class="alert-ok" id="alertOk" type="button">OK</button>
+    </div>
 </div>
 
 <script>
@@ -873,35 +1080,114 @@ function getTodayWorkTime(employee) {
     return total;
 }
 
-// Action button enable rules.
+// Time windows for breaks and lunch (UK local 24h time).
+// Tea is morning only — closes at 11:30. Lunch runs 12:00–15:00.
+// These apply to Break Start and Lunch Start only; the corresponding "End"
+// actions have no window (you can finish your break / lunch at any time).
+const TEA_WINDOW_END_MIN = 11 * 60 + 30;    // 11:30
+const LUNCH_WINDOW_START_MIN = 12 * 60;      // 12:00
+const LUNCH_WINDOW_END_MIN = 15 * 60;        // 15:00
+
+function currentMinuteOfDay() {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+}
+
+// Action button rules. Returns:
+//   { allowed: true }                       — show + enable
+//   { allowed: false, reason: 'state',   message: '...' }   — already done / wrong stage
+//   { allowed: false, reason: 'window',  message: '...' }   — outside time window
+//   { allowed: false, reason: 'invalid', message: '...' }   — generic disallow
 //
-// We use the iOS app's "flexible schedule" rules for ALL employees, not just
-// those flagged hasFlexibleSchedule. The strict variant (tea-before-lunch
-// mandatory linear sequence) is too rigid for real workshop use — staff
-// should be able to take lunch without having had a tea break first.
-//
-// The hasFlexibleSchedule field is still in the data and respected by other
-// systems (e.g. iOS app if still in use), we just ignore it here.
-function isActionAllowed(status, action) {
-    if (!status) return action === 'Clock In';
+// "Forward-only" flow with optional skips:
+//   Clock In → Tea Start → Tea End → Lunch Start → Lunch End → Clock Out
+// You can skip ahead but never repeat a completed stage.
+function evaluateAction(status, action) {
+    // Time-window check applies *only* to starting tea or lunch.
+    // We check this in addition to state so users get a specific reason.
+    const min = currentMinuteOfDay();
+    const teaWindowOpen = min < TEA_WINDOW_END_MIN;
+    const lunchWindowOpen = min >= LUNCH_WINDOW_START_MIN && min < LUNCH_WINDOW_END_MIN;
+
+    function teaWindowMsg() {
+        return 'Tea breaks are only available before 11:30. Please speak to your department manager if you need an exception.';
+    }
+    function lunchWindowMsg() {
+        return 'Lunch is only available between 12:00 and 15:00. Please speak to your department manager if you need an exception.';
+    }
+
+    if (!status) {
+        return action === 'Clock In'
+            ? { allowed: true }
+            : { allowed: false, reason: 'state', message: 'Please clock in first.' };
+    }
+
     switch (status) {
         case 'Clocked Out':
-            return action === 'Clock In';
+            return action === 'Clock In'
+                ? { allowed: true }
+                : { allowed: false, reason: 'state', message: 'You need to clock in first.' };
+
         case 'Clocked In':
-        case 'Back from Break':
-        case 'Back from Lunch':
-            // After clocking in or completing a break/lunch:
-            // can start a (new) break, start lunch, or clock out
-            return ['Break Start', 'Lunch Start', 'Clock Out'].includes(action);
+            // Just clocked in — tea/lunch/clock-out all reachable from here
+            if (action === 'Break Start') {
+                return teaWindowOpen
+                    ? { allowed: true }
+                    : { allowed: false, reason: 'window', message: teaWindowMsg() };
+            }
+            if (action === 'Lunch Start') {
+                return lunchWindowOpen
+                    ? { allowed: true }
+                    : { allowed: false, reason: 'window', message: lunchWindowMsg() };
+            }
+            if (action === 'Clock Out') return { allowed: true };
+            return { allowed: false, reason: 'state', message: 'That action isn\'t available right now.' };
+
         case 'On Break':
-            return action === 'Break End';
+            return action === 'Break End'
+                ? { allowed: true }
+                : { allowed: false, reason: 'state', message: 'You\'re on a tea break — tap "End tea" to return to work.' };
+
+        case 'Back from Break':
+            // Tea is done — no second tea allowed
+            if (action === 'Break Start') {
+                return { allowed: false, reason: 'state', message: 'You\'ve already had your tea break today.' };
+            }
+            if (action === 'Lunch Start') {
+                return lunchWindowOpen
+                    ? { allowed: true }
+                    : { allowed: false, reason: 'window', message: lunchWindowMsg() };
+            }
+            if (action === 'Clock Out') return { allowed: true };
+            return { allowed: false, reason: 'state', message: 'That action isn\'t available right now.' };
+
         case 'At Lunch':
-            return action === 'Lunch End';
+            return action === 'Lunch End'
+                ? { allowed: true }
+                : { allowed: false, reason: 'state', message: 'You\'re at lunch — tap "End lunch" to return to work.' };
+
+        case 'Back from Lunch':
+            // Lunch is done — no second lunch, no tea after lunch
+            if (action === 'Break Start') {
+                return { allowed: false, reason: 'state', message: 'Tea breaks aren\'t available after lunch. Speak to your department manager if you need an exception.' };
+            }
+            if (action === 'Lunch Start') {
+                return { allowed: false, reason: 'state', message: 'You\'ve already had lunch today.' };
+            }
+            if (action === 'Clock Out') return { allowed: true };
+            return { allowed: false, reason: 'state', message: 'That action isn\'t available right now.' };
+
         case 'Sick Day':
-            return false;
+            return { allowed: false, reason: 'state', message: 'You\'re marked as off sick today. Speak to your manager.' };
+
         default:
-            return false;
+            return { allowed: false, reason: 'invalid', message: 'That action isn\'t available right now.' };
     }
+}
+
+// Back-compat: simple boolean wrapper for any callers that just want yes/no.
+function isActionAllowed(status, action) {
+    return evaluateAction(status, action).allowed;
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -966,6 +1252,7 @@ function exitActionScreen() {
     clearInterval(workTimeTimer);
     actionReturnTimer = null;
     workTimeTimer = null;
+    hideDisallowedAlert(); // ensure alert doesn't linger when returning to idle
     $('actionScreen').classList.add('hidden');
     $('idleScreen').classList.remove('hidden');
 }
@@ -982,12 +1269,18 @@ function renderActionScreen() {
 
     updateWorkTimeDisplay();
 
-    // Enable/disable each action button based on status. Also clear any
-    // stuck `loading` class from a previous successful submission so the
-    // newly-eligible buttons are tappable.
+    // Buttons stay visible regardless of state so the kiosk feels consistent.
+    // Each button tracks its "allowed" state via dataset; the click handler
+    // shows an explanatory alert when a disallowed button is tapped instead
+    // of silently doing nothing.
     document.querySelectorAll('.action-btn[data-type]').forEach(btn => {
-        const allowed = isActionAllowed(status, btn.dataset.type);
-        btn.disabled = !allowed;
+        const evalResult = evaluateAction(status, btn.dataset.type);
+        btn.dataset.allowed = evalResult.allowed ? 'yes' : 'no';
+        btn.dataset.disallowReason = evalResult.allowed ? '' : (evalResult.reason || 'invalid');
+        btn.dataset.disallowMessage = evalResult.allowed ? '' : (evalResult.message || '');
+        // Don't actually disable — keep tappable so alert can fire.
+        // Use a "muted" class for subtle visual hint without greying out.
+        btn.classList.toggle('muted', !evalResult.allowed);
         btn.classList.remove('loading');
     });
 }
@@ -1001,12 +1294,61 @@ function updateWorkTimeDisplay() {
 // ════════════════════════════════════════════════════════════════════════
 // CLOCK ACTION → POST to Worker
 // ════════════════════════════════════════════════════════════════════════
+// Action-specific overlay labels (the Worker round-trip can be 2+ seconds
+// because of the 2.6MB read-modify-write to GitHub, so we show explicit
+// progress to avoid the kiosk looking frozen).
+const RECORDING_LABELS = {
+    'Clock In':    'Clocking in…',
+    'Break Start': 'Starting tea break…',
+    'Break End':   'Ending tea break…',
+    'Lunch Start': 'Starting lunch…',
+    'Lunch End':   'Ending lunch…',
+    'Clock Out':   'Clocking out…',
+    'Sick Day':    'Recording sick day…',
+};
+
+function showRecordingOverlay(label) {
+    const overlay = document.getElementById('recordingOverlay');
+    document.getElementById('recordingLabel').textContent = label || 'Recording…';
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden', 'false');
+}
+function hideRecordingOverlay() {
+    const overlay = document.getElementById('recordingOverlay');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+}
+
+// Shown when a tech taps a button that isn't allowed in the current state
+// or time window. Stays open until they tap OK or anywhere outside the card.
+function showDisallowedAlert(message) {
+    const overlay = document.getElementById('alertOverlay');
+    document.getElementById('alertMessage').textContent = message || 'That action isn\'t available right now.';
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden', 'false');
+    // Reset auto-return-to-idle timer so the message has time to be read.
+    // Without this, the alert could appear and the kiosk could simultaneously
+    // jump back to idle, dismissing the alert before it's been read.
+    clearTimeout(actionReturnTimer);
+    actionReturnTimer = setTimeout(() => {
+        hideDisallowedAlert();
+        exitActionScreen();
+    }, 12000); // 12s — long enough to read, short enough not to lock kiosk
+}
+function hideDisallowedAlert() {
+    const overlay = document.getElementById('alertOverlay');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+}
+
 async function submitClocking(type) {
     const emp = state.currentEmployee;
     if (!emp) return;
 
-    // Disable all action buttons during submit
+    // Disable all action buttons during submit (belt-and-braces; the
+    // overlay blocks taps anyway).
     document.querySelectorAll('.action-btn[data-type]').forEach(b => b.classList.add('loading'));
+    showRecordingOverlay(RECORDING_LABELS[type] || 'Recording…');
 
     try {
         const r = await fetch(`${WORKER_URL}/staff/clocking`, {
@@ -1026,6 +1368,7 @@ async function submitClocking(type) {
         // reflect immediately, without waiting for the next fetch.
         state.entries.push(data.entry);
 
+        hideRecordingOverlay();
         showToast(`${type} recorded at ${fmtTimeShort(new Date(data.entry.timestamp))}`, 'success');
 
         // Briefly refresh the action screen so the user sees the new status,
@@ -1036,6 +1379,7 @@ async function submitClocking(type) {
 
     } catch (err) {
         console.error('Clocking failed:', err);
+        hideRecordingOverlay();
         showToast(`Failed: ${err.message}`, 'error');
         document.querySelectorAll('.action-btn[data-type]').forEach(b => b.classList.remove('loading'));
     }
@@ -1142,9 +1486,23 @@ function bindEvents() {
         else if (e.key === 'Escape') clearPin();
     });
 
-    // Action buttons
+    // Action buttons — tap an allowed button → submit clocking. Tap a
+    // disallowed button → show an explanatory modal with the reason.
     document.querySelectorAll('.action-btn[data-type]').forEach(btn => {
-        btn.addEventListener('click', () => submitClocking(btn.dataset.type));
+        btn.addEventListener('click', () => {
+            if (btn.dataset.allowed === 'no') {
+                showDisallowedAlert(btn.dataset.disallowMessage || 'That action isn\'t available right now.');
+                return;
+            }
+            submitClocking(btn.dataset.type);
+        });
+    });
+
+    // Alert: OK button dismisses
+    document.getElementById('alertOk').addEventListener('click', hideDisallowedAlert);
+    // Alert: tap on backdrop (outside the card) also dismisses
+    document.getElementById('alertOverlay').addEventListener('click', (e) => {
+        if (e.target.id === 'alertOverlay') hideDisallowedAlert();
     });
 
     // Exit
