@@ -280,6 +280,86 @@ button { font-family: inherit; }
     .toolbar-divider { display: none; }
 }
 
+/* ────────────────────────────────────────────────────────── */
+/* MENU DROPDOWN — collapses Export/Staff/Manage/Sign-out      */
+/* ────────────────────────────────────────────────────────── */
+.menu-container {
+    position: relative;
+}
+.menu-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 220px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    padding: 4px;
+    z-index: 60;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s ease;
+    visibility: hidden;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.menu-dropdown.open {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+    pointer-events: auto;
+}
+.menu-dropdown[hidden] {
+    /* Override the [hidden] attribute when JS toggles via class instead.
+       Keeps it hidden on initial render until JS removes the attribute. */
+}
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.08s ease, color 0.08s ease;
+    white-space: nowrap;
+}
+.menu-item:hover { background: var(--bg-muted); }
+.menu-item svg {
+    width: 14px;
+    height: 14px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+    stroke-width: 1.75;
+}
+.menu-item:hover svg { color: var(--text); }
+.menu-item.danger { color: var(--red-fg); }
+.menu-item.danger svg { color: var(--red); }
+.menu-item.danger:hover { background: var(--red-soft); }
+.menu-divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 4px 6px;
+}
+
+/* Backup pill — now a button (was an <a>) — same look, tap = run backup */
+.backup-pill {
+    cursor: pointer;
+    font-family: var(--font-mono);
+}
+.backup-pill:active { transform: scale(0.97); }
+
 .live-indicator {
     display: inline-flex;
     align-items: center;
@@ -341,8 +421,9 @@ button { font-family: inherit; }
 .backup-pill[data-state="stale"] { color: var(--amber-fg); border-color: var(--amber-border); background: var(--amber-soft); }
 .backup-pill[data-state="missing"] { color: var(--red-fg); border-color: var(--red-border); background: var(--red-soft); }
 
-/* Spinning state for the manual backup button */
-.btn.spinning svg {
+/* Spinning state for icon-based action buttons */
+.btn.spinning svg,
+.backup-pill.spinning svg {
     animation: btn-spin 0.9s linear infinite;
 }
 @keyframes btn-spin {
@@ -1894,36 +1975,43 @@ kbd {
 
             <div class="toolbar-divider" aria-hidden="true"></div>
 
-            <button class="btn" id="exportBtn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                <span class="desktop-only">Export CSV</span>
-            </button>
-
-            <a class="btn" href="staff.html" id="staffLink" title="Open staff clocking page">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <span class="desktop-only">Staff</span>
-            </a>
-
-            <button class="btn" id="manageBtn" title="Manage employees">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                <span class="desktop-only">Manage</span>
-            </button>
-
-            <button class="btn btn-icon" id="signOutBtn" title="Sign out">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            </button>
+            <div class="menu-container">
+                <button class="btn btn-icon" id="menuBtn" type="button" title="Menu" aria-haspopup="true" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                </button>
+                <div class="menu-dropdown" id="menuDropdown" role="menu" hidden>
+                    <button class="menu-item" data-action="export" role="menuitem">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <span>Export CSV</span>
+                    </button>
+                    <a class="menu-item" href="staff.html" role="menuitem">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span>Staff clocking</span>
+                    </a>
+                    <button class="menu-item" data-action="manage" role="menuitem">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                        <span>Manage employees</span>
+                    </button>
+                    <a class="menu-item" href="https://github.com/SCOSeanKly/TimeKeeperReports" target="_blank" rel="noopener" role="menuitem">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>
+                        <span>View backups on GitHub</span>
+                    </a>
+                    <div class="menu-divider" role="separator"></div>
+                    <button class="menu-item danger" data-action="signout" role="menuitem">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        <span>Sign out</span>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div class="live-indicator desktop-only">
             <span class="live-dot"></span>
             <span id="liveLabel">LIVE · <span id="lastUpdated">—</span></span>
         </div>
-        <a class="backup-pill desktop-only" id="backupPill" href="#" target="_blank" rel="noopener" title="Click to view backup commit on GitHub">
+        <button class="backup-pill desktop-only" id="backupPill" type="button" title="Tap to run backup now">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
             <span id="backupPillLabel">Backup: —</span>
-        </a>
-        <button class="btn btn-icon desktop-only" id="backupNowBtn" title="Run backup now">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
         </button>
     </div>
 </header>
@@ -2536,7 +2624,7 @@ function renderRows() {
 
     if (state.lastUpdated) {
         document.getElementById('lastUpdated').textContent =
-            state.lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            state.lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     }
 
     // Bind row clicks
@@ -3922,11 +4010,13 @@ async function fetchBackupStatus() {
             return;
         }
         const ageMin = (Date.now() - new Date(data.lastBackupAt).getTime()) / 60_000;
-        const ageStr = ageMin < 60
-            ? `${Math.round(ageMin)}m ago`
-            : ageMin < 60 * 24
-                ? `${Math.round(ageMin / 60)}h ago`
-                : `${Math.round(ageMin / (60 * 24))}d ago`;
+        const ageStr = ageMin < 1
+            ? 'just now'
+            : ageMin < 60
+                ? `${Math.round(ageMin)}m ago`
+                : ageMin < 60 * 24
+                    ? `${Math.round(ageMin / 60)}h ago`
+                    : `${Math.round(ageMin / (60 * 24))}d ago`;
         // 6h is the scheduled cron — anything over 9h is "stale"
         pill.dataset.state = ageMin > 9 * 60 ? 'stale' : '';
         label.textContent = `Backup: ${ageStr}`;
@@ -3940,13 +4030,14 @@ async function fetchBackupStatus() {
 }
 
 // Manual backup trigger — same code path as the scheduled cron. Admin-auth gated.
+// The backup pill itself is the trigger now (tap to run backup).
 async function runBackupNow() {
-    const btn = document.getElementById('backupNowBtn');
+    const pill = document.getElementById('backupPill');
     const label = document.getElementById('backupPillLabel');
-    if (!btn || btn.disabled) return;
+    if (!pill || pill.disabled) return;
 
-    btn.disabled = true;
-    btn.classList.add('spinning');
+    pill.disabled = true;
+    pill.classList.add('spinning');
     if (label) label.textContent = 'Backing up…';
 
     try {
@@ -3959,8 +4050,8 @@ async function runBackupNow() {
         // Restore previous pill state
         await fetchBackupStatus();
     } finally {
-        btn.disabled = false;
-        btn.classList.remove('spinning');
+        pill.disabled = false;
+        pill.classList.remove('spinning');
     }
 }
 
@@ -4004,7 +4095,6 @@ function bindEvents() {
         state.filters.search = e.target.value;
         renderRows();
     });
-    document.getElementById('exportBtn').addEventListener('click', () => exportCSV());
     bindPicker();
 }
 
@@ -4028,12 +4118,11 @@ async function init() {
     // Bind PIN screen handlers
     bindPinScreen();
 
-    // Bind the always-available buttons (manage / sign out / backup-now)
-    document.getElementById('manageBtn').addEventListener('click', openEmployeesDrawer);
-    document.getElementById('signOutBtn').addEventListener('click', () => {
-        if (confirm('Sign out?')) auth.signOut();
-    });
-    document.getElementById('backupNowBtn').addEventListener('click', runBackupNow);
+    // Wire up the kebab menu (Export / Staff link / Manage / GitHub / Sign out)
+    bindMenuDropdown();
+
+    // Backup pill is now a button — tap runs a manual backup
+    document.getElementById('backupPill').addEventListener('click', runBackupNow);
 
     // If we have a valid session, skip the PIN screen and boot directly
     if (auth.getToken()) {
@@ -4043,6 +4132,65 @@ async function init() {
         // Otherwise the PIN screen is already shown (default state in HTML)
         showPinScreen();
     }
+}
+
+function bindMenuDropdown() {
+    const btn = document.getElementById('menuBtn');
+    const dropdown = document.getElementById('menuDropdown');
+    if (!btn || !dropdown) return;
+
+    // The [hidden] attribute is on the dropdown initially; remove it so CSS
+    // .open/.closed states control visibility from here on.
+    dropdown.removeAttribute('hidden');
+
+    let onDocClick, onEsc;
+    function openMenu() {
+        dropdown.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+        // Attach outside-click and escape listeners next tick so the click that
+        // opened the menu doesn't also immediately close it.
+        setTimeout(() => {
+            onDocClick = (e) => {
+                if (!dropdown.contains(e.target) && !btn.contains(e.target)) closeMenu();
+            };
+            onEsc = (e) => { if (e.key === 'Escape') closeMenu(); };
+            document.addEventListener('click', onDocClick);
+            document.addEventListener('keydown', onEsc);
+        }, 0);
+    }
+    function closeMenu() {
+        dropdown.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+        if (onDocClick) document.removeEventListener('click', onDocClick);
+        if (onEsc) document.removeEventListener('keydown', onEsc);
+        onDocClick = onEsc = null;
+    }
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (dropdown.classList.contains('open')) closeMenu();
+        else openMenu();
+    });
+
+    // Action buttons inside the dropdown
+    dropdown.querySelectorAll('[data-action]').forEach(item => {
+        item.addEventListener('click', () => {
+            const action = item.dataset.action;
+            closeMenu();
+            if (action === 'export') {
+                exportCSV();
+            } else if (action === 'manage') {
+                openEmployeesDrawer();
+            } else if (action === 'signout') {
+                if (confirm('Sign out?')) auth.signOut();
+            }
+        });
+    });
+
+    // Plain links (Staff page, GitHub) should just close the menu and follow the href
+    dropdown.querySelectorAll('a.menu-item').forEach(a => {
+        a.addEventListener('click', closeMenu);
+    });
 }
 
 document.addEventListener('DOMContentLoaded', init);
