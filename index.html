@@ -3969,7 +3969,14 @@ function openEmployeeForm(empId) {
                     <label for="fldDept">Department</label>
                     <input type="text" id="fldDept" value="${editing ? (editing.department || '').replace(/"/g, '&quot;') : ''}" list="deptList" autocomplete="off" />
                     <datalist id="deptList">
-                        ${[...new Set(state.employees.map(e => e.department).filter(Boolean))].sort().map(d => `<option value="${d}"></option>`).join('')}
+                        ${(() => {
+                            // Pre-seeded known departments + any others discovered on existing employees.
+                            // "Recovery" is the marker dept for mobile recovery-mode drivers.
+                            const seeded = ['Admin', 'Bodyshop', 'Recovery', 'Workshop'];
+                            const fromData = state.employees.map(e => e.department).filter(Boolean);
+                            const all = [...new Set([...seeded, ...fromData])].sort();
+                            return all.map(d => `<option value="${d}"></option>`).join('');
+                        })()}
                     </datalist>
                 </div>
                 <div class="field-group">
