@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>K&amp;S Time Keeper</title>
+
+<!-- iOS standalone PWA -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="K&amp;S Time" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#fafafa" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* ────────────────────────────────────────────────────────── */
+/* DESIGN TOKENS — same palette as the admin dashboard         */
+/* ────────────────────────────────────────────────────────── */
+:root {
+    --bg-base: #fafafa;
+    --bg-elevated: #ffffff;
+    --bg-card: #ffffff;
+    --bg-muted: #f4f4f5;
+
+    --border-subtle: #f4f4f5;
+    --border: #e4e4e7;
+    --border-strong: #d4d4d8;
+
+    --text: #09090b;
+    --text-secondary: #52525b;
+    --text-tertiary: #71717a;
+    --text-quaternary: #a1a1aa;
+
+    --green: #16a34a;
+    --green-soft: #dcfce7;
+    --green-border: #86efac;
+    --green-fg: #14532d;
+    --amber: #d97706;
+    --amber-soft: #fef3c7;
+    --amber-border: #fcd34d;
+    --amber-fg: #78350f;
+    --orange: #ea580c;
+    --orange-soft: #ffedd5;
+    --orange-fg: #7c2d12;
+    --red: #dc2626;
+    --red-soft: #fee2e2;
+    --red-border: #fca5a5;
+    --red-fg: #7f1d1d;
+    --purple: #9333ea;
+    --purple-soft: #f3e8ff;
+    --purple-border: #d8b4fe;
+    --purple-fg: #581c87;
+
+    --font-ui: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+    --radius-sm: 8px;
+    --radius: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+
+    --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
+    --shadow-md: 0 4px 8px -2px rgba(16, 24, 40, 0.06), 0 2px 4px -2px rgba(16, 24, 40, 0.04);
+    --shadow-lg: 0 12px 16px -4px rgba(16, 24, 40, 0.08), 0 4px 6px -2px rgba(16, 24, 40, 0.03);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    background: var(--bg-base);
+    color: var(--text);
+    font-family: var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+}
+
+.mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+/* ────────────────────────────────────────────────────────── */
+/* SCREEN CONTAINER & TRANSITIONS                              */
+/* ────────────────────────────────────────────────────────── */
+.screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px;
+    transition: opacity 0.2s ease, transform 0.25s ease;
+}
+.screen.hidden {
+    display: none;
+}
+.screen.entering {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+/* ────────────────────────────────────────────────────────── */
+/* IDLE SCREEN — clock + PIN keypad                            */
+/* ────────────────────────────────────────────────────────── */
+.brand-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 4px 0;
+}
+.brand-mark {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, #18181b 0%, #3f3f46 100%);
+    color: #fafafa;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: -0.04em;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;          /* hidden admin gesture */
+    transition: transform 0.06s ease;
+}
+.brand-mark:active { transform: scale(0.95); }
+
+.brand-text { display: flex; flex-direction: column; line-height: 1.1; gap: 2px; }
+.brand-text .name { font-size: 16px; font-weight: 600; letter-spacing: -0.02em; }
+.brand-text .sub {
+    font-size: 10.5px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+}
+
+.admin-link {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    padding: 6px 12px 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    text-decoration: none;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.04s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+.admin-link:hover {
+    background: var(--bg-muted);
+    border-color: var(--border-strong);
+    color: var(--text);
+}
+.admin-link:active { transform: scale(0.96); }
+.admin-link svg { width: 14px; height: 14px; }
+
+.connection-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+}
+.connection-pill .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--text-quaternary);
+}
+.connection-pill.online .dot {
+    background: var(--green);
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.clock-display {
+    margin: 36px 0 24px;
+    text-align: center;
+}
+.clock-time {
+    font-size: clamp(48px, 11vw, 92px);
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    color: var(--text);
+    line-height: 1;
+}
+.clock-date {
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 500;
+}
+
+.pin-prompt {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.pin-prompt h2 {
+    font-size: 15px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.pin-dots {
+    display: flex;
+    gap: 18px;
+    justify-content: center;
+    margin-bottom: 16px;
+    height: 18px;
+    align-items: center;
+}
+.pin-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.75px solid var(--border-strong);
+    background: transparent;
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+}
+.pin-dot.filled {
+    background: var(--text);
+    border-color: var(--text);
+    transform: scale(1.05);
+}
+
+#idleScreen.error .pin-dot { border-color: var(--red); }
+#idleScreen.error .pin-dot.filled { background: var(--red); }
+#idleScreen.error .pin-keypad { animation: pinShake 0.4s; }
+@keyframes pinShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+}
+
+.pin-error-text {
+    height: 18px;
+    font-size: 13px;
+    color: var(--red);
+    font-family: var(--font-mono);
+    text-align: center;
+    margin-bottom: 16px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+#idleScreen.error .pin-error-text { opacity: 1; }
+
+.pin-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    max-width: 360px;
+    margin: 0 auto;
+    width: 100%;
+}
+.pin-key {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    aspect-ratio: 1 / 1;
+    max-height: 80px;
+    font-family: var(--font-mono);
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.08s ease, transform 0.04s ease, border-color 0.08s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    display: grid;
+    place-items: center;
+    box-shadow: var(--shadow-sm);
+}
+.pin-key:hover { background: var(--bg-muted); border-color: var(--border-strong); }
+.pin-key:active { transform: scale(0.93); background: var(--bg-muted); }
+.pin-key.utility { color: var(--text-secondary); }
+.pin-key.utility svg { width: 22px; height: 22px; }
+.pin-key.invisible { visibility: hidden; pointer-events: none; box-shadow: none; }
+
+/* ────────────────────────────────────────────────────────── */
+/* ACTION SCREEN — post-PIN                                    */
+/* ────────────────────────────────────────────────────────── */
+.action-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.exit-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 16px 10px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.04s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+.exit-btn:hover { background: var(--bg-muted); border-color: var(--border-strong); color: var(--text); }
+.exit-btn:active { transform: scale(0.96); }
+.exit-btn svg { width: 16px; height: 16px; }
+
+.welcome {
+    text-align: center;
+    margin: 12px 0 24px;
+}
+.welcome-label {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 4px;
+}
+.welcome-name {
+    font-size: clamp(28px, 6vw, 44px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    line-height: 1.1;
+}
+.status-row {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 14px 6px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid;
+    white-space: nowrap;
+}
+.status-pill .pill-dot { width: 8px; height: 8px; border-radius: 50%; }
+.status-pill[data-state="working"]   { background: var(--green-soft); border-color: var(--green-border); color: var(--green-fg); }
+.status-pill[data-state="working"] .pill-dot { background: var(--green); }
+.status-pill[data-state="break"]     { background: var(--amber-soft); border-color: var(--amber-border); color: var(--amber-fg); }
+.status-pill[data-state="break"] .pill-dot { background: var(--amber); }
+.status-pill[data-state="lunch"]     { background: var(--orange-soft); border-color: #fed7aa; color: var(--orange-fg); }
+.status-pill[data-state="lunch"] .pill-dot { background: var(--orange); }
+.status-pill[data-state="out"]       { background: var(--bg-muted); border-color: var(--border); color: var(--text-secondary); }
+.status-pill[data-state="out"] .pill-dot { background: var(--text-quaternary); }
+.status-pill[data-state="sick"]      { background: var(--purple-soft); border-color: var(--purple-border); color: var(--purple-fg); }
+.status-pill[data-state="sick"] .pill-dot { background: var(--purple); }
+
+.work-time {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 520px;
+    margin: 0 auto;
+    width: 100%;
+    flex: 1;
+    justify-content: center;
+}
+
+.action-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.action-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 16px;
+    font-family: var(--font-ui);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.04s ease, opacity 0.12s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    box-shadow: var(--shadow-sm);
+    min-height: 64px;
+    letter-spacing: -0.01em;
+}
+.action-btn:hover { background: var(--bg-muted); border-color: var(--border-strong); }
+.action-btn:active { transform: scale(0.97); }
+.action-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+.action-btn[disabled] {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.action-btn.clock-in {
+    background: var(--green);
+    color: white;
+    border-color: var(--green);
+    font-size: 18px;
+    min-height: 72px;
+}
+.action-btn.clock-in:hover { background: #15803d; border-color: #15803d; }
+
+.action-btn.clock-out {
+    background: var(--red);
+    color: white;
+    border-color: var(--red);
+    font-size: 18px;
+    min-height: 72px;
+}
+.action-btn.clock-out:hover { background: #b91c1c; border-color: #b91c1c; }
+
+.action-btn.break {
+    background: var(--amber-soft);
+    color: var(--amber-fg);
+    border-color: var(--amber-border);
+}
+.action-btn.break:hover { background: #fde68a; }
+
+.action-btn.lunch {
+    background: var(--orange-soft);
+    color: var(--orange-fg);
+    border-color: #fed7aa;
+}
+.action-btn.lunch:hover { background: #fed7aa; }
+
+.action-btn.loading {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+/* ────────────────────────────────────────────────────────── */
+/* TOAST                                                       */
+/* ────────────────────────────────────────────────────────── */
+.toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translate(-50%, 100px);
+    background: var(--text);
+    color: #fafafa;
+    padding: 14px 20px;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    font-size: 14px;
+    font-weight: 500;
+    max-width: calc(100vw - 48px);
+}
+.toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+.toast .toast-icon {
+    width: 22px;
+    height: 22px;
+    background: var(--green);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+.toast .toast-icon svg { width: 14px; height: 14px; color: white; stroke-width: 3; }
+.toast.error .toast-icon { background: var(--red); }
+.toast-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ────────────────────────────────────────────────────────── */
+/* LOADING / OFFLINE OVERLAYS                                  */
+/* ────────────────────────────────────────────────────────── */
+.boot-screen {
+    position: fixed; inset: 0;
+    background: var(--bg-base);
+    display: grid;
+    place-items: center;
+    z-index: 200;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+.boot-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+.boot-content { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.boot-spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--text);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.boot-text {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+}
+.boot-error {
+    color: var(--red);
+    font-size: 13px;
+    max-width: 320px;
+    text-align: center;
+    line-height: 1.5;
+}
+.boot-retry {
+    background: var(--text);
+    color: #fafafa;
+    border: 1px solid var(--text);
+    padding: 10px 18px;
+    border-radius: var(--radius);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+/* ────────────────────────────────────────────────────────── */
+/* RESPONSIVE                                                  */
+/* ────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+    .screen { padding: 16px; }
+    .clock-display { margin: 20px 0 18px; }
+    .actions { gap: 10px; }
+    .pin-keypad { gap: 10px; }
+}
+
+@media (min-height: 900px) {
+    .clock-display { margin-top: 60px; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- ──────────────────────────────────────────────────── -->
+<!-- BOOT / LOADING                                        -->
+<!-- ──────────────────────────────────────────────────── -->
+<div class="boot-screen" id="bootScreen">
+    <div class="boot-content">
+        <div class="boot-spinner" id="bootSpinner"></div>
+        <div class="boot-text" id="bootText">Loading…</div>
+        <div class="boot-error" id="bootError" hidden></div>
+        <button class="boot-retry" id="bootRetry" hidden>Retry</button>
+    </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────── -->
+<!-- IDLE SCREEN — PIN entry                               -->
+<!-- ──────────────────────────────────────────────────── -->
+<main class="screen" id="idleScreen">
+    <header class="brand-header">
+        <div class="brand-mark" id="brandMark" title="Admin (tap 5×)">K&amp;S</div>
+        <div class="brand-text">
+            <div class="name">Time Keeper</div>
+            <div class="sub">Kerr &amp; Smith</div>
+        </div>
+        <a class="admin-link" href="/" title="Admin dashboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+            <span>Admin</span>
+        </a>
+        <div class="connection-pill online" id="connectionPill">
+            <span class="dot"></span>
+            <span id="connectionLabel">Online</span>
+        </div>
+    </header>
+
+    <div class="clock-display">
+        <div class="clock-time mono" id="clockTime">--:--</div>
+        <div class="clock-date mono" id="clockDate">&nbsp;</div>
+    </div>
+
+    <div class="pin-prompt">
+        <h2>Enter your PIN</h2>
+    </div>
+
+    <div class="pin-dots" id="pinDots">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+    </div>
+
+    <div class="pin-error-text" id="pinErrorText">Invalid PIN</div>
+
+    <div class="pin-keypad" id="pinKeypad">
+        <button class="pin-key" data-digit="1" type="button">1</button>
+        <button class="pin-key" data-digit="2" type="button">2</button>
+        <button class="pin-key" data-digit="3" type="button">3</button>
+        <button class="pin-key" data-digit="4" type="button">4</button>
+        <button class="pin-key" data-digit="5" type="button">5</button>
+        <button class="pin-key" data-digit="6" type="button">6</button>
+        <button class="pin-key" data-digit="7" type="button">7</button>
+        <button class="pin-key" data-digit="8" type="button">8</button>
+        <button class="pin-key" data-digit="9" type="button">9</button>
+        <button class="pin-key invisible" type="button"></button>
+        <button class="pin-key" data-digit="0" type="button">0</button>
+        <button class="pin-key utility" data-action="backspace" type="button" aria-label="Backspace">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+        </button>
+    </div>
+</main>
+
+<!-- ──────────────────────────────────────────────────── -->
+<!-- ACTION SCREEN — post-PIN                              -->
+<!-- ──────────────────────────────────────────────────── -->
+<main class="screen hidden" id="actionScreen">
+    <header class="action-header">
+        <button class="exit-btn" id="exitBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            Exit
+        </button>
+    </header>
+
+    <div class="welcome">
+        <div class="welcome-label">Welcome</div>
+        <h1 class="welcome-name" id="welcomeName">—</h1>
+        <div class="status-row">
+            <span class="status-pill" id="statusPill" data-state="out">
+                <span class="pill-dot"></span>
+                <span id="statusLabel">—</span>
+            </span>
+            <span class="work-time mono" id="workTime">&nbsp;</span>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="action-btn clock-in" data-type="Clock In" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            Clock In
+        </button>
+
+        <div class="action-row">
+            <button class="action-btn break" data-type="Break Start" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 010 8h-1"/><path d="M3 8h14v9a4 4 0 01-4 4H7a4 4 0 01-4-4V8z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
+                Start Tea
+            </button>
+            <button class="action-btn break" data-type="Break End" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 010 8h-1"/><path d="M3 8h14v9a4 4 0 01-4 4H7a4 4 0 01-4-4V8z"/></svg>
+                End Tea
+            </button>
+        </div>
+
+        <div class="action-row">
+            <button class="action-btn lunch" data-type="Lunch Start" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v8a3 3 0 003 3v8M9 2v8a3 3 0 01-3 3M9 2v6M15 2v7a4 4 0 004 4v9M15 2v9"/></svg>
+                Start Lunch
+            </button>
+            <button class="action-btn lunch" data-type="Lunch End" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v8a3 3 0 003 3v8M9 2v8a3 3 0 01-3 3M15 2v7a4 4 0 004 4v9"/></svg>
+                End Lunch
+            </button>
+        </div>
+
+        <button class="action-btn clock-out" data-type="Clock Out" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 11-12.72 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+            Clock Out
+        </button>
+    </div>
+</main>
+
+<!-- ──────────────────────────────────────────────────── -->
+<!-- TOAST                                                 -->
+<!-- ──────────────────────────────────────────────────── -->
+<div class="toast" id="toast">
+    <div class="toast-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="toast-text" id="toastText">Recorded</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════════════════════
+// Worker URL — used for both clockings (writes) and data reads.
+// Reading via the Worker (not raw.githubusercontent) means the CDN can't
+// serve stale data — newly-added employees can clock in immediately and
+// status/work-time calculations reflect very recent activity.
+const WORKER_URL = 'https://timekeeper-admin.ske-d03.workers.dev';
+const ENDPOINT_EMPLOYEES = `${WORKER_URL}/data/employees`;
+const ENDPOINT_ENTRIES   = `${WORKER_URL}/data/entries`;
+
+// Admin dashboard URL (opened via 5-tap on brand mark)
+const ADMIN_DASHBOARD_URL = '/'; // adjust if dashboard is at a different path
+
+const PIN_LENGTH = 4;
+const REFRESH_EMPLOYEES_MS = 5 * 60 * 1000; // refetch employee list every 5 mins
+const ACTION_RETURN_DELAY_MS = 3500;        // after a clock action, return to idle
+const ACTION_FEEDBACK_DELAY_MS = 250;       // brief delay before showing toast
+
+// ════════════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════════════
+const state = {
+    employees: [],
+    entries: [],            // for status/work-time calculation only
+    currentEmployee: null,
+    pin: '',
+    online: navigator.onLine,
+    lastLoad: null,
+    brandTaps: 0,
+    brandTapResetTimer: null,
+};
+
+// ════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════════════════════════════════
+const $ = (id) => document.getElementById(id);
+const fmtTime = (d) => d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const fmtTimeShort = (d) => d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+const fmtDate = (d) => d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+
+function fmtDuration(ms) {
+    if (!ms || ms < 0) return '0h 00m';
+    const totalMin = Math.floor(ms / 60000);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return `${h}h ${m.toString().padStart(2, '0')}m`;
+}
+
+function localDateStr(d = new Date()) { return d.toLocaleDateString('en-CA'); }
+
+// ════════════════════════════════════════════════════════════════════════
+// DATA — fetch employees & entries from raw GitHub
+// ════════════════════════════════════════════════════════════════════════
+async function fetchFresh() {
+    const ts = Date.now();
+    const [empResp, entResp] = await Promise.all([
+        fetch(`${ENDPOINT_EMPLOYEES}?t=${ts}`, { cache: 'no-store' }),
+        fetch(`${ENDPOINT_ENTRIES}?t=${ts}`,   { cache: 'no-store' }),
+    ]);
+    if (!empResp.ok) throw new Error(`Employees fetch failed (${empResp.status})`);
+    if (!entResp.ok) throw new Error(`Entries fetch failed (${entResp.status})`);
+    const [employees, entries] = await Promise.all([empResp.json(), entResp.json()]);
+    state.employees = Array.isArray(employees) ? employees : [];
+    state.entries   = Array.isArray(entries)   ? entries   : [];
+    state.lastLoad  = Date.now();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// STATUS LOGIC — mirrors the iOS app's getEmployeeStatus
+// ════════════════════════════════════════════════════════════════════════
+const STATUS_FROM_TYPE = {
+    'Clock In':                  { status: 'Clocked In',       state: 'working' },
+    'Clock Out':                 { status: 'Clocked Out',      state: 'out' },
+    'Admin Force Clock Out':     { status: 'Clocked Out',      state: 'out' },
+    'Auto Clock Out At Midnight':{ status: 'Clocked Out',      state: 'out' },
+    'Break Start':               { status: 'On Break',         state: 'break' },
+    'Break End':                 { status: 'Back from Break',  state: 'working' },
+    'Lunch Start':               { status: 'At Lunch',         state: 'lunch' },
+    'Lunch End':                 { status: 'Back from Lunch',  state: 'working' },
+    'Sick Day':                  { status: 'Sick Day',         state: 'sick' },
+};
+
+function getEmployeeStatus(employee) {
+    const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+    const today = state.entries
+        .filter(e => e.employeeId === employee.id && !e.deleted && new Date(e.timestamp) >= startOfToday)
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    // Sick day takes precedence
+    if (today.some(e => e.type === 'Sick Day')) {
+        return STATUS_FROM_TYPE['Sick Day'];
+    }
+
+    if (today[0]) return STATUS_FROM_TYPE[today[0].type] || { status: 'Unknown', state: 'out' };
+
+    // No entries today → look at most recent entry overall
+    const last = state.entries
+        .filter(e => e.employeeId === employee.id && !e.deleted)
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+    if (!last) return { status: 'Clocked Out', state: 'out' };
+
+    // If last action was a clock-out variant, they're out
+    if (['Clock Out', 'Admin Force Clock Out', 'Auto Clock Out At Midnight'].includes(last.type)) {
+        return { status: 'Clocked Out', state: 'out' };
+    }
+    return STATUS_FROM_TYPE[last.type] || { status: 'Clocked Out', state: 'out' };
+}
+
+function getTodayWorkTime(employee) {
+    const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+    const todayEntries = state.entries
+        .filter(e => e.employeeId === employee.id && !e.deleted && new Date(e.timestamp) >= startOfToday)
+        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    let total = 0;
+    let lastClockIn = null;
+    for (const entry of todayEntries) {
+        const t = new Date(entry.timestamp);
+        switch (entry.type) {
+            case 'Clock In':
+                lastClockIn = t; break;
+            case 'Clock Out':
+            case 'Admin Force Clock Out':
+            case 'Auto Clock Out At Midnight':
+            case 'Break Start':
+            case 'Lunch Start':
+                if (lastClockIn) { total += t - lastClockIn; lastClockIn = null; }
+                break;
+            case 'Break End':
+            case 'Lunch End':
+                lastClockIn = t; break;
+            case 'Sick Day':
+                continue;
+        }
+    }
+    if (lastClockIn) total += Date.now() - lastClockIn;
+    return total;
+}
+
+// Action button enable rules.
+//
+// We use the iOS app's "flexible schedule" rules for ALL employees, not just
+// those flagged hasFlexibleSchedule. The strict variant (tea-before-lunch
+// mandatory linear sequence) is too rigid for real workshop use — staff
+// should be able to take lunch without having had a tea break first.
+//
+// The hasFlexibleSchedule field is still in the data and respected by other
+// systems (e.g. iOS app if still in use), we just ignore it here.
+function isActionAllowed(status, action) {
+    if (!status) return action === 'Clock In';
+    switch (status) {
+        case 'Clocked Out':
+            return action === 'Clock In';
+        case 'Clocked In':
+        case 'Back from Break':
+        case 'Back from Lunch':
+            // After clocking in or completing a break/lunch:
+            // can start a (new) break, start lunch, or clock out
+            return ['Break Start', 'Lunch Start', 'Clock Out'].includes(action);
+        case 'On Break':
+            return action === 'Break End';
+        case 'At Lunch':
+            return action === 'Lunch End';
+        case 'Sick Day':
+            return false;
+        default:
+            return false;
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// IDLE SCREEN — PIN keypad
+// ════════════════════════════════════════════════════════════════════════
+function renderPinDots() {
+    const dots = $('pinDots').querySelectorAll('.pin-dot');
+    dots.forEach((d, i) => d.classList.toggle('filled', i < state.pin.length));
+}
+
+function pressDigit(d) {
+    if (state.pin.length >= PIN_LENGTH) return;
+    state.pin += d;
+    $('idleScreen').classList.remove('error');
+    renderPinDots();
+    if (state.pin.length === PIN_LENGTH) attemptPinMatch();
+}
+
+function backspace() {
+    if (state.pin.length === 0) return;
+    state.pin = state.pin.slice(0, -1);
+    $('idleScreen').classList.remove('error');
+    renderPinDots();
+}
+
+function clearPin() {
+    state.pin = '';
+    renderPinDots();
+}
+
+function attemptPinMatch() {
+    const employee = state.employees.find(e => e.pin === state.pin);
+    if (!employee) {
+        $('idleScreen').classList.add('error');
+        setTimeout(() => {
+            $('idleScreen').classList.remove('error');
+            clearPin();
+        }, 900);
+        return;
+    }
+    enterActionScreen(employee);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// ACTION SCREEN
+// ════════════════════════════════════════════════════════════════════════
+let actionReturnTimer = null;
+let workTimeTimer = null;
+
+function enterActionScreen(employee) {
+    state.currentEmployee = employee;
+    clearPin();
+    $('idleScreen').classList.add('hidden');
+    $('actionScreen').classList.remove('hidden');
+    renderActionScreen();
+    workTimeTimer = setInterval(updateWorkTimeDisplay, 1000);
+}
+
+function exitActionScreen() {
+    state.currentEmployee = null;
+    clearTimeout(actionReturnTimer);
+    clearInterval(workTimeTimer);
+    actionReturnTimer = null;
+    workTimeTimer = null;
+    $('actionScreen').classList.add('hidden');
+    $('idleScreen').classList.remove('hidden');
+}
+
+function renderActionScreen() {
+    const emp = state.currentEmployee;
+    if (!emp) return;
+    $('welcomeName').textContent = emp.name;
+
+    const { status, state: stateKey } = getEmployeeStatus(emp);
+    const pill = $('statusPill');
+    pill.dataset.state = stateKey;
+    $('statusLabel').textContent = status;
+
+    updateWorkTimeDisplay();
+
+    // Enable/disable each action button based on status. Also clear any
+    // stuck `loading` class from a previous successful submission so the
+    // newly-eligible buttons are tappable.
+    document.querySelectorAll('.action-btn[data-type]').forEach(btn => {
+        const allowed = isActionAllowed(status, btn.dataset.type);
+        btn.disabled = !allowed;
+        btn.classList.remove('loading');
+    });
+}
+
+function updateWorkTimeDisplay() {
+    if (!state.currentEmployee) return;
+    const ms = getTodayWorkTime(state.currentEmployee);
+    $('workTime').textContent = ms > 0 ? `Today: ${fmtDuration(ms)}` : '';
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// CLOCK ACTION → POST to Worker
+// ════════════════════════════════════════════════════════════════════════
+async function submitClocking(type) {
+    const emp = state.currentEmployee;
+    if (!emp) return;
+
+    // Disable all action buttons during submit
+    document.querySelectorAll('.action-btn[data-type]').forEach(b => b.classList.add('loading'));
+
+    try {
+        const r = await fetch(`${WORKER_URL}/staff/clocking`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                employeeId: emp.id,
+                pin: emp.pin,
+                type,
+            }),
+        });
+
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+
+        // Optimistic local update: append the new entry so the status/work-time
+        // reflect immediately, without waiting for the next fetch.
+        state.entries.push(data.entry);
+
+        showToast(`${type} recorded at ${fmtTimeShort(new Date(data.entry.timestamp))}`, 'success');
+
+        // Briefly refresh the action screen so the user sees the new status,
+        // then return to idle.
+        setTimeout(() => renderActionScreen(), ACTION_FEEDBACK_DELAY_MS);
+        clearTimeout(actionReturnTimer);
+        actionReturnTimer = setTimeout(exitActionScreen, ACTION_RETURN_DELAY_MS);
+
+    } catch (err) {
+        console.error('Clocking failed:', err);
+        showToast(`Failed: ${err.message}`, 'error');
+        document.querySelectorAll('.action-btn[data-type]').forEach(b => b.classList.remove('loading'));
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════════════════════════════
+let toastTimer = null;
+function showToast(message, type = 'success') {
+    const toast = $('toast');
+    $('toastText').textContent = message;
+    toast.classList.toggle('error', type === 'error');
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// CLOCK TICK
+// ════════════════════════════════════════════════════════════════════════
+function tickClock() {
+    const now = new Date();
+    $('clockTime').textContent = fmtTime(now);
+    $('clockDate').textContent = fmtDate(now);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// 5-TAP ADMIN GESTURE
+// ════════════════════════════════════════════════════════════════════════
+function handleBrandTap() {
+    state.brandTaps++;
+    clearTimeout(state.brandTapResetTimer);
+    state.brandTapResetTimer = setTimeout(() => { state.brandTaps = 0; }, 1500);
+    if (state.brandTaps >= 5) {
+        state.brandTaps = 0;
+        // Open the admin dashboard in a new tab
+        window.open(ADMIN_DASHBOARD_URL, '_blank', 'noopener');
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// CONNECTION STATUS
+// ════════════════════════════════════════════════════════════════════════
+function updateConnectionStatus() {
+    const online = navigator.onLine;
+    state.online = online;
+    const pill = $('connectionPill');
+    pill.classList.toggle('online', online);
+    $('connectionLabel').textContent = online ? 'Online' : 'Offline';
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════════════════════════════════
+async function boot(isRetry = false) {
+    if (isRetry) {
+        $('bootSpinner').hidden = false;
+        $('bootError').hidden = true;
+        $('bootRetry').hidden = true;
+        $('bootText').textContent = 'Loading…';
+    }
+    try {
+        await fetchFresh();
+        $('bootScreen').classList.add('hidden');
+    } catch (err) {
+        console.error('Boot failed:', err);
+        $('bootSpinner').hidden = true;
+        $('bootText').hidden = true;
+        $('bootError').hidden = false;
+        $('bootError').textContent = `Couldn't load employee list. ${err.message}`;
+        $('bootRetry').hidden = false;
+    }
+}
+
+// Periodic refresh of employee list and entries (so new employees / clockings
+// from other devices show up without manual reload)
+function startPeriodicRefresh() {
+    setInterval(async () => {
+        try { await fetchFresh(); }
+        catch (e) { console.warn('Periodic refresh failed:', e); }
+        if (state.currentEmployee) renderActionScreen();
+    }, REFRESH_EMPLOYEES_MS);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// EVENT BINDING
+// ════════════════════════════════════════════════════════════════════════
+function bindEvents() {
+    // Keypad
+    $('pinKeypad').addEventListener('click', (e) => {
+        const key = e.target.closest('.pin-key');
+        if (!key) return;
+        if (key.classList.contains('invisible')) return;
+        if (key.dataset.digit) pressDigit(key.dataset.digit);
+        else if (key.dataset.action === 'backspace') backspace();
+    });
+
+    // Physical keyboard support (for development/testing on desktop)
+    document.addEventListener('keydown', (e) => {
+        if (!$('actionScreen').classList.contains('hidden')) return; // ignore when on action screen
+        if (/^[0-9]$/.test(e.key)) pressDigit(e.key);
+        else if (e.key === 'Backspace') backspace();
+        else if (e.key === 'Escape') clearPin();
+    });
+
+    // Action buttons
+    document.querySelectorAll('.action-btn[data-type]').forEach(btn => {
+        btn.addEventListener('click', () => submitClocking(btn.dataset.type));
+    });
+
+    // Exit
+    $('exitBtn').addEventListener('click', exitActionScreen);
+
+    // 5-tap admin gesture on brand mark
+    $('brandMark').addEventListener('click', handleBrandTap);
+
+    // Boot retry
+    $('bootRetry').addEventListener('click', () => boot(true));
+
+    // Online/offline
+    window.addEventListener('online',  updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+
+    // When tab becomes visible again, refresh data
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            fetchFresh().catch(() => {});
+        }
+    });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════════════
+async function init() {
+    bindEvents();
+    tickClock();
+    setInterval(tickClock, 1000);
+    updateConnectionStatus();
+    await boot();
+    startPeriodicRefresh();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+</script>
+</body>
+</html>

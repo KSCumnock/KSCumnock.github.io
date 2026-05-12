@@ -887,6 +887,37 @@ main {
     font-size: 12.5px;
 }
 .activity-item:last-child { border-bottom: none; }
+.activity-item:hover { background: var(--bg-card-hover); }
+.activity-item:hover .activity-actions { opacity: 1; }
+.activity-actions {
+    display: flex;
+    gap: 2px;
+    margin-left: auto;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    flex-shrink: 0;
+}
+@media (hover: none) {
+    /* Always-visible on touch devices since there's no hover */
+    .activity-actions { opacity: 1; }
+}
+
+.section-head-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.section-head-row h3 { margin-bottom: 0; }
+
+.btn-sm {
+    padding: 5px 10px 5px 8px !important;
+    font-size: 12px !important;
+    border-radius: 8px !important;
+    gap: 4px !important;
+}
+.btn-sm svg { width: 12px !important; height: 12px !important; }
 .activity-item .time {
     font-family: var(--font-mono);
     color: var(--text-tertiary);
@@ -963,6 +994,325 @@ kbd {
     padding: 1px 5px;
     border-radius: 4px;
 }
+
+/* ────────────────────────────────────────────────────────── */
+/* PIN UNLOCK SCREEN                                           */
+/* ────────────────────────────────────────────────────────── */
+.pin-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-base);
+    z-index: 200;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+.pin-screen.hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+
+.pin-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px 28px 28px;
+    box-shadow: var(--shadow-lg);
+    width: min(360px, calc(100vw - 32px));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+.pin-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+.pin-brand .brand-mark { width: 40px; height: 40px; font-size: 14px; border-radius: 9px; }
+.pin-brand .pin-title {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+.pin-brand .pin-sub {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.pin-dots {
+    display: flex;
+    gap: 14px;
+    margin: 4px 0 6px;
+    height: 14px;
+    align-items: center;
+}
+.pin-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-strong);
+    background: transparent;
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+}
+.pin-dot.filled { background: var(--text); border-color: var(--text); transform: scale(1.05); }
+.pin-screen.error .pin-dot { border-color: var(--red); }
+.pin-screen.error .pin-dot.filled { background: var(--red); }
+.pin-screen.error .pin-card { animation: pinShake 0.4s; }
+@keyframes pinShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+}
+
+.pin-error-text {
+    height: 16px;
+    font-size: 12px;
+    color: var(--red);
+    font-family: var(--font-mono);
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+}
+.pin-screen.error .pin-error-text { opacity: 1; }
+.pin-error-text.checking { color: var(--text-tertiary); opacity: 1; }
+
+.pin-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+}
+.pin-key {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    height: 56px;
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.08s ease, transform 0.04s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    display: grid;
+    place-items: center;
+}
+.pin-key:hover { background: var(--bg-muted); }
+.pin-key:active { transform: scale(0.96); background: var(--border); }
+.pin-key.utility {
+    font-size: 14px;
+    font-family: var(--font-ui);
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+.pin-key.utility svg { width: 18px; height: 18px; }
+.pin-key.invisible { visibility: hidden; pointer-events: none; }
+
+/* ────────────────────────────────────────────────────────── */
+/* ADMIN — sign-out + manage button                            */
+/* ────────────────────────────────────────────────────────── */
+.admin-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Employee management drawer (reuses .drawer base) */
+.emp-list {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--bg-card);
+}
+.emp-list-item {
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.emp-list-item:last-child { border-bottom: none; }
+.emp-list-item:hover { background: var(--bg-card-hover); }
+.emp-list-info { min-width: 0; }
+.emp-list-name {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.emp-list-meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+}
+.emp-list-actions { display: flex; gap: 4px; }
+.icon-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    transition: background 0.1s ease, color 0.1s ease, border-color 0.1s ease;
+}
+.icon-btn:hover { background: var(--bg-muted); color: var(--text); border-color: var(--border); }
+.icon-btn.danger:hover { color: var(--red); border-color: var(--red-border); background: var(--red-soft); }
+.icon-btn svg { width: 14px; height: 14px; }
+
+/* Modal (form for add/edit) */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(9, 9, 11, 0.4);
+    backdrop-filter: blur(3px);
+    z-index: 90;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+}
+.modal-overlay.open { opacity: 1; pointer-events: auto; }
+.modal {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: min(440px, 100%);
+    max-height: 90vh;
+    overflow: auto;
+    transform: scale(0.96);
+    transition: transform 0.18s ease;
+}
+.modal-overlay.open .modal { transform: scale(1); }
+.modal-header {
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.modal-title {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+}
+.modal-body {
+    padding: 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.modal-actions {
+    padding: 14px 22px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    background: var(--bg-base);
+}
+.field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.field-group label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 500;
+}
+.field-group input[type="text"],
+.field-group input[type="time"],
+.field-group input[type="datetime-local"],
+.field-group input[type="number"],
+.field-group select {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 9px 11px;
+    border-radius: var(--radius);
+    outline: none;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+    width: 100%;
+}
+.field-group input:focus,
+.field-group select:focus {
+    border-color: var(--text);
+    box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.06);
+}
+.field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+.field-group .help {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-quaternary);
+    margin-top: 2px;
+}
+.field-group .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+}
+.field-group .checkbox-row input { width: 16px; height: 16px; }
+.field-group .checkbox-row label {
+    font-size: 13px;
+    font-family: var(--font-ui);
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--text);
+    cursor: pointer;
+}
+.modal-error {
+    background: var(--red-soft);
+    color: var(--red-fg);
+    border: 1px solid var(--red-border);
+    padding: 8px 11px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    font-family: var(--font-mono);
+}
+.modal-info {
+    background: var(--amber-soft);
+    color: var(--amber-fg);
+    border: 1px solid var(--amber-border);
+    padding: 8px 11px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.btn-danger {
+    background: var(--red);
+    color: white;
+    border-color: var(--red);
+}
+.btn-danger:hover { background: #b91c1c; border-color: #b91c1c; }
 
 /* Tooltip */
 .tooltip {
@@ -1344,6 +1694,42 @@ kbd {
 </head>
 <body>
 
+<!-- ───────────────────────────────────────────────────────── -->
+<!-- PIN UNLOCK SCREEN                                          -->
+<!-- ───────────────────────────────────────────────────────── -->
+<div class="pin-screen" id="pinScreen">
+    <div class="pin-card">
+        <div class="pin-brand">
+            <div class="brand-mark">K&amp;S</div>
+            <div class="pin-title">Time Keeper</div>
+            <div class="pin-sub">Enter passcode</div>
+        </div>
+        <div class="pin-dots" id="pinDots">
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+        </div>
+        <div class="pin-error-text" id="pinErrorText"></div>
+        <div class="pin-keypad" id="pinKeypad">
+            <button class="pin-key" data-digit="1">1</button>
+            <button class="pin-key" data-digit="2">2</button>
+            <button class="pin-key" data-digit="3">3</button>
+            <button class="pin-key" data-digit="4">4</button>
+            <button class="pin-key" data-digit="5">5</button>
+            <button class="pin-key" data-digit="6">6</button>
+            <button class="pin-key" data-digit="7">7</button>
+            <button class="pin-key" data-digit="8">8</button>
+            <button class="pin-key" data-digit="9">9</button>
+            <button class="pin-key invisible"></button>
+            <button class="pin-key" data-digit="0">0</button>
+            <button class="pin-key utility" data-action="backspace" aria-label="Backspace">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+            </button>
+        </div>
+    </div>
+</div>
+
 <header class="topbar">
     <div class="topbar-inner">
         <div class="brand">
@@ -1447,6 +1833,20 @@ kbd {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Export CSV
             </button>
+
+            <a class="btn" href="staff.html" id="staffLink" title="Open staff clocking page">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span class="desktop-only">Staff</span>
+            </a>
+
+            <button class="btn" id="manageBtn" title="Manage employees">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                <span class="desktop-only">Manage</span>
+            </button>
+
+            <button class="btn btn-ghost" id="signOutBtn" title="Sign out">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </button>
         </div>
 
         <div class="live-indicator desktop-only">
@@ -1508,6 +1908,12 @@ kbd {
     <div id="drawerContent"></div>
 </aside>
 
+<!-- Employees Management Drawer -->
+<div class="drawer-overlay" id="empDrawerOverlay"></div>
+<aside class="drawer" id="empDrawer" aria-hidden="true">
+    <div id="empDrawerContent"></div>
+</aside>
+
 <!-- Tooltip -->
 <div class="tooltip" id="tooltip"></div>
 
@@ -1515,9 +1921,16 @@ kbd {
 // ════════════════════════════════════════════════════════════════════════
 // CONFIG
 // ════════════════════════════════════════════════════════════════════════
-const REPO_BASE = 'https://raw.githubusercontent.com/SCOSeanKly/TimeKeeperReports/main';
-const ENDPOINT_EMPLOYEES = `${REPO_BASE}/TimeKeeperEmployees.json`;
-const ENDPOINT_CLOCKINGS = `${REPO_BASE}/timekeeper_entries.json`;
+// Worker URL — admin operations + data reads
+const WORKER_URL = 'https://timekeeper-admin.ske-d03.workers.dev';
+const AUTH_TOKEN_KEY = 'ks-tk-admin-token';
+const AUTH_EXPIRES_KEY = 'ks-tk-admin-expires';
+
+// Data reads go through the Worker (not raw.githubusercontent) to bypass
+// the GitHub CDN's ~5min cache. The Worker uses GitHub Contents + Blobs
+// APIs internally, which always return the latest commit.
+const ENDPOINT_EMPLOYEES = `${WORKER_URL}/data/employees`;
+const ENDPOINT_CLOCKINGS = `${WORKER_URL}/data/entries`;
 
 const WORKDAY_START_HOUR = 7;   // timeline scale start
 const WORKDAY_END_HOUR = 19;    // timeline scale end
@@ -1646,6 +2059,8 @@ async function fetchData() {
 function groupClockings(clockings) {
     const byEmp = new Map();
     for (const entry of clockings) {
+        // Skip soft-deleted entries (admin deletions add { deleted: true })
+        if (entry.deleted) continue;
         const entryDate = localDateStr(new Date(entry.timestamp));
         if (!byEmp.has(entry.employeeId)) byEmp.set(entry.employeeId, new Map());
         const days = byEmp.get(entry.employeeId);
@@ -2186,16 +2601,25 @@ function renderDrawer() {
         </div>`;
     }).join('');
 
-    // Activity log: last 20 events
+    // Activity log: last 20 events (excluding soft-deleted)
     const allEvents = [];
     for (const arr of empDaysAll.values()) allEvents.push(...arr);
-    allEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    const recentEvents = allEvents.slice(0, 20);
+    const visibleEvents = allEvents.filter(e => !e.deleted);
+    visibleEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const recentEvents = visibleEvents.slice(0, 20);
     const activityHtml = recentEvents.map(ev => {
         const t = new Date(ev.timestamp);
-        return `<div class="activity-item">
+        return `<div class="activity-item" data-entry-id="${ev.id}">
             <div class="time">${t.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
             <div class="event"><span class="event-tag" data-type="${ev.type}">${ev.type}</span></div>
+            <div class="activity-actions">
+                <button class="icon-btn" data-action="edit-clk" data-entry-id="${ev.id}" aria-label="Edit clocking" title="Edit">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="icon-btn danger" data-action="delete-clk" data-entry-id="${ev.id}" aria-label="Delete clocking" title="Delete">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                </button>
+            </div>
         </div>`;
     }).join('') || '<div class="empty"><div>No activity recorded.</div></div>';
 
@@ -2289,7 +2713,13 @@ function renderDrawer() {
 
             <!-- Recent activity -->
             <div class="drawer-section">
-                <h3>Recent activity <span class="h3-meta">last 20 events</span></h3>
+                <div class="section-head-row">
+                    <h3>Recent activity <span class="h3-meta">last 20 events</span></h3>
+                    <button class="btn btn-primary btn-sm" id="addClockingBtn">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                        Add clocking
+                    </button>
+                </div>
                 <div class="activity-log">${activityHtml}</div>
             </div>
 
@@ -2324,6 +2754,25 @@ function renderDrawer() {
     });
     document.getElementById('exportEmployeeBtn').addEventListener('click', () => exportCSV(emp.id));
     document.getElementById('printEvalBtn').addEventListener('click', () => window.print());
+
+    // Admin: add clocking button
+    document.getElementById('addClockingBtn').addEventListener('click', () => openClockingForm(emp.id));
+
+    // Admin: edit/delete on each activity item
+    document.querySelectorAll('#drawerContent [data-action="edit-clk"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const entryId = btn.dataset.entryId;
+            const entry = state.clockings.find(c => c.id === entryId);
+            if (entry) openClockingForm(emp.id, entry);
+        });
+    });
+    document.querySelectorAll('#drawerContent [data-action="delete-clk"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const entryId = btn.dataset.entryId;
+            const entry = state.clockings.find(c => c.id === entryId);
+            if (entry) confirmDeleteClocking(entry);
+        });
+    });
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -2844,6 +3293,543 @@ function bindPicker() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+// AUTH MODULE — admin PIN against Worker, bearer token in localStorage
+// ════════════════════════════════════════════════════════════════════════
+const auth = {
+    getToken() {
+        const token = localStorage.getItem(AUTH_TOKEN_KEY);
+        const expires = parseInt(localStorage.getItem(AUTH_EXPIRES_KEY) || '0', 10);
+        if (!token || !expires || expires < Date.now()) {
+            this.clear();
+            return null;
+        }
+        return token;
+    },
+    clear() {
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        localStorage.removeItem(AUTH_EXPIRES_KEY);
+    },
+    async signIn(pin) {
+        const r = await fetch(`${WORKER_URL}/auth`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pin }),
+        });
+        if (!r.ok) {
+            const data = await r.json().catch(() => ({}));
+            throw new Error(data.error || `HTTP ${r.status}`);
+        }
+        const { token, expiresAt } = await r.json();
+        localStorage.setItem(AUTH_TOKEN_KEY, token);
+        localStorage.setItem(AUTH_EXPIRES_KEY, String(expiresAt));
+    },
+    signOut() {
+        this.clear();
+        showPinScreen();
+    },
+    async api(method, path, body = null) {
+        const token = this.getToken();
+        if (!token) { showPinScreen(); throw new Error('Not authenticated'); }
+        const headers = { 'Authorization': `Bearer ${token}` };
+        if (body) headers['Content-Type'] = 'application/json';
+        const r = await fetch(`${WORKER_URL}${path}`, {
+            method,
+            headers,
+            body: body ? JSON.stringify(body) : undefined,
+        });
+        if (r.status === 401) {
+            this.clear();
+            showPinScreen();
+            throw new Error('Session expired — please sign in again');
+        }
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+        return data;
+    },
+};
+
+// ════════════════════════════════════════════════════════════════════════
+// PIN SCREEN — gates dashboard access; mirrors staff PWA keypad
+// ════════════════════════════════════════════════════════════════════════
+const pinState = { value: '', maxLength: 4, busy: false };
+
+function showPinScreen() {
+    document.getElementById('pinScreen').classList.remove('hidden');
+    pinState.value = '';
+    renderPinDots();
+}
+function hidePinScreen() {
+    document.getElementById('pinScreen').classList.add('hidden');
+}
+function renderPinDots() {
+    const dots = document.getElementById('pinDots').querySelectorAll('.pin-dot');
+    dots.forEach((d, i) => d.classList.toggle('filled', i < pinState.value.length));
+}
+function showPinError(msg) {
+    const screen = document.getElementById('pinScreen');
+    const errText = document.getElementById('pinErrorText');
+    errText.textContent = msg || 'Incorrect PIN';
+    screen.classList.add('error');
+    setTimeout(() => {
+        screen.classList.remove('error');
+        pinState.value = '';
+        renderPinDots();
+        errText.textContent = '';
+    }, 1100);
+}
+
+async function attemptPinSignIn() {
+    if (pinState.busy) return;
+    pinState.busy = true;
+    const errText = document.getElementById('pinErrorText');
+    errText.classList.add('checking');
+    errText.textContent = 'Verifying…';
+    try {
+        await auth.signIn(pinState.value);
+        errText.classList.remove('checking');
+        errText.textContent = '';
+        hidePinScreen();
+        // After unlock, initialise the dashboard if it hasn't been already
+        await ensureBooted();
+    } catch (err) {
+        errText.classList.remove('checking');
+        showPinError(err.message);
+    } finally {
+        pinState.busy = false;
+    }
+}
+
+function bindPinScreen() {
+    document.getElementById('pinKeypad').addEventListener('click', (e) => {
+        if (pinState.busy) return;
+        const key = e.target.closest('.pin-key');
+        if (!key || key.classList.contains('invisible')) return;
+        if (key.dataset.digit) {
+            if (pinState.value.length >= pinState.maxLength) return;
+            pinState.value += key.dataset.digit;
+            renderPinDots();
+            if (pinState.value.length === pinState.maxLength) attemptPinSignIn();
+        } else if (key.dataset.action === 'backspace') {
+            pinState.value = pinState.value.slice(0, -1);
+            renderPinDots();
+        }
+    });
+    // Physical keyboard support
+    document.addEventListener('keydown', (e) => {
+        const screen = document.getElementById('pinScreen');
+        if (screen.classList.contains('hidden')) return;
+        if (pinState.busy) return;
+        if (/^[0-9]$/.test(e.key)) {
+            if (pinState.value.length >= pinState.maxLength) return;
+            pinState.value += e.key;
+            renderPinDots();
+            if (pinState.value.length === pinState.maxLength) attemptPinSignIn();
+        } else if (e.key === 'Backspace') {
+            pinState.value = pinState.value.slice(0, -1);
+            renderPinDots();
+        } else if (e.key === 'Escape') {
+            pinState.value = '';
+            renderPinDots();
+        }
+    });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// MODAL UTILITY
+// ════════════════════════════════════════════════════════════════════════
+function openModal(html) {
+    let overlay = document.getElementById('modalOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'modalOverlay';
+        overlay.className = 'modal-overlay';
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeModal();
+        });
+    }
+    overlay.innerHTML = `<div class="modal" role="dialog">${html}</div>`;
+    requestAnimationFrame(() => overlay.classList.add('open'));
+}
+function closeModal() {
+    const overlay = document.getElementById('modalOverlay');
+    if (!overlay) return;
+    overlay.classList.remove('open');
+    setTimeout(() => { overlay.innerHTML = ''; }, 200);
+}
+
+function modalError(msg) {
+    const existing = document.querySelector('.modal-error');
+    if (existing) existing.remove();
+    const body = document.querySelector('.modal-body');
+    if (!body) return;
+    const div = document.createElement('div');
+    div.className = 'modal-error';
+    div.textContent = msg;
+    body.insertBefore(div, body.firstChild);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// EMPLOYEE MANAGEMENT
+// ════════════════════════════════════════════════════════════════════════
+function openEmployeesDrawer() {
+    const drawer = document.getElementById('empDrawer');
+    drawer.classList.add('open');
+    document.getElementById('empDrawerOverlay').classList.add('open');
+    renderEmployeesDrawer();
+}
+function closeEmployeesDrawer() {
+    document.getElementById('empDrawer').classList.remove('open');
+    document.getElementById('empDrawerOverlay').classList.remove('open');
+}
+
+function renderEmployeesDrawer() {
+    const employees = state.employees.slice()
+        .sort((a, b) => (a.department || '').localeCompare(b.department || '') || a.name.localeCompare(b.name));
+
+    const groups = new Map();
+    for (const e of employees) {
+        const d = e.department || '—';
+        if (!groups.has(d)) groups.set(d, []);
+        groups.get(d).push(e);
+    }
+
+    let html = `
+        <div class="drawer-header">
+            <div class="drawer-title">
+                <div class="name">Manage employees</div>
+                <div class="dept">${employees.length} total</div>
+            </div>
+            <button class="btn btn-primary" id="empAddBtn">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                Add
+            </button>
+            <button class="drawer-close" id="empDrawerCloseBtn" aria-label="Close">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="drawer-body">
+    `;
+
+    for (const [dept, emps] of groups) {
+        html += `<div class="drawer-section">
+            <h3>${dept} <span class="h3-meta">${emps.length}</span></h3>
+            <div class="emp-list">`;
+        for (const e of emps) {
+            const c = colorOf(e.id);
+            const flexible = e.hasFlexibleSchedule ? ' · flexible' : '';
+            const hours = `${fmtScheduleTime(e.startTime)}–${fmtScheduleTime(e.finishTime)}${flexible}`;
+            html += `
+                <div class="emp-list-item" data-empid="${e.id}">
+                    <div class="avatar" data-color="${c}">${initials(e.name)}</div>
+                    <div class="emp-list-info">
+                        <div class="emp-list-name">${e.name}</div>
+                        <div class="emp-list-meta">PIN ${e.pin} · ${hours}</div>
+                    </div>
+                    <div class="emp-list-actions">
+                        <button class="icon-btn" data-action="edit-emp" data-empid="${e.id}" aria-label="Edit">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                        <button class="icon-btn danger" data-action="delete-emp" data-empid="${e.id}" aria-label="Delete">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        html += `</div></div>`;
+    }
+
+    html += `</div>`;
+    document.getElementById('empDrawerContent').innerHTML = html;
+
+    document.getElementById('empDrawerCloseBtn').addEventListener('click', closeEmployeesDrawer);
+    document.getElementById('empAddBtn').addEventListener('click', () => openEmployeeForm(null));
+    document.querySelectorAll('[data-action="edit-emp"]').forEach(btn => {
+        btn.addEventListener('click', () => openEmployeeForm(btn.dataset.empid));
+    });
+    document.querySelectorAll('[data-action="delete-emp"]').forEach(btn => {
+        btn.addEventListener('click', () => confirmDeleteEmployee(btn.dataset.empid));
+    });
+}
+
+// startTime/finishTime are full ISO datetimes — only the time of day matters
+function fmtScheduleTime(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+}
+// "HH:MM" → ISO datetime (using a stable reference date)
+function timeToIso(hhmm) {
+    if (!/^\d{2}:\d{2}$/.test(hhmm)) return null;
+    return `2025-01-01T${hhmm}:00Z`;
+}
+function isoToTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const hh = String(d.getUTCHours()).padStart(2, '0');
+    const mm = String(d.getUTCMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
+}
+
+function openEmployeeForm(empId) {
+    const editing = empId ? state.employees.find(e => e.id === empId) : null;
+    const title = editing ? 'Edit employee' : 'Add employee';
+    openModal(`
+        <div class="modal-header">
+            <div class="modal-title">${title}</div>
+            <button class="drawer-close" data-action="close" aria-label="Close">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="field-group">
+                <label for="fldName">Name</label>
+                <input type="text" id="fldName" value="${editing ? editing.name.replace(/"/g, '&quot;') : ''}" autocomplete="off" />
+            </div>
+            <div class="field-row">
+                <div class="field-group">
+                    <label for="fldDept">Department</label>
+                    <input type="text" id="fldDept" value="${editing ? (editing.department || '').replace(/"/g, '&quot;') : ''}" list="deptList" autocomplete="off" />
+                    <datalist id="deptList">
+                        ${[...new Set(state.employees.map(e => e.department).filter(Boolean))].sort().map(d => `<option value="${d}"></option>`).join('')}
+                    </datalist>
+                </div>
+                <div class="field-group">
+                    <label for="fldPin">PIN (4 digits)</label>
+                    <input type="text" id="fldPin" inputmode="numeric" maxlength="4" pattern="\\d{4}" value="${editing ? editing.pin : ''}" autocomplete="off" />
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field-group">
+                    <label for="fldStart">Start time</label>
+                    <input type="time" id="fldStart" value="${editing ? isoToTime(editing.startTime) : '08:30'}" />
+                </div>
+                <div class="field-group">
+                    <label for="fldFinish">Finish time</label>
+                    <input type="time" id="fldFinish" value="${editing ? isoToTime(editing.finishTime) : '17:00'}" />
+                </div>
+            </div>
+            <div class="field-group">
+                <div class="checkbox-row">
+                    <input type="checkbox" id="fldFlex" ${editing && editing.hasFlexibleSchedule ? 'checked' : ''} />
+                    <label for="fldFlex">Flexible schedule (can take break or lunch in any order)</label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn" data-action="close">Cancel</button>
+            <button class="btn btn-primary" id="empSaveBtn">${editing ? 'Save changes' : 'Add employee'}</button>
+        </div>
+    `);
+
+    document.querySelectorAll('[data-action="close"]').forEach(b => b.addEventListener('click', closeModal));
+
+    document.getElementById('empSaveBtn').addEventListener('click', async () => {
+        const payload = {
+            name: document.getElementById('fldName').value.trim(),
+            department: document.getElementById('fldDept').value.trim(),
+            pin: document.getElementById('fldPin').value.trim(),
+            startTime: timeToIso(document.getElementById('fldStart').value),
+            finishTime: timeToIso(document.getElementById('fldFinish').value),
+            hasFlexibleSchedule: document.getElementById('fldFlex').checked,
+        };
+        if (!payload.name) return modalError('Name required');
+        if (!payload.department) return modalError('Department required');
+        if (!/^\d{4}$/.test(payload.pin)) return modalError('PIN must be 4 digits');
+        if (!payload.startTime || !payload.finishTime) return modalError('Start/finish times required');
+
+        const btn = document.getElementById('empSaveBtn');
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+        try {
+            if (editing) {
+                await auth.api('PUT', `/employees/${editing.id}`, payload);
+            } else {
+                await auth.api('POST', '/employees', payload);
+            }
+            closeModal();
+            await refresh();
+            renderEmployeesDrawer();
+        } catch (err) {
+            btn.disabled = false;
+            btn.textContent = editing ? 'Save changes' : 'Add employee';
+            modalError(err.message);
+        }
+    });
+}
+
+function confirmDeleteEmployee(empId) {
+    const emp = state.employees.find(e => e.id === empId);
+    if (!emp) return;
+    const clockingsCount = state.clockings.filter(c => c.employeeId === empId && !c.deleted).length;
+    const warning = clockingsCount > 0
+        ? `<div class="modal-info"><strong>${emp.name}</strong> has <strong>${clockingsCount}</strong> clocking ${clockingsCount === 1 ? 'entry' : 'entries'} on record. Deleting the employee will leave those entries orphaned — they'll still exist in the data but won't be visible in the dashboard.</div>`
+        : `<div class="modal-info">No clockings recorded for <strong>${emp.name}</strong>. Safe to delete.</div>`;
+    openModal(`
+        <div class="modal-header">
+            <div class="modal-title">Delete ${emp.name}?</div>
+            <button class="drawer-close" data-action="close" aria-label="Close">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            ${warning}
+            <p style="font-size: 13px; color: var(--text-secondary);">This action removes the employee from the active list. Their PIN will no longer work for clocking in.</p>
+        </div>
+        <div class="modal-actions">
+            <button class="btn" data-action="close">Cancel</button>
+            <button class="btn btn-danger" id="empDeleteBtn">Delete employee</button>
+        </div>
+    `);
+    document.querySelectorAll('[data-action="close"]').forEach(b => b.addEventListener('click', closeModal));
+    document.getElementById('empDeleteBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('empDeleteBtn');
+        btn.disabled = true;
+        btn.textContent = 'Deleting…';
+        try {
+            await auth.api('DELETE', `/employees/${empId}${clockingsCount > 0 ? '?force=true' : ''}`);
+            closeModal();
+            await refresh();
+            renderEmployeesDrawer();
+        } catch (err) {
+            btn.disabled = false;
+            btn.textContent = 'Delete employee';
+            modalError(err.message);
+        }
+    });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// CLOCKING MANAGEMENT (used inside evaluation drawer)
+// ════════════════════════════════════════════════════════════════════════
+const ENTRY_TYPES_FOR_FORM = [
+    'Clock In', 'Clock Out',
+    'Break Start', 'Break End',
+    'Lunch Start', 'Lunch End',
+    'Sick Day',
+];
+
+function openClockingForm(empId, entry = null) {
+    const emp = state.employees.find(e => e.id === empId);
+    if (!emp) return;
+    const editing = !!entry;
+    const title = editing ? 'Edit clocking' : `Add clocking — ${emp.name}`;
+    const now = new Date();
+    const defaultLocal = (entry ? new Date(entry.timestamp) : now);
+    // datetime-local needs YYYY-MM-DDTHH:MM in LOCAL time
+    const dtLocal = `${defaultLocal.getFullYear()}-${String(defaultLocal.getMonth()+1).padStart(2,'0')}-${String(defaultLocal.getDate()).padStart(2,'0')}T${String(defaultLocal.getHours()).padStart(2,'0')}:${String(defaultLocal.getMinutes()).padStart(2,'0')}`;
+
+    openModal(`
+        <div class="modal-header">
+            <div class="modal-title">${title}</div>
+            <button class="drawer-close" data-action="close" aria-label="Close">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="field-group">
+                <label for="clkType">Type</label>
+                <select id="clkType">
+                    ${ENTRY_TYPES_FOR_FORM.map(t => `<option value="${t}" ${entry && entry.type === t ? 'selected' : ''}>${t}</option>`).join('')}
+                </select>
+            </div>
+            <div class="field-group">
+                <label for="clkTime">Date &amp; time</label>
+                <input type="datetime-local" id="clkTime" value="${dtLocal}" />
+                <div class="help">Time is recorded in local time (BST/GMT). Use this to correct missed or forgotten clockings.</div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn" data-action="close">Cancel</button>
+            <button class="btn btn-primary" id="clkSaveBtn">${editing ? 'Save changes' : 'Add clocking'}</button>
+        </div>
+    `);
+    document.querySelectorAll('[data-action="close"]').forEach(b => b.addEventListener('click', closeModal));
+
+    document.getElementById('clkSaveBtn').addEventListener('click', async () => {
+        const type = document.getElementById('clkType').value;
+        const timeLocal = document.getElementById('clkTime').value;
+        if (!timeLocal) return modalError('Date/time required');
+        // datetime-local is parsed as local time; convert to ISO UTC
+        const iso = new Date(timeLocal).toISOString().replace(/\.\d+Z$/, 'Z');
+
+        const btn = document.getElementById('clkSaveBtn');
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+        try {
+            if (editing) {
+                await auth.api('PUT', `/clockings/${entry.id}`, { type, timestamp: iso });
+            } else {
+                await auth.api('POST', '/clockings', { employeeId: empId, type, timestamp: iso });
+            }
+            closeModal();
+            await refresh();
+            if (state.selectedEmployeeId) renderDrawer();
+        } catch (err) {
+            btn.disabled = false;
+            btn.textContent = editing ? 'Save changes' : 'Add clocking';
+            modalError(err.message);
+        }
+    });
+}
+
+function confirmDeleteClocking(entry) {
+    const emp = state.employees.find(e => e.id === entry.employeeId);
+    const when = new Date(entry.timestamp).toLocaleString('en-GB');
+    openModal(`
+        <div class="modal-header">
+            <div class="modal-title">Delete clocking?</div>
+            <button class="drawer-close" data-action="close" aria-label="Close">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-info">
+                <strong>${entry.type}</strong> for <strong>${emp ? emp.name : 'employee'}</strong> on ${when}
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary);">
+                This is a soft delete — the entry is flagged as deleted but kept for audit. It won't appear in the dashboard or reports.
+            </p>
+        </div>
+        <div class="modal-actions">
+            <button class="btn" data-action="close">Cancel</button>
+            <button class="btn btn-danger" id="clkDeleteBtn">Delete</button>
+        </div>
+    `);
+    document.querySelectorAll('[data-action="close"]').forEach(b => b.addEventListener('click', closeModal));
+    document.getElementById('clkDeleteBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('clkDeleteBtn');
+        btn.disabled = true;
+        btn.textContent = 'Deleting…';
+        try {
+            await auth.api('DELETE', `/clockings/${entry.id}`);
+            closeModal();
+            await refresh();
+            if (state.selectedEmployeeId) renderDrawer();
+        } catch (err) {
+            btn.disabled = false;
+            btn.textContent = 'Delete';
+            modalError(err.message);
+        }
+    });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// BOOT — ensure data is loaded after PIN unlock
+// ════════════════════════════════════════════════════════════════════════
+let _booted = false;
+async function ensureBooted() {
+    if (_booted) return;
+    _booted = true;
+    setDefaultDateRange();
+    bindEvents();
+    await refresh();
+    state.refreshTimer = setInterval(refresh, REFRESH_INTERVAL_MS);
+    setInterval(() => { renderRows(); }, 60_000);
+}
+
+// ════════════════════════════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════════════════════════════
 function populateDepartmentFilter() {
@@ -2905,13 +3891,23 @@ async function refresh() {
 }
 
 async function init() {
-    setDefaultDateRange();
-    bindEvents();
-    await refresh();
-    // Live refresh every 30s
-    state.refreshTimer = setInterval(refresh, REFRESH_INTERVAL_MS);
-    // Also re-render once a minute to advance the "live" today segment without a full fetch
-    setInterval(() => { renderRows(); }, 60_000);
+    // Bind PIN screen handlers
+    bindPinScreen();
+
+    // Bind the always-available buttons (manage / sign out)
+    document.getElementById('manageBtn').addEventListener('click', openEmployeesDrawer);
+    document.getElementById('signOutBtn').addEventListener('click', () => {
+        if (confirm('Sign out?')) auth.signOut();
+    });
+
+    // If we have a valid session, skip the PIN screen and boot directly
+    if (auth.getToken()) {
+        document.getElementById('pinScreen').classList.add('hidden');
+        await ensureBooted();
+    } else {
+        // Otherwise the PIN screen is already shown (default state in HTML)
+        showPinScreen();
+    }
 }
 
 document.addEventListener('DOMContentLoaded', init);
