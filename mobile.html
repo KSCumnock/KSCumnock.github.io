@@ -277,28 +277,35 @@ body {
     }
 }
 /* Utility key (backspace) — flashes red instead of dark, since it's a
-   destructive action and the visual cue should reflect that. */
+   destructive action and the visual cue should reflect that. The SVG icon
+   inherits its stroke color via currentColor, so we animate `color` on the
+   button itself and the icon follows. */
+.pin-key.utility {
+    color: var(--text-tertiary);
+}
 .pin-key.utility.tapped {
     animation: pinKeyTapUtility 320ms cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 @keyframes pinKeyTapUtility {
     0% {
         background: var(--red);
+        color: #fff;
         border-color: var(--red);
         transform: scale(0.92);
     }
     35% {
         background: var(--red);
+        color: #fff;
         border-color: var(--red);
         transform: scale(1);
     }
     100% {
         background: var(--bg);
+        color: var(--text-tertiary);
         border-color: var(--border);
         transform: scale(1);
     }
 }
-.pin-key.utility.tapped svg { color: #fff; }
 .pin-key.invisible {
     visibility: hidden;
     pointer-events: none;
@@ -306,8 +313,8 @@ body {
 .pin-key.utility svg {
     width: 22px;
     height: 22px;
-    color: var(--text-tertiary);
-    transition: color 0.2s ease;
+    /* No color set — inherits from parent button via currentColor so the
+       icon stroke follows the same animation as the button's color. */
 }
 
 /* ────────────────────────────────────────────── */
@@ -1107,7 +1114,7 @@ const GEOFENCE_RADIUS_M = 200;
 const GEO_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 };
 
 // Build version — bumped on each deploy. Visible bottom-right corner.
-const BUILD_VERSION = '2026-05-12-mobile-v4-keytap';
+const BUILD_VERSION = '2026-05-12-mobile-v5-keyfix';
 
 // ════════════════════════════════════════════════════════════════════════
 // STATE
