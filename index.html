@@ -1874,6 +1874,442 @@ kbd {
 @media (max-width: 980px) { .mobile-only { display: flex; } .desktop-only { display: none; } }
 
 /* ────────────────────────────────────────────────────────── */
+/* RECOVERY TIMESHEETS DRAWER                                  */
+/* ────────────────────────────────────────────────────────── */
+/* The timesheets drawer is wider than the standard drawer because the
+   sheet list needs room for driver name, dates, counts, status, and
+   per-row action buttons. Falls back to full-screen on narrow displays. */
+.drawer.drawer-wide {
+    width: 880px;
+}
+
+/* Header for the timesheets drawer — title, close, and view-mode tabs */
+.ts-drawer-head {
+    padding: 18px 22px 0;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.ts-head-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+.ts-head-title {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+.ts-head-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* Sub-tabs: Pending / All */
+.ts-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: -1px;
+}
+.ts-tab {
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.ts-tab:hover { color: var(--text-secondary); }
+.ts-tab.active {
+    color: var(--text);
+    border-bottom-color: var(--text);
+}
+.ts-tab .badge {
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+    padding: 1px 7px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+}
+.ts-tab.active .badge { background: var(--text); color: var(--bg-elevated); }
+
+/* Filters row — driver dropdown, status, date range */
+.ts-filters {
+    display: flex;
+    gap: 10px;
+    padding: 12px 22px;
+    border-bottom: 1px solid var(--border-subtle);
+    flex-wrap: wrap;
+    align-items: center;
+    background: var(--bg-base);
+}
+.ts-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 140px;
+}
+.ts-filter label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    font-weight: 500;
+}
+.ts-filter select,
+.ts-filter input {
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: inherit;
+    background: var(--bg-elevated);
+    color: var(--text);
+}
+.ts-filter input[type="date"] { width: 100%; }
+
+/* Bulk-action toolbar — appears when ≥1 row is selected */
+.ts-bulk {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 22px;
+    background: var(--blue-50, #eff6ff);
+    border-bottom: 1px solid #c7d8f5;
+    color: var(--blue, #2563eb);
+    font-size: 13px;
+    font-weight: 500;
+}
+.ts-bulk-count {
+    font-family: var(--font-mono);
+    font-weight: 600;
+}
+.ts-bulk-actions { display: flex; gap: 8px; }
+
+/* Sheets list rows */
+.ts-list {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg-base);
+}
+.ts-row {
+    display: grid;
+    grid-template-columns: 36px 1fr 100px 100px 80px 100px auto;
+    gap: 12px;
+    align-items: center;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: background 0.1s ease;
+}
+.ts-row:hover { background: var(--bg-elevated); }
+.ts-row.selected { background: var(--blue-50, #eff6ff); }
+.ts-row-check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.ts-row-check input { width: 16px; height: 16px; cursor: pointer; }
+.ts-row-driver { font-weight: 500; }
+.ts-row-driver-name { font-size: 14px; }
+.ts-row-driver-sub {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    margin-top: 2px;
+}
+.ts-row-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+}
+.ts-row-meta strong { color: var(--text); font-weight: 600; }
+
+/* Status pills */
+.ts-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    border-radius: 99px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    letter-spacing: 0.06em;
+}
+.ts-pill[data-status="draft"] {
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+}
+.ts-pill[data-status="submitted"] {
+    background: #f0fdf4;
+    color: #16a34a;
+}
+.ts-pill[data-status="sent"] {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.ts-row-actions { display: flex; gap: 6px; }
+.ts-row-actions .btn { padding: 5px 10px; font-size: 12px; }
+
+/* Empty state in the list */
+.ts-list-empty {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text-tertiary);
+}
+.ts-list-empty-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+.ts-list-empty-sub { font-size: 13px; }
+.ts-list-loading {
+    text-align: center;
+    padding: 40px 24px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* Sheet detail view — replaces the list when a sheet is opened */
+.ts-detail-head {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.ts-detail-back {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    margin-bottom: 8px;
+}
+.ts-detail-back:hover { color: var(--text); }
+.ts-detail-back svg { width: 14px; height: 14px; }
+.ts-detail-title {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+}
+.ts-detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 8px;
+}
+.ts-detail-meta strong { color: var(--text); font-weight: 600; }
+.ts-detail-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+}
+
+.ts-jobs-section { padding: 16px 22px; }
+.ts-jobs-section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.ts-jobs-section-head h3 {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.ts-job-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-elevated);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    align-items: start;
+}
+.ts-job-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.ts-job-num-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+.ts-job-customer { font-size: 13px; color: var(--text-secondary); }
+.ts-job-desc {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+    line-height: 1.45;
+}
+.ts-job-side {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    text-align: right;
+    line-height: 1.5;
+}
+.ts-job-side strong { color: var(--text); font-weight: 600; display: block; }
+.ts-job-actions { display: flex; gap: 4px; }
+.ts-job-actions .btn { padding: 4px 8px; font-size: 11px; }
+
+/* ────────────────────────────────────────────────────────── */
+/* EMAIL CONFIRMATION MODAL                                    */
+/* ────────────────────────────────────────────────────────── */
+.email-summary {
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+.email-summary strong { color: var(--text); font-weight: 600; }
+.email-summary-stats {
+    display: flex;
+    gap: 18px;
+    margin-top: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.email-summary-stats strong {
+    color: var(--text);
+    font-weight: 700;
+    margin-right: 4px;
+}
+
+.recipient-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 32px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-elevated);
+}
+.recipient-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg-muted);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 3px 4px 3px 9px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+}
+.recipient-chip button {
+    border: none;
+    background: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 99px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.recipient-chip button:hover { color: var(--red); background: var(--red-bg, #fef2f2); }
+.recipient-chip button svg { width: 11px; height: 11px; }
+
+.recipient-input-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+}
+.recipient-input-row input {
+    flex: 1;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: inherit;
+}
+
+/* Job edit inline modal — reuses .modal but tighter form */
+.job-edit-fields {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: 1fr 1fr;
+}
+.job-edit-fields .field-full { grid-column: 1 / -1; }
+.job-edit-fields label {
+    display: block;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+.job-edit-fields input,
+.job-edit-fields textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: inherit;
+    background: var(--bg-elevated);
+}
+
+/* Narrow screens — drop the timesheets drawer to full-screen */
+@media (max-width: 900px) {
+    .drawer.drawer-wide { width: 100vw; }
+    .ts-row {
+        grid-template-columns: 36px 1fr auto;
+        gap: 8px;
+    }
+    .ts-row-meta:nth-of-type(2),
+    .ts-row-meta:nth-of-type(3),
+    .ts-row-meta:nth-of-type(4) { display: none; }
+}
+
+/* ────────────────────────────────────────────────────────── */
 /* PRINT                                                       */
 /* ────────────────────────────────────────────────────────── */
 @media print {
@@ -1895,6 +2331,13 @@ kbd {
 }
 
 </style>
+
+<!-- SheetJS — client-side XLSX builder. Used by the Timesheets export flow
+     to package selected sheets into a workbook with a Summary tab plus one
+     tab per driver-sheet. Worker receives the file as base64 and forwards
+     it to Resend as an email attachment. Loaded with `defer` so it doesn't
+     block initial dashboard rendering — the export flow waits for it. -->
+<script defer src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -2043,6 +2486,18 @@ kbd {
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                         <span>Staff clocking</span>
                     </a>
+                    <button class="menu-item" data-action="timesheets" role="menuitem">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                            <line x1="8" y1="14" x2="8" y2="14.01"/>
+                            <line x1="12" y1="14" x2="12" y2="14.01"/>
+                            <line x1="16" y1="14" x2="16" y2="14.01"/>
+                        </svg>
+                        <span>Recovery timesheets</span>
+                    </button>
                     <button class="menu-item" data-action="manage" role="menuitem">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
                         <span>Manage employees</span>
@@ -2128,6 +2583,58 @@ kbd {
 <aside class="drawer" id="empDrawer" aria-hidden="true">
     <div id="empDrawerContent"></div>
 </aside>
+
+<!-- ─── Recovery Timesheets Drawer ──────────────────────────────────
+     Two-mode panel: LIST shows all sheets with filters + multi-select.
+     DETAIL shows a single sheet's jobs with edit/delete affordances.
+     Renders dynamically via JS into #tsDrawerContent; outer structure
+     mirrors the other admin drawers for visual consistency. -->
+<div class="drawer-overlay" id="tsDrawerOverlay"></div>
+<aside class="drawer drawer-wide" id="tsDrawer" aria-hidden="true">
+    <div id="tsDrawerContent"></div>
+</aside>
+
+<!-- Export & email confirmation modal — opens from the bulk-actions bar
+     when the admin clicks "Email selected". Lets them tweak recipients
+     and subject before sending. -->
+<div class="modal-overlay" id="emailModalOverlay" aria-hidden="true">
+    <div class="modal" id="emailModal" role="dialog" aria-modal="true" aria-labelledby="emailModalTitle">
+        <div class="modal-header">
+            <div class="modal-title" id="emailModalTitle">Email selected sheets</div>
+            <button class="btn btn-icon" id="emailModalClose" type="button" aria-label="Close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="email-summary" id="emailSummary"></div>
+
+            <div class="field-group">
+                <label for="emailRecipients">Recipients</label>
+                <div class="recipient-chips" id="recipientChips"></div>
+                <div class="recipient-input-row">
+                    <input type="email" id="emailRecipientInput" placeholder="Add another email…" />
+                    <button class="btn btn-secondary" id="emailRecipientAdd" type="button">Add</button>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label for="emailSubject">Subject</label>
+                <input type="text" id="emailSubject" />
+            </div>
+
+            <div class="modal-info" id="emailInfo">
+                The XLSX file will contain a Summary tab plus one tab per timesheet. Recipients
+                receive the same file. Submitted sheets in this batch will be marked as Sent.
+            </div>
+
+            <div class="modal-error" id="emailError" hidden></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" id="emailCancelBtn" type="button">Cancel</button>
+            <button class="btn btn-primary" id="emailSendBtn" type="button">Send email</button>
+        </div>
+    </div>
+</div>
 
 <!-- Tooltip -->
 <div class="tooltip" id="tooltip"></div>
@@ -4434,6 +4941,10 @@ async function init() {
     // Backup pill is now a button — tap runs a manual backup
     document.getElementById('backupPill').addEventListener('click', runBackupNow);
 
+    // Wire the recovery-timesheets email modal one-time events (clicks
+    // inside the drawer itself are wired per-render in renderTimesheetsList).
+    wireTimesheetEmailModal();
+
     // If we have a valid session, skip the PIN screen and boot directly
     if (auth.getToken()) {
         document.getElementById('pinScreen').classList.add('hidden');
@@ -4491,6 +5002,8 @@ function bindMenuDropdown() {
                 exportCSV();
             } else if (action === 'manage') {
                 openEmployeesDrawer();
+            } else if (action === 'timesheets') {
+                openTimesheetsDrawer();
             } else if (action === 'signout') {
                 if (confirm('Sign out?')) auth.signOut();
             }
@@ -4501,6 +5014,887 @@ function bindMenuDropdown() {
     dropdown.querySelectorAll('a.menu-item').forEach(a => {
         a.addEventListener('click', closeMenu);
     });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// RECOVERY TIMESHEETS — admin drawer
+// ════════════════════════════════════════════════════════════════════════
+// Drawer-based management UI for recovery driver timesheets. The drawer
+// has two modes: LIST (with filters + multi-select) and DETAIL (single
+// sheet with jobs). The export-and-email flow runs through a separate
+// modal that posts to /timesheets/email with a base64 XLSX attachment.
+
+const tsState = {
+    sheets: [],                  // cached list, most recent first
+    view: 'pending',             // 'pending' | 'all' — sub-tab
+    filterDriverId: 'all',
+    filterStatus: 'all',          // 'all' | 'draft' | 'submitted' | 'sent'
+    filterFrom: '',               // YYYY-MM-DD on submitted_at
+    filterTo: '',
+    selectedIds: new Set(),       // sheet ids ticked for bulk action
+    currentSheetId: null,         // null = list mode, set = detail mode
+    editingJobId: null,           // when editing a job inline
+    emailRecipients: [],          // recipients staged in the email modal
+};
+
+// Default recipient list — picked when the admin opens the email modal.
+// They can add/remove from here without changing the default.
+const TS_DEFAULT_RECIPIENTS = [
+    'ksh@kerrandsmith.co.uk',
+    'wsm@kerrandsmith.co.uk',
+    'ske@kerrandsmith.co.uk',
+    'csm@kerrandsmith.co.uk',
+];
+
+// ─── Drawer open / close ──────────────────────────────────────────────
+
+function openTimesheetsDrawer() {
+    document.getElementById('tsDrawerOverlay').classList.add('open');
+    const drawer = document.getElementById('tsDrawer');
+    drawer.classList.add('open');
+    drawer.setAttribute('aria-hidden', 'false');
+    // Reset to list view on open
+    tsState.currentSheetId = null;
+    tsState.selectedIds.clear();
+    renderTimesheetsDrawer();
+    fetchAdminTimesheets();
+}
+
+function closeTimesheetsDrawer() {
+    document.getElementById('tsDrawerOverlay').classList.remove('open');
+    const drawer = document.getElementById('tsDrawer');
+    drawer.classList.remove('open');
+    drawer.setAttribute('aria-hidden', 'true');
+}
+
+// ─── Fetch ───────────────────────────────────────────────────────────
+
+async function fetchAdminTimesheets() {
+    try {
+        // Server-side filters: driverId, status, date range. We pass them
+        // through and re-derive the sub-tab filter (Pending vs All) on the
+        // client because Pending is just "submitted but not sent" — a
+        // simple in-memory subset of All.
+        const params = new URLSearchParams();
+        if (tsState.filterDriverId && tsState.filterDriverId !== 'all') {
+            params.set('driverId', tsState.filterDriverId);
+        }
+        if (tsState.filterStatus && tsState.filterStatus !== 'all') {
+            params.set('status', tsState.filterStatus);
+        }
+        if (tsState.filterFrom) params.set('from', tsState.filterFrom);
+        if (tsState.filterTo)   params.set('to',   tsState.filterTo);
+
+        const qs = params.toString();
+        const data = await auth.api('GET', '/timesheets' + (qs ? '?' + qs : ''));
+        tsState.sheets = data.timesheets || [];
+        // Drop selected ids that no longer match (after a refresh)
+        const remaining = new Set(tsState.sheets.map(s => s.id));
+        for (const id of tsState.selectedIds) {
+            if (!remaining.has(id)) tsState.selectedIds.delete(id);
+        }
+        renderTimesheetsDrawer();
+    } catch (err) {
+        console.error('Fetch timesheets failed:', err);
+        alert('Failed to load timesheets: ' + err.message);
+    }
+}
+
+// ─── Sub-tab filter (Pending vs All) ──────────────────────────────────
+
+function getVisibleSheets() {
+    if (tsState.view === 'pending') {
+        // "Pending" = submitted but not yet sent.
+        return tsState.sheets.filter(s => s.status === 'submitted');
+    }
+    return tsState.sheets;
+}
+
+function getPendingCount() {
+    return tsState.sheets.filter(s => s.status === 'submitted').length;
+}
+
+// ─── Render: top-level drawer dispatch ────────────────────────────────
+
+function renderTimesheetsDrawer() {
+    const container = document.getElementById('tsDrawerContent');
+    if (tsState.currentSheetId) {
+        renderTimesheetDetail(container);
+    } else {
+        renderTimesheetsList(container);
+    }
+}
+
+// ─── Render: list mode ────────────────────────────────────────────────
+
+function renderTimesheetsList(container) {
+    const pendingCount = getPendingCount();
+    const recoveryDrivers = state.employees
+        .filter(e => (e.department || '').toLowerCase() === 'recovery')
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    container.innerHTML = `
+        <div class="ts-drawer-head">
+            <div class="ts-head-top">
+                <div>
+                    <div class="ts-head-title">Recovery timesheets</div>
+                    <div class="ts-head-sub">${recoveryDrivers.length} drivers</div>
+                </div>
+                <button class="btn btn-icon" id="tsCloseBtn" type="button" aria-label="Close">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="ts-tabs">
+                <button class="ts-tab ${tsState.view === 'pending' ? 'active' : ''}" data-tab="pending" type="button">
+                    Pending
+                    <span class="badge">${pendingCount}</span>
+                </button>
+                <button class="ts-tab ${tsState.view === 'all' ? 'active' : ''}" data-tab="all" type="button">
+                    All
+                </button>
+            </div>
+        </div>
+
+        <div class="ts-filters">
+            <div class="ts-filter">
+                <label for="tsFilterDriver">Driver</label>
+                <select id="tsFilterDriver">
+                    <option value="all" ${tsState.filterDriverId === 'all' ? 'selected' : ''}>All drivers</option>
+                    ${recoveryDrivers.map(d => `<option value="${d.id}" ${tsState.filterDriverId === d.id ? 'selected' : ''}>${escapeHtml(d.name)}</option>`).join('')}
+                </select>
+            </div>
+            <div class="ts-filter">
+                <label for="tsFilterStatus">Status</label>
+                <select id="tsFilterStatus">
+                    <option value="all" ${tsState.filterStatus === 'all' ? 'selected' : ''}>All statuses</option>
+                    <option value="draft" ${tsState.filterStatus === 'draft' ? 'selected' : ''}>Draft</option>
+                    <option value="submitted" ${tsState.filterStatus === 'submitted' ? 'selected' : ''}>Submitted</option>
+                    <option value="sent" ${tsState.filterStatus === 'sent' ? 'selected' : ''}>Sent</option>
+                </select>
+            </div>
+            <div class="ts-filter">
+                <label for="tsFilterFrom">Submitted from</label>
+                <input type="date" id="tsFilterFrom" value="${tsState.filterFrom}" />
+            </div>
+            <div class="ts-filter">
+                <label for="tsFilterTo">Submitted to</label>
+                <input type="date" id="tsFilterTo" value="${tsState.filterTo}" />
+            </div>
+            <div class="ts-filter" style="flex: 0; min-width: auto;">
+                <label>&nbsp;</label>
+                <button class="btn btn-secondary" id="tsClearFilters" type="button" style="padding: 7px 12px;">Clear</button>
+            </div>
+        </div>
+
+        ${renderBulkBar()}
+
+        <div class="ts-list" id="tsListContainer">${renderListBody()}</div>
+    `;
+
+    // Wire events for this render
+    document.getElementById('tsCloseBtn').addEventListener('click', closeTimesheetsDrawer);
+    container.querySelectorAll('.ts-tab').forEach(t => {
+        t.addEventListener('click', () => {
+            tsState.view = t.dataset.tab;
+            tsState.selectedIds.clear();
+            renderTimesheetsDrawer();
+        });
+    });
+    document.getElementById('tsFilterDriver').addEventListener('change', (e) => {
+        tsState.filterDriverId = e.target.value;
+        fetchAdminTimesheets();
+    });
+    document.getElementById('tsFilterStatus').addEventListener('change', (e) => {
+        tsState.filterStatus = e.target.value;
+        fetchAdminTimesheets();
+    });
+    document.getElementById('tsFilterFrom').addEventListener('change', (e) => {
+        tsState.filterFrom = e.target.value;
+        fetchAdminTimesheets();
+    });
+    document.getElementById('tsFilterTo').addEventListener('change', (e) => {
+        tsState.filterTo = e.target.value;
+        fetchAdminTimesheets();
+    });
+    document.getElementById('tsClearFilters').addEventListener('click', () => {
+        tsState.filterDriverId = 'all';
+        tsState.filterStatus = 'all';
+        tsState.filterFrom = '';
+        tsState.filterTo = '';
+        fetchAdminTimesheets();
+    });
+    wireListEvents();
+    wireBulkBarEvents();
+}
+
+function renderBulkBar() {
+    const count = tsState.selectedIds.size;
+    if (count === 0) return '<div></div>';  // placeholder so layout doesn't jump
+    // Calculate totals for the selected sheets
+    const selected = tsState.sheets.filter(s => tsState.selectedIds.has(s.id));
+    const totalJobs = selected.reduce((sum, s) => sum + (s.jobs || []).length, 0);
+    const totalHours = selected.reduce((sum, s) => sum + (s.jobs || []).reduce((h, j) => h + (j.hours || 0), 0), 0);
+    return `
+        <div class="ts-bulk">
+            <div>
+                <span class="ts-bulk-count">${count} sheet${count !== 1 ? 's' : ''} selected</span>
+                · ${totalJobs} job${totalJobs !== 1 ? 's' : ''}
+                · ${totalHours.toFixed(2)}h total
+            </div>
+            <div class="ts-bulk-actions">
+                <button class="btn btn-secondary" id="tsBulkClear" type="button">Clear</button>
+                <button class="btn btn-primary" id="tsBulkEmail" type="button">Email selected</button>
+            </div>
+        </div>
+    `;
+}
+
+function wireBulkBarEvents() {
+    const clearBtn = document.getElementById('tsBulkClear');
+    const emailBtn = document.getElementById('tsBulkEmail');
+    if (clearBtn) clearBtn.addEventListener('click', () => {
+        tsState.selectedIds.clear();
+        renderTimesheetsDrawer();
+    });
+    if (emailBtn) emailBtn.addEventListener('click', openEmailModal);
+}
+
+function renderListBody() {
+    const visible = getVisibleSheets();
+    if (!visible.length) {
+        return `
+            <div class="ts-list-empty">
+                <div class="ts-list-empty-title">No timesheets ${tsState.view === 'pending' ? 'pending' : 'match these filters'}</div>
+                <div class="ts-list-empty-sub">${tsState.view === 'pending'
+                    ? 'Submitted sheets from recovery drivers will appear here.'
+                    : 'Try clearing the filters above.'}</div>
+            </div>
+        `;
+    }
+    return visible.map(sheet => renderListRow(sheet)).join('');
+}
+
+function renderListRow(sheet) {
+    const driver = state.employees.find(e => e.id === sheet.employeeId);
+    const driverName = driver ? driver.name : '(unknown driver)';
+    const jobs = sheet.jobs || [];
+    const totalHours = jobs.reduce((s, j) => s + (j.hours || 0), 0);
+    const submittedLabel = sheet.submittedAt ? fmtDayMonth(sheet.submittedAt) : '—';
+    const isSelected = tsState.selectedIds.has(sheet.id);
+    return `
+        <div class="ts-row ${isSelected ? 'selected' : ''}" data-id="${sheet.id}">
+            <div class="ts-row-check">
+                <input type="checkbox" data-cb="${sheet.id}" ${isSelected ? 'checked' : ''} />
+            </div>
+            <div class="ts-row-driver">
+                <div class="ts-row-driver-name">${escapeHtml(driverName)}</div>
+                <div class="ts-row-driver-sub">Created ${fmtDayMonth(sheet.createdAt)}</div>
+            </div>
+            <div class="ts-row-meta">
+                <strong>${jobs.length}</strong> job${jobs.length !== 1 ? 's' : ''}
+            </div>
+            <div class="ts-row-meta">
+                <strong>${totalHours.toFixed(2)}</strong>h
+            </div>
+            <div class="ts-row-meta">${submittedLabel}</div>
+            <div>
+                <span class="ts-pill" data-status="${sheet.status}">${sheet.status.toUpperCase()}</span>
+            </div>
+            <div class="ts-row-actions">
+                <button class="btn btn-secondary" data-open="${sheet.id}" type="button">View</button>
+            </div>
+        </div>
+    `;
+}
+
+function wireListEvents() {
+    document.querySelectorAll('[data-cb]').forEach(cb => {
+        cb.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = cb.dataset.cb;
+            if (cb.checked) tsState.selectedIds.add(id);
+            else             tsState.selectedIds.delete(id);
+            renderTimesheetsDrawer();
+        });
+    });
+    document.querySelectorAll('[data-open]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            tsState.currentSheetId = btn.dataset.open;
+            renderTimesheetsDrawer();
+        });
+    });
+    // Whole row also opens detail (except when clicking the checkbox)
+    document.querySelectorAll('.ts-row').forEach(row => {
+        row.addEventListener('click', (e) => {
+            if (e.target.closest('input,button')) return;
+            tsState.currentSheetId = row.dataset.id;
+            renderTimesheetsDrawer();
+        });
+    });
+}
+
+// ─── Render: detail mode ──────────────────────────────────────────────
+
+function renderTimesheetDetail(container) {
+    const sheet = tsState.sheets.find(s => s.id === tsState.currentSheetId);
+    if (!sheet) {
+        // Fallback — sheet was deleted or never loaded; go back to list
+        tsState.currentSheetId = null;
+        renderTimesheetsDrawer();
+        return;
+    }
+    const driver = state.employees.find(e => e.id === sheet.employeeId);
+    const driverName = driver ? driver.name : '(unknown driver)';
+    const jobs = sheet.jobs || [];
+    const totalHours = jobs.reduce((s, j) => s + (j.hours || 0), 0);
+
+    container.innerHTML = `
+        <div class="ts-detail-head">
+            <button class="ts-detail-back" id="tsDetailBack" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                Back to list
+            </button>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
+                <div>
+                    <div class="ts-detail-title">${escapeHtml(driverName)}</div>
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">
+                        Sheet created ${fmtFullDate(sheet.createdAt)}
+                    </div>
+                </div>
+                <span class="ts-pill" data-status="${sheet.status}">${sheet.status.toUpperCase()}</span>
+            </div>
+            <div class="ts-detail-meta">
+                <span><strong>${jobs.length}</strong> job${jobs.length !== 1 ? 's' : ''}</span>
+                <span><strong>${totalHours.toFixed(2)}</strong>h total</span>
+                ${sheet.submittedAt ? `<span>Submitted <strong>${fmtFullDate(sheet.submittedAt)}</strong></span>` : ''}
+                ${sheet.sentAt ? `<span>Sent <strong>${fmtFullDate(sheet.sentAt)}</strong>${sheet.sentCount > 1 ? ` (×${sheet.sentCount})` : ''}</span>` : ''}
+            </div>
+            <div class="ts-detail-actions">
+                ${sheet.status !== 'draft' ? `<button class="btn btn-secondary" id="tsRevert" type="button">Send back to draft</button>` : ''}
+                ${sheet.status === 'submitted' || sheet.status === 'sent'
+                    ? `<button class="btn btn-primary" id="tsEmailThis" type="button">Email this sheet${sheet.sentAt ? ' again' : ''}</button>`
+                    : ''}
+                <button class="btn btn-danger" id="tsDeleteSheet" type="button">Delete sheet</button>
+            </div>
+        </div>
+
+        <div class="ts-jobs-section" style="flex: 1; overflow-y: auto;">
+            <div class="ts-jobs-section-head">
+                <h3>Jobs</h3>
+            </div>
+            ${jobs.length === 0
+                ? `<div style="text-align: center; padding: 30px; color: var(--text-tertiary); font-size: 13px;">No jobs on this sheet.</div>`
+                : jobs.map(job => renderJobCard(job)).join('')
+            }
+        </div>
+    `;
+
+    document.getElementById('tsDetailBack').addEventListener('click', () => {
+        tsState.currentSheetId = null;
+        renderTimesheetsDrawer();
+    });
+    const revertBtn = document.getElementById('tsRevert');
+    if (revertBtn) revertBtn.addEventListener('click', () => revertSheetToDraft(sheet.id));
+    const emailThisBtn = document.getElementById('tsEmailThis');
+    if (emailThisBtn) emailThisBtn.addEventListener('click', () => {
+        // Email just this sheet — set selection to only this one, open modal
+        tsState.selectedIds.clear();
+        tsState.selectedIds.add(sheet.id);
+        openEmailModal();
+    });
+    document.getElementById('tsDeleteSheet').addEventListener('click', () => deleteSheet(sheet.id));
+
+    // Wire job-level actions
+    container.querySelectorAll('[data-edit-job]').forEach(btn => {
+        btn.addEventListener('click', () => openJobEditModal(sheet.id, btn.dataset.editJob));
+    });
+    container.querySelectorAll('[data-del-job]').forEach(btn => {
+        btn.addEventListener('click', () => deleteJob(sheet.id, btn.dataset.delJob));
+    });
+}
+
+function renderJobCard(job) {
+    return `
+        <div class="ts-job-card">
+            <div class="ts-job-main">
+                <div class="ts-job-num-row">${escapeHtml(job.jobNumber)}</div>
+                <div class="ts-job-customer">${escapeHtml(job.customerName)}${job.registration ? ' · ' + escapeHtml(job.registration) : ''}</div>
+                ${job.description ? `<div class="ts-job-desc">${escapeHtml(job.description)}</div>` : ''}
+            </div>
+            <div class="ts-job-side">
+                <strong>${fmtDayMonth(job.jobDate)}</strong>
+                ${job.hours.toFixed(2)}h
+            </div>
+            <div class="ts-job-actions">
+                <button class="btn btn-secondary" data-edit-job="${job.id}" type="button">Edit</button>
+                <button class="btn btn-danger" data-del-job="${job.id}" type="button">×</button>
+            </div>
+        </div>
+    `;
+}
+
+// ─── Sheet-level actions ──────────────────────────────────────────────
+
+async function revertSheetToDraft(sheetId) {
+    if (!confirm('Send this sheet back to draft? The driver will be able to edit it again.')) return;
+    try {
+        await auth.api('PATCH', `/timesheets/${sheetId}`, { status: 'draft' });
+        await fetchAdminTimesheets();
+    } catch (err) {
+        alert('Failed to revert: ' + err.message);
+    }
+}
+
+async function deleteSheet(sheetId) {
+    const sheet = tsState.sheets.find(s => s.id === sheetId);
+    const jobCount = (sheet?.jobs || []).length;
+    const msg = `Delete this sheet and all ${jobCount} job${jobCount !== 1 ? 's' : ''}? This cannot be undone from the app (audit trail preserved).`;
+    if (!confirm(msg)) return;
+    try {
+        await auth.api('DELETE', `/timesheets/${sheetId}`);
+        tsState.currentSheetId = null;
+        await fetchAdminTimesheets();
+    } catch (err) {
+        alert('Failed to delete: ' + err.message);
+    }
+}
+
+// ─── Job-level actions ────────────────────────────────────────────────
+
+async function deleteJob(sheetId, jobId) {
+    if (!confirm('Delete this job?')) return;
+    try {
+        await auth.api('DELETE', `/timesheets/${sheetId}/jobs/${jobId}`);
+        await fetchAdminTimesheets();
+    } catch (err) {
+        alert('Failed to delete job: ' + err.message);
+    }
+}
+
+function openJobEditModal(sheetId, jobId) {
+    const sheet = tsState.sheets.find(s => s.id === sheetId);
+    const job = (sheet?.jobs || []).find(j => j.id === jobId);
+    if (!job) return;
+
+    // Reuse the existing modal-overlay pattern by injecting our own modal
+    // markup into a temporary overlay. Cleaner than adding a permanent
+    // modal to the DOM.
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay open';
+    overlay.id = 'tsJobEditOverlay';
+    overlay.innerHTML = `
+        <div class="modal" style="width: min(560px, 100%);">
+            <div class="modal-header">
+                <div class="modal-title">Edit job</div>
+                <button class="btn btn-icon" id="tsJobEditClose" type="button" aria-label="Close">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="job-edit-fields">
+                    <div>
+                        <label>Job number *</label>
+                        <input type="text" id="tsJobNumber" value="${escapeHtml(job.jobNumber)}" />
+                    </div>
+                    <div>
+                        <label>Customer name *</label>
+                        <input type="text" id="tsJobCustomer" value="${escapeHtml(job.customerName)}" />
+                    </div>
+                    <div>
+                        <label>Date *</label>
+                        <input type="date" id="tsJobDate" value="${job.jobDate}" />
+                    </div>
+                    <div>
+                        <label>Hours *</label>
+                        <input type="number" id="tsJobHours" step="0.25" min="0" max="24" value="${job.hours}" />
+                    </div>
+                    <div class="field-full">
+                        <label>Registration</label>
+                        <input type="text" id="tsJobReg" value="${escapeHtml(job.registration || '')}" />
+                    </div>
+                    <div class="field-full">
+                        <label>Description</label>
+                        <textarea id="tsJobDesc" rows="3">${escapeHtml(job.description || '')}</textarea>
+                    </div>
+                </div>
+                <div class="modal-error" id="tsJobEditError" hidden></div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="tsJobEditCancel" type="button">Cancel</button>
+                <button class="btn btn-primary" id="tsJobEditSave" type="button">Save changes</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    document.getElementById('tsJobEditClose').addEventListener('click', close);
+    document.getElementById('tsJobEditCancel').addEventListener('click', close);
+    document.getElementById('tsJobEditSave').addEventListener('click', async () => {
+        const payload = {
+            jobNumber:    document.getElementById('tsJobNumber').value.trim(),
+            customerName: document.getElementById('tsJobCustomer').value.trim(),
+            jobDate:      document.getElementById('tsJobDate').value,
+            hours:        Number(document.getElementById('tsJobHours').value),
+            registration: document.getElementById('tsJobReg').value.trim() || null,
+            description:  document.getElementById('tsJobDesc').value.trim() || null,
+        };
+        try {
+            await auth.api('PATCH', `/timesheets/${sheetId}/jobs/${jobId}`, payload);
+            close();
+            await fetchAdminTimesheets();
+        } catch (err) {
+            const errBox = document.getElementById('tsJobEditError');
+            errBox.hidden = false;
+            errBox.textContent = err.message;
+        }
+    });
+}
+
+// ─── Email & XLSX export ──────────────────────────────────────────────
+
+function openEmailModal() {
+    if (tsState.selectedIds.size === 0) {
+        alert('Select at least one sheet first.');
+        return;
+    }
+    if (typeof XLSX === 'undefined') {
+        alert('Spreadsheet library is still loading. Please try again in a few seconds.');
+        return;
+    }
+
+    // Initialise recipients to the default list each time
+    tsState.emailRecipients = [...TS_DEFAULT_RECIPIENTS];
+
+    const selectedSheets = tsState.sheets.filter(s => tsState.selectedIds.has(s.id));
+    const driverNames = [...new Set(selectedSheets.map(s => {
+        const driver = state.employees.find(e => e.id === s.employeeId);
+        return driver ? driver.name : '?';
+    }))];
+    const totalJobs = selectedSheets.reduce((sum, s) => sum + (s.jobs || []).length, 0);
+    const totalHours = selectedSheets.reduce((sum, s) =>
+        sum + (s.jobs || []).reduce((h, j) => h + (j.hours || 0), 0), 0);
+
+    document.getElementById('emailSummary').innerHTML = `
+        <div>
+            <strong>${selectedSheets.length}</strong> sheet${selectedSheets.length !== 1 ? 's' : ''}
+            from <strong>${escapeHtml(driverNames.join(', '))}</strong>
+        </div>
+        <div class="email-summary-stats">
+            <span><strong>${totalJobs}</strong> jobs</span>
+            <span><strong>${totalHours.toFixed(2)}</strong>h total</span>
+        </div>
+    `;
+
+    // Default subject
+    const dateLabel = selectedSheets.length === 1
+        ? fmtDayMonth(selectedSheets[0].submittedAt || selectedSheets[0].createdAt)
+        : 'multiple dates';
+    document.getElementById('emailSubject').value =
+        `Recovery timesheets · ${dateLabel} · ${totalJobs} job${totalJobs !== 1 ? 's' : ''} · ${totalHours.toFixed(2)}h`;
+
+    renderRecipientChips();
+
+    document.getElementById('emailError').hidden = true;
+    document.getElementById('emailSendBtn').disabled = false;
+    document.getElementById('emailSendBtn').textContent = 'Send email';
+
+    const overlay = document.getElementById('emailModalOverlay');
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+}
+
+function closeEmailModal() {
+    const overlay = document.getElementById('emailModalOverlay');
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+}
+
+function renderRecipientChips() {
+    const container = document.getElementById('recipientChips');
+    container.innerHTML = tsState.emailRecipients.map((r, i) => `
+        <span class="recipient-chip">
+            ${escapeHtml(r)}
+            <button type="button" data-rm="${i}" aria-label="Remove ${escapeHtml(r)}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </span>
+    `).join('');
+    container.querySelectorAll('[data-rm]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            tsState.emailRecipients.splice(Number(btn.dataset.rm), 1);
+            renderRecipientChips();
+        });
+    });
+}
+
+function addRecipient() {
+    const input = document.getElementById('emailRecipientInput');
+    const v = input.value.trim();
+    if (!v) return;
+    if (!v.includes('@')) { alert('Enter a valid email address.'); return; }
+    if (tsState.emailRecipients.includes(v)) { input.value = ''; return; }
+    tsState.emailRecipients.push(v);
+    input.value = '';
+    renderRecipientChips();
+}
+
+// Build the XLSX workbook from selected sheets.
+// Structure:
+//   • "Summary" tab — every job flattened, one row per job, with totals
+//   • One tab per sheet — paper-style layout, driver name + jobs + total
+// Returns base64 string (no data URL prefix) ready for Resend.
+function buildTimesheetsWorkbook(selectedSheets) {
+    const wb = XLSX.utils.book_new();
+
+    // ─── Summary tab ─────────────────────────────────────────────
+    const summaryRows = [
+        ['Recovery Timesheets Export'],
+        [`Generated: ${new Date().toLocaleString('en-GB')}`],
+        [],
+        ['Driver', 'Sheet Created', 'Submitted', 'Job Number', 'Customer', 'Description', 'Registration', 'Job Date', 'Hours'],
+    ];
+    let grandTotal = 0;
+    const perDriver = {};
+    for (const sheet of selectedSheets) {
+        const driver = state.employees.find(e => e.id === sheet.employeeId);
+        const driverName = driver ? driver.name : '?';
+        const created = sheet.createdAt ? new Date(sheet.createdAt).toLocaleDateString('en-GB') : '';
+        const submitted = sheet.submittedAt ? new Date(sheet.submittedAt).toLocaleDateString('en-GB') : '';
+        for (const job of (sheet.jobs || [])) {
+            summaryRows.push([
+                driverName,
+                created,
+                submitted,
+                job.jobNumber,
+                job.customerName,
+                job.description || '',
+                job.registration || '',
+                new Date(job.jobDate + 'T12:00:00Z').toLocaleDateString('en-GB'),
+                job.hours,
+            ]);
+            grandTotal += job.hours;
+            perDriver[driverName] = (perDriver[driverName] || 0) + job.hours;
+        }
+    }
+    summaryRows.push([]);
+    summaryRows.push(['Totals by driver:']);
+    for (const [name, hours] of Object.entries(perDriver)) {
+        summaryRows.push([name, '', '', '', '', '', '', '', hours]);
+    }
+    summaryRows.push([]);
+    summaryRows.push(['Grand total', '', '', '', '', '', '', '', grandTotal]);
+
+    const summaryWs = XLSX.utils.aoa_to_sheet(summaryRows);
+    // Column widths for legibility in Excel
+    summaryWs['!cols'] = [
+        { wch: 18 }, // Driver
+        { wch: 14 }, // Sheet Created
+        { wch: 14 }, // Submitted
+        { wch: 14 }, // Job Number
+        { wch: 22 }, // Customer
+        { wch: 36 }, // Description
+        { wch: 12 }, // Registration
+        { wch: 14 }, // Job Date
+        { wch: 8 },  // Hours
+    ];
+    XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+
+    // ─── One tab per sheet ──────────────────────────────────────
+    // Excel tab names are limited to 31 chars and can't contain certain
+    // characters. We build a clean name from driver name + date.
+    const usedNames = new Set();
+    for (const sheet of selectedSheets) {
+        const driver = state.employees.find(e => e.id === sheet.employeeId);
+        const driverName = driver ? driver.name : 'Unknown';
+        const dateLabel = sheet.submittedAt ? fmtDayMonth(sheet.submittedAt) : fmtDayMonth(sheet.createdAt);
+        let tabName = `${driverName.split(' ')[0]} ${dateLabel}`
+            .replace(/[\\\/\?\*\[\]:]/g, '')
+            .slice(0, 31);
+        // De-duplicate if same driver has multiple sheets on the same day
+        let suffix = 2;
+        let uniqueName = tabName;
+        while (usedNames.has(uniqueName)) {
+            uniqueName = (tabName.slice(0, 28) + ' (' + suffix + ')').slice(0, 31);
+            suffix++;
+        }
+        usedNames.add(uniqueName);
+
+        const rows = [
+            ['Recovery Timesheet'],
+            [],
+            ['Driver:',     driverName],
+            ['Created:',    sheet.createdAt ? new Date(sheet.createdAt).toLocaleDateString('en-GB') : ''],
+            ['Submitted:',  sheet.submittedAt ? new Date(sheet.submittedAt).toLocaleDateString('en-GB') : ''],
+            ['Status:',     sheet.status.toUpperCase()],
+            [],
+            ['Job Number', 'Customer', 'Description', 'Registration', 'Date', 'Hours'],
+        ];
+        let sheetTotal = 0;
+        for (const job of (sheet.jobs || [])) {
+            rows.push([
+                job.jobNumber,
+                job.customerName,
+                job.description || '',
+                job.registration || '',
+                new Date(job.jobDate + 'T12:00:00Z').toLocaleDateString('en-GB'),
+                job.hours,
+            ]);
+            sheetTotal += job.hours;
+        }
+        rows.push([]);
+        rows.push(['', '', '', '', 'Total:', sheetTotal]);
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws['!cols'] = [
+            { wch: 14 }, { wch: 22 }, { wch: 36 }, { wch: 12 }, { wch: 14 }, { wch: 8 }
+        ];
+        XLSX.utils.book_append_sheet(wb, ws, uniqueName);
+    }
+
+    // Write to base64. SheetJS writes binary string; we convert via btoa.
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+    let binary = '';
+    for (let i = 0; i < wbout.length; i++) {
+        binary += String.fromCharCode(wbout.charCodeAt(i) & 0xff);
+    }
+    return btoa(binary);
+}
+
+async function submitEmail() {
+    if (!tsState.emailRecipients.length) { alert('Add at least one recipient.'); return; }
+    if (typeof XLSX === 'undefined') { alert('Spreadsheet library not loaded yet.'); return; }
+
+    const sendBtn = document.getElementById('emailSendBtn');
+    const errBox = document.getElementById('emailError');
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Building file…';
+    errBox.hidden = true;
+
+    try {
+        const selectedSheets = tsState.sheets.filter(s => tsState.selectedIds.has(s.id));
+        if (!selectedSheets.length) throw new Error('No sheets selected');
+
+        const xlsxBase64 = buildTimesheetsWorkbook(selectedSheets);
+        const subject = document.getElementById('emailSubject').value.trim() || 'Recovery timesheets';
+        const filename = `recovery-timesheets-${new Date().toISOString().slice(0, 10)}.xlsx`;
+        const htmlBody = buildEmailHtml(selectedSheets);
+
+        sendBtn.textContent = 'Sending…';
+        await auth.api('POST', '/timesheets/email', {
+            sheetIds: selectedSheets.map(s => s.id),
+            recipients: tsState.emailRecipients,
+            subject,
+            htmlBody,
+            xlsxBase64,
+            xlsxFilename: filename,
+        });
+
+        closeEmailModal();
+        tsState.selectedIds.clear();
+        await fetchAdminTimesheets();
+        alert(`Email sent to ${tsState.emailRecipients.length} recipient${tsState.emailRecipients.length !== 1 ? 's' : ''}.`);
+    } catch (err) {
+        console.error('Email send failed:', err);
+        errBox.hidden = false;
+        errBox.textContent = err.message;
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send email';
+    }
+}
+
+function buildEmailHtml(selectedSheets) {
+    const totalJobs = selectedSheets.reduce((sum, s) => sum + (s.jobs || []).length, 0);
+    const totalHours = selectedSheets.reduce((sum, s) =>
+        sum + (s.jobs || []).reduce((h, j) => h + (j.hours || 0), 0), 0);
+    const perDriver = {};
+    for (const sheet of selectedSheets) {
+        const driver = state.employees.find(e => e.id === sheet.employeeId);
+        const name = driver ? driver.name : 'Unknown';
+        if (!perDriver[name]) perDriver[name] = { sheets: 0, jobs: 0, hours: 0 };
+        perDriver[name].sheets++;
+        perDriver[name].jobs += (sheet.jobs || []).length;
+        perDriver[name].hours += (sheet.jobs || []).reduce((h, j) => h + (j.hours || 0), 0);
+    }
+    // Use the same defensive table-based styling as the morning report
+    // (Apple Mail strips <style> blocks; inline + table tags survive).
+    const rows = Object.entries(perDriver).map(([name, t]) =>
+        `<tr>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e4e4e7; color: #18181b;">${escapeHtml(name)}</td>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e4e4e7; color: #71717a; text-align: right;">${t.sheets}</td>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e4e4e7; color: #71717a; text-align: right;">${t.jobs}</td>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e4e4e7; color: #18181b; text-align: right; font-weight: 600;">${t.hours.toFixed(2)}h</td>
+         </tr>`).join('');
+    return `
+        <table width="100%" cellpadding="0" cellspacing="0" style="background: #fafafa; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif;">
+            <tr><td>
+                <table width="600" cellpadding="0" cellspacing="0" align="center" style="background: #ffffff; border: 1px solid #e4e4e7; border-radius: 8px; max-width: 600px;">
+                    <tr><td style="padding: 22px 24px 14px;">
+                        <div style="font-size: 18px; font-weight: 600; color: #18181b; letter-spacing: -0.01em;">Recovery timesheets</div>
+                        <div style="font-size: 13px; color: #71717a; margin-top: 4px;">
+                            ${selectedSheets.length} sheet${selectedSheets.length !== 1 ? 's' : ''} ·
+                            ${totalJobs} job${totalJobs !== 1 ? 's' : ''} ·
+                            ${totalHours.toFixed(2)}h total
+                        </div>
+                    </td></tr>
+                    <tr><td style="padding: 0 24px 18px;">
+                        <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px; border: 1px solid #e4e4e7; border-radius: 6px; overflow: hidden;">
+                            <tr style="background: #f4f4f5;">
+                                <td style="padding: 8px 12px; color: #52525b; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em;">Driver</td>
+                                <td style="padding: 8px 12px; color: #52525b; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em; text-align: right;">Sheets</td>
+                                <td style="padding: 8px 12px; color: #52525b; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em; text-align: right;">Jobs</td>
+                                <td style="padding: 8px 12px; color: #52525b; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em; text-align: right;">Hours</td>
+                            </tr>
+                            ${rows}
+                        </table>
+                    </td></tr>
+                    <tr><td style="padding: 0 24px 22px; font-size: 12px; color: #71717a;">
+                        Full details attached as XLSX. Summary tab shows all jobs flattened; one tab per timesheet for paper-style review.
+                    </td></tr>
+                </table>
+            </td></tr>
+        </table>
+    `;
+}
+
+// ─── Formatting helpers (timesheets-local) ────────────────────────────
+
+function fmtDayMonth(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+function fmtFullDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// Cheap HTML escape — same as in the mobile app
+function escapeHtml(s) {
+    return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// ─── One-time event bindings for the email modal ──────────────────────
+// (called from init at the bottom of the script)
+function wireTimesheetEmailModal() {
+    document.getElementById('emailModalClose').addEventListener('click', closeEmailModal);
+    document.getElementById('emailCancelBtn').addEventListener('click', closeEmailModal);
+    document.getElementById('emailSendBtn').addEventListener('click', submitEmail);
+    document.getElementById('emailRecipientAdd').addEventListener('click', addRecipient);
+    document.getElementById('emailRecipientInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); addRecipient(); }
+    });
+    // Close on overlay click
+    document.getElementById('emailModalOverlay').addEventListener('click', (e) => {
+        if (e.target.id === 'emailModalOverlay') closeEmailModal();
+    });
+    // Close on overlay click for the drawer too
+    document.getElementById('tsDrawerOverlay').addEventListener('click', closeTimesheetsDrawer);
 }
 
 document.addEventListener('DOMContentLoaded', init);
