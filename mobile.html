@@ -1308,11 +1308,26 @@ body {
     cursor: pointer;
 }
 
-/* Build version corner stamp */
+/* Build version corner stamp.
+ *
+ * Anchored to the bottom-right of the *visual* viewport. Works in both
+ * iOS Safari standalone PWA mode AND when running as a web app inside
+ * Safari (where the URL/toolbar takes up bottom space).
+ *
+ * Notes on the math:
+ *   • `bottom: 0` pins to the actual viewport bottom.
+ *   • The padding adds the safe-area inset, which iOS reports as the
+ *     home-indicator height in standalone PWA mode, and the URL-bar +
+ *     home-indicator height when running in regular Safari. This means
+ *     the label always sits just above whatever system UI is below.
+ *   • iOS Safari ≤15 had bugs with `position: fixed` inside elements
+ *     with certain flex/overflow settings. Keeping this as a direct
+ *     child of <body> sidesteps those entirely. */
 .build-version {
     position: fixed;
-    bottom: max(8px, env(safe-area-inset-bottom, 8px));
-    right: 10px;
+    bottom: 0;
+    right: 0;
+    padding: 0 10px max(8px, env(safe-area-inset-bottom, 8px)) 10px;
     font-family: var(--font-mono);
     font-size: 9px;
     color: var(--text-tertiary);
@@ -1380,8 +1395,6 @@ body {
             </button>
         </div>
     </div>
-
-    <div class="build-version" id="buildVersion"></div>
 </main>
 
 <!-- ─── LOCATING SCREEN ──────────────────────── -->
@@ -1735,6 +1748,11 @@ body {
 <!-- ─── TOAST CONTAINER ───────────────────────── -->
 <div class="toast-container" id="toastContainer"></div>
 
+<!-- Build version stamp — direct child of <body> so it stays visible on
+     every screen and is anchored to the visual viewport bottom regardless
+     of which `<main class="screen">` is currently shown. -->
+<div class="build-version" id="buildVersion"></div>
+
 <script>
 // ════════════════════════════════════════════════════════════════════════
 // CONFIG
@@ -1762,7 +1780,7 @@ let GEOFENCE_RADIUS_M = 200;
 const GEO_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 };
 
 // Build version — bumped on each deploy. Visible bottom-right corner.
-const BUILD_VERSION = '2026-05-13-mobile-v12-settings';
+const BUILD_VERSION = '2026-05-13-mobile-v13-buildstamp';
 
 // ════════════════════════════════════════════════════════════════════════
 // STATE
