@@ -1310,31 +1310,23 @@ body {
 
 /* Build version corner stamp.
  *
- * Anchored to the bottom-right of the *visual* viewport. Works in both
- * iOS Safari standalone PWA mode AND when running as a web app inside
- * Safari (where the URL/toolbar takes up bottom space).
- *
- * Notes on the math:
- *   • `bottom: 0` pins to the actual viewport bottom.
- *   • The padding adds the safe-area inset, which iOS reports as the
- *     home-indicator height in standalone PWA mode, and the URL-bar +
- *     home-indicator height when running in regular Safari. This means
- *     the label always sits just above whatever system UI is below.
- *   • iOS Safari ≤15 had bugs with `position: fixed` inside elements
- *     with certain flex/overflow settings. Keeping this as a direct
- *     child of <body> sidesteps those entirely. */
+ * Sits at the bottom-right of the PIN screen ONLY. Uses `margin-top: auto`
+ * (since `.screen` is a flex column) to push itself to the bottom of the
+ * available space. No `position: fixed` — that was anchoring relative to
+ * the visual viewport in unpredictable ways across PWA vs in-browser modes,
+ * which made the stamp float mid-air. With `margin-top: auto`, it sits at
+ * the bottom of the .screen container, and .screen already accounts for the
+ * safe-area-inset-bottom via its own padding. */
 .build-version {
-    position: fixed;
-    bottom: 0;
-    right: 0;
-    padding: 0 10px max(8px, env(safe-area-inset-bottom, 8px)) 10px;
+    margin-top: auto;
+    align-self: flex-end;
+    padding-top: 12px;
     font-family: var(--font-mono);
     font-size: 9px;
     color: var(--text-tertiary);
     opacity: 0.4;
     letter-spacing: 0.04em;
     pointer-events: none;
-    z-index: 2;
 }
 </style>
 </head>
@@ -1395,6 +1387,8 @@ body {
             </button>
         </div>
     </div>
+
+    <div class="build-version" id="buildVersion"></div>
 </main>
 
 <!-- ─── LOCATING SCREEN ──────────────────────── -->
@@ -1747,11 +1741,6 @@ body {
 
 <!-- ─── TOAST CONTAINER ───────────────────────── -->
 <div class="toast-container" id="toastContainer"></div>
-
-<!-- Build version stamp — direct child of <body> so it stays visible on
-     every screen and is anchored to the visual viewport bottom regardless
-     of which `<main class="screen">` is currently shown. -->
-<div class="build-version" id="buildVersion"></div>
 
 <script>
 // ════════════════════════════════════════════════════════════════════════
