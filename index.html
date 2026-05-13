@@ -2730,6 +2730,29 @@ kbd {
     <div id="tsDrawerContent"></div>
 </aside>
 
+<!-- CSV Export confirmation modal — shows the date range that will be
+     included and lets the admin cancel before the file builds. -->
+<div class="modal-overlay" id="csvConfirmOverlay" aria-hidden="true">
+    <div class="modal" id="csvConfirmModal" role="dialog" aria-modal="true" aria-labelledby="csvConfirmTitle">
+        <div class="modal-header">
+            <div class="modal-title" id="csvConfirmTitle">Download CSV</div>
+            <button class="btn btn-icon" id="csvConfirmClose" type="button" aria-label="Close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-info" id="csvConfirmRange"></div>
+            <div style="font-size: 12px; color: var(--text-tertiary); line-height: 1.5;">
+                Includes every employee across this range. Change the date filter in the top bar before exporting to widen or narrow the scope.
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn" id="csvConfirmCancel" type="button">Cancel</button>
+            <button class="btn btn-primary" id="csvConfirmDownload" type="button">Download CSV</button>
+        </div>
+    </div>
+</div>
+
 <!-- Export & email confirmation modal — opens from the bulk-actions bar
      when the admin clicks "Email selected". Lets them tweak recipients
      and subject before sending. -->
@@ -3729,6 +3752,27 @@ function renderDrawer() {
 // ════════════════════════════════════════════════════════════════════════
 // CSV EXPORT
 // ════════════════════════════════════════════════════════════════════════
+// Confirmation modal — shows the date range that will be exported and
+// requires explicit Confirm before generating the file. Prevents the
+// accidental "I tapped the menu and a CSV started downloading" case.
+function openCsvConfirm() {
+    const { startDate, endDate } = state.filters;
+    const days = daysBetween(startDate, endDate).length;
+    const rangeLabel = startDate === endDate
+        ? `<strong>${escapeHtml(fullDateLabel(startDate))}</strong> (1 day)`
+        : `<strong>${escapeHtml(fullDateLabel(startDate))}</strong> to <strong>${escapeHtml(fullDateLabel(endDate))}</strong> (${days} day${days !== 1 ? 's' : ''})`;
+    document.getElementById('csvConfirmRange').innerHTML =
+        `This will generate a CSV covering ${rangeLabel}.`;
+    const overlay = document.getElementById('csvConfirmOverlay');
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+}
+function closeCsvConfirm() {
+    const overlay = document.getElementById('csvConfirmOverlay');
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+}
+
 function exportCSV(filterEmpId = null) {
     const todayStr = localDateStr();
     const { startDate, endDate } = state.filters;
@@ -5139,7 +5183,7 @@ function bindMenuDropdown() {
             const action = item.dataset.action;
             closeMenu();
             if (action === 'export') {
-                exportCSV();
+                openCsvConfirm();
             } else if (action === 'manage') {
                 openEmployeesDrawer();
             } else if (action === 'settings') {
@@ -6281,6 +6325,18 @@ function wireTimesheetEmailModal() {
     document.getElementById('tsDrawerOverlay').addEventListener('click', closeTimesheetsDrawer);
     // Settings drawer close-on-overlay-click
     document.getElementById('settingsDrawerOverlay').addEventListener('click', closeSettingsDrawer);
+
+    // CSV confirmation modal — open is triggered from the kebab menu;
+    // here we wire close (×, Cancel, overlay) and the Download button.
+    document.getElementById('csvConfirmClose').addEventListener('click', closeCsvConfirm);
+    document.getElementById('csvConfirmCancel').addEventListener('click', closeCsvConfirm);
+    document.getElementById('csvConfirmDownload').addEventListener('click', () => {
+        closeCsvConfirm();
+        exportCSV();
+    });
+    document.getElementById('csvConfirmOverlay').addEventListener('click', (e) => {
+        if (e.target.id === 'csvConfirmOverlay') closeCsvConfirm();
+    });
 }
 
 document.addEventListener('DOMContentLoaded', init);
