@@ -79,6 +79,13 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
+/* The [hidden] HTML attribute must always hide an element. By default the
+   browser sets display:none on [hidden] elements, but any CSS rule that
+   sets display (e.g. display:flex on a flex container) wins because the
+   user agent stylesheet has lowest specificity. !important keeps the
+   attribute behaving as expected across all our screens and modals. */
+[hidden] { display: none !important; }
+
 /* ────────────────────────────────────────────── */
 /* SCREEN CONTAINER                                */
 /* ────────────────────────────────────────────── */
@@ -1692,7 +1699,7 @@ const GEOFENCE_RADIUS_M = 200;
 const GEO_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 };
 
 // Build version — bumped on each deploy. Visible bottom-right corner.
-const BUILD_VERSION = '2026-05-12-mobile-v7-sheets';
+const BUILD_VERSION = '2026-05-12-mobile-v8-hidden-fix';
 
 // ════════════════════════════════════════════════════════════════════════
 // STATE
