@@ -1030,6 +1030,58 @@ body {
     font-family: var(--font-mono);
 }
 
+/* Compact action row on the sheet detail screen.
+   Two pill buttons side-by-side: Add (outlined, quiet) + Submit (green,
+   the positive completion action). Submit is disabled-grey when there
+   are zero jobs so the visual hierarchy guides the driver: add a job
+   first, then submit when ready. */
+.sheet-actions {
+    display: flex;
+    gap: 10px;
+    margin: 14px 0 8px;
+}
+.sheet-action {
+    flex: 1;
+    padding: 11px 14px;
+    border-radius: 99px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.12s ease, transform 0.12s ease, border-color 0.12s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+.sheet-action:active { transform: scale(0.97); }
+.sheet-action svg {
+    width: 16px;
+    height: 16px;
+}
+/* Add Job — outlined "secondary" pill. Quiet but accessible. */
+.sheet-action.add {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+}
+.sheet-action.add:active { background: var(--bg-muted); }
+/* Submit — filled green pill (positive completion). Greys out when no jobs. */
+.sheet-action.submit {
+    background: var(--green);
+    color: #fff;
+    border: 1px solid var(--green);
+}
+.sheet-action.submit:active { background: #15803d; }
+.sheet-action.submit:disabled {
+    background: var(--bg-muted);
+    color: var(--text-tertiary);
+    border-color: var(--border);
+    cursor: not-allowed;
+    transform: none;
+}
+
 /* Delete button on the job edit form (only shown when editing) */
 .ts-form-delete {
     padding: 14px;
@@ -1477,14 +1529,23 @@ body {
 
     <div class="sheet-summary" id="sheetSummary"></div>
 
-    <!-- Only visible on draft sheets -->
-    <button class="action-btn clock-in" id="addJobBtn" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        <span>Add job</span>
-    </button>
+    <!-- Compact action row — Add (outlined) + Submit (green, disabled when no jobs).
+         Only visible on draft sheets. Hidden entirely when submitted/sent. -->
+    <div class="sheet-actions" id="sheetActions" hidden>
+        <button class="sheet-action add" id="addJobBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add job
+        </button>
+        <button class="sheet-action submit" id="submitSheetBtn" type="button" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Submit sheet
+        </button>
+    </div>
 
     <div class="ts-list-status" id="jobsListStatus" hidden></div>
     <div class="ts-list" id="jobsList"></div>
@@ -1493,15 +1554,6 @@ body {
         <div class="ts-empty-title">No jobs yet</div>
         <div class="ts-empty-sub">Tap "Add job" above to record your first callout on this sheet.</div>
     </div>
-
-    <!-- Submit sheet button — only visible on draft with ≥1 job -->
-    <button class="action-btn clock-out" id="submitSheetBtn" type="button" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-            <polyline points="22 4 12 14.01 9 11.01"/>
-        </svg>
-        <span>Submit sheet</span>
-    </button>
 </main>
 
 <!-- ─── JOB FORM SCREEN (new + edit job) ────────── -->
@@ -1699,7 +1751,7 @@ const GEOFENCE_RADIUS_M = 200;
 const GEO_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 };
 
 // Build version — bumped on each deploy. Visible bottom-right corner.
-const BUILD_VERSION = '2026-05-12-mobile-v8-hidden-fix';
+const BUILD_VERSION = '2026-05-13-mobile-v10-listrefresh';
 
 // ════════════════════════════════════════════════════════════════════════
 // STATE
@@ -2476,7 +2528,9 @@ function enterSheetDetail(sheetId) {
             ? `Submitted on ${fmtPrettyDateTime(sheet.submittedAt)}. Locked.`
             : `Sent to admin on ${fmtPrettyDateTime(sheet.sentAt || sheet.submittedAt)}. Locked.`;
     }
-    $('addJobBtn').hidden = !isDraft;
+    // Show the compact Add/Submit row only on drafts. The whole pill row
+    // is hidden together when submitted/sent (the locked banner takes over).
+    $('sheetActions').hidden = !isDraft;
 
     renderJobsList();
 }
@@ -2485,6 +2539,10 @@ function exitSheetDetail() {
     state.currentSheetId = null;
     $('sheetDetailScreen').classList.add('hidden');
     $('timesheetsListScreen').classList.remove('hidden');
+    // Refresh the list from in-memory state. Jobs added/edited and submit
+    // status changes all live in state.timesheets — we just need to redraw
+    // so the user sees the up-to-date counts and status pill.
+    renderSheetsList();
 }
 
 function renderJobsList() {
@@ -2504,7 +2562,8 @@ function renderJobsList() {
     $('jobsListStatus').hidden = true;
     if (!jobs.length) {
         $('jobsListEmpty').hidden = false;
-        $('submitSheetBtn').hidden = true;
+        // Submit stays visible but disabled — guides the driver: add a job first
+        $('submitSheetBtn').disabled = true;
         return;
     }
     $('jobsListEmpty').hidden = true;
@@ -2532,8 +2591,9 @@ function renderJobsList() {
         container.appendChild(row);
     }
 
-    // Submit-sheet button — only when draft + has jobs
-    $('submitSheetBtn').hidden = !(isDraft && jobs.length > 0);
+    // Submit button enabled only when sheet is draft AND has jobs. Stays
+    // visible (greyed out) when empty so the hierarchy is clear.
+    $('submitSheetBtn').disabled = !(isDraft && jobs.length > 0);
 }
 
 // ─── Sheet create + submit ─────────────────────────────────────────────
