@@ -72,6 +72,12 @@ body {
     flex-direction: column;
     height: 100vh;
     height: 100dvh;
+    /* Disable iOS Safari's double-tap-to-zoom gesture. Rapid taps on the
+       PIN keypad were being interpreted as "user trying to zoom" — which
+       triggered the page zoom and felt buggy. `manipulation` also removes
+       the 300ms tap delay Safari adds while waiting for a possible second
+       tap, so the whole UI feels snappier. */
+    touch-action: manipulation;
 }
 
 .mono {
@@ -250,6 +256,10 @@ body {
     display: grid;
     place-items: center;
     user-select: none;
+    /* Explicitly prevent iOS double-tap-zoom on each key (the body rule
+       handles inheritance but this guarantees it regardless of any UA
+       quirk). Critical for the PIN flow where users tap fast. */
+    touch-action: manipulation;
 }
 .pin-key:active {
     background: var(--bg-muted);
@@ -1751,7 +1761,7 @@ const GEOFENCE_RADIUS_M = 200;
 const GEO_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 };
 
 // Build version — bumped on each deploy. Visible bottom-right corner.
-const BUILD_VERSION = '2026-05-13-mobile-v10-listrefresh';
+const BUILD_VERSION = '2026-05-13-mobile-v11-touch';
 
 // ════════════════════════════════════════════════════════════════════════
 // STATE
