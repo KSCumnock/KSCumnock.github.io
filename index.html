@@ -1874,6 +1874,115 @@ kbd {
 @media (max-width: 980px) { .mobile-only { display: flex; } .desktop-only { display: none; } }
 
 /* ────────────────────────────────────────────────────────── */
+/* SETTINGS DRAWER                                             */
+/* ────────────────────────────────────────────────────────── */
+.settings-head {
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.settings-head-title {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+.settings-head-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+.settings-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0 22px;
+}
+.settings-section {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.settings-section:last-child { border-bottom: none; }
+.settings-section h3 {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text);
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+.settings-section .help {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    line-height: 1.5;
+    margin-bottom: 14px;
+}
+
+/* Geofence inputs row */
+.geofence-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 100px;
+    gap: 10px;
+}
+.geofence-grid .field-group { margin-bottom: 0; }
+.geofence-grid label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    font-weight: 500;
+}
+.geofence-grid input {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: var(--font-mono);
+    background: var(--bg-elevated);
+    color: var(--text);
+}
+.geofence-meta {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    margin-top: 10px;
+}
+.geofence-meta a {
+    color: var(--text-secondary);
+    text-decoration: underline;
+}
+
+.settings-footer {
+    padding: 14px 22px;
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-base);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.settings-saving-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+    display: inline-block;
+    margin-right: 6px;
+}
+.settings-saving-dot.saved { background: #16a34a; }
+.settings-saving-dot.error { background: #dc2626; }
+.settings-status {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    margin-right: auto;
+    display: flex;
+    align-items: center;
+}
+
+/* ────────────────────────────────────────────────────────── */
 /* RECOVERY TIMESHEETS DRAWER                                  */
 /* ────────────────────────────────────────────────────────── */
 /* The timesheets drawer is wider than the standard drawer because the
@@ -2486,6 +2595,13 @@ kbd {
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                         <span>Staff clocking</span>
                     </a>
+                    <button class="menu-item" data-action="settings" role="menuitem">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        <span>Settings</span>
+                    </button>
                     <button class="menu-item" data-action="timesheets" role="menuitem">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -2582,6 +2698,14 @@ kbd {
 <div class="drawer-overlay" id="empDrawerOverlay"></div>
 <aside class="drawer" id="empDrawer" aria-hidden="true">
     <div id="empDrawerContent"></div>
+</aside>
+
+<!-- ─── Settings Drawer ─────────────────────────────────────────────
+     Manages runtime-editable configuration: email recipient lists for
+     submissions/exports/morning report, and the recovery geofence. -->
+<div class="drawer-overlay" id="settingsDrawerOverlay"></div>
+<aside class="drawer" id="settingsDrawer" aria-hidden="true">
+    <div id="settingsDrawerContent"></div>
 </aside>
 
 <!-- ─── Recovery Timesheets Drawer ──────────────────────────────────
@@ -4804,6 +4928,10 @@ async function ensureBooted() {
     // but 5min gives quick post-cron confirmation)
     fetchBackupStatus();
     setInterval(fetchBackupStatus, 5 * 60_000);
+    // Pull settings once into cache so the timesheet email modal can pre-fill
+    // recipients from the configured list without an extra round-trip on open.
+    // Non-blocking — drawer opens use whatever's cached, then refetch on open.
+    fetchSettings().catch(() => {});
 }
 
 // Backup status indicator in topbar — links to the GitHub commit on hover
@@ -5002,6 +5130,8 @@ function bindMenuDropdown() {
                 exportCSV();
             } else if (action === 'manage') {
                 openEmployeesDrawer();
+            } else if (action === 'settings') {
+                openSettingsDrawer();
             } else if (action === 'timesheets') {
                 openTimesheetsDrawer();
             } else if (action === 'signout') {
@@ -5014,6 +5144,242 @@ function bindMenuDropdown() {
     dropdown.querySelectorAll('a.menu-item').forEach(a => {
         a.addEventListener('click', closeMenu);
     });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// SETTINGS — runtime-editable config (admin drawer)
+// ════════════════════════════════════════════════════════════════════════
+// The Worker maintains a `settings` table with email recipient lists and
+// the geofence. This drawer is the admin's window into that table — it
+// fetches on open, lets the admin edit, and PUTs partial updates back.
+//
+// `state.settings` caches the latest fetch so other parts of the dashboard
+// (notably the timesheets email modal) can use the configured recipients
+// as defaults instead of hardcoded constants.
+
+state.settings = null;        // populated on first fetch
+state.settingsSaving = false;
+
+async function fetchSettings() {
+    try {
+        const data = await auth.api('GET', '/settings');
+        state.settings = data.settings || {};
+        return state.settings;
+    } catch (err) {
+        console.error('fetchSettings failed:', err.message);
+        return null;
+    }
+}
+
+function openSettingsDrawer() {
+    document.getElementById('settingsDrawerOverlay').classList.add('open');
+    const drawer = document.getElementById('settingsDrawer');
+    drawer.classList.add('open');
+    drawer.setAttribute('aria-hidden', 'false');
+    renderSettingsDrawer();  // immediate render with cached values (if any)
+    fetchSettings().then(() => renderSettingsDrawer());
+}
+
+function closeSettingsDrawer() {
+    document.getElementById('settingsDrawerOverlay').classList.remove('open');
+    const drawer = document.getElementById('settingsDrawer');
+    drawer.classList.remove('open');
+    drawer.setAttribute('aria-hidden', 'true');
+}
+
+function renderSettingsDrawer() {
+    const container = document.getElementById('settingsDrawerContent');
+    if (!state.settings) {
+        container.innerHTML = `
+            <div class="settings-head">
+                <div>
+                    <div class="settings-head-title">Settings</div>
+                    <div class="settings-head-sub">Loading…</div>
+                </div>
+                <button class="btn btn-icon" id="settingsCloseBtn" type="button" aria-label="Close">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+        `;
+        document.getElementById('settingsCloseBtn').addEventListener('click', closeSettingsDrawer);
+        return;
+    }
+
+    const s = state.settings;
+    const geo = s.recovery_geofence || { lat: 0, lng: 0, radius: 200 };
+
+    container.innerHTML = `
+        <div class="settings-head">
+            <div>
+                <div class="settings-head-title">Settings</div>
+                <div class="settings-head-sub">Recipient lists and geofence</div>
+            </div>
+            <button class="btn btn-icon" id="settingsCloseBtn" type="button" aria-label="Close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+
+        <div class="settings-body">
+            <div class="settings-section">
+                <h3>Recovery submission notifications</h3>
+                <div class="help">Emailed each time a recovery driver submits a sheet, with a summary of the jobs on it.</div>
+                ${renderRecipientList('recovery_notification_recipients', s.recovery_notification_recipients || [])}
+            </div>
+
+            <div class="settings-section">
+                <h3>Recovery export recipients</h3>
+                <div class="help">Default recipients when emailing a timesheet XLSX from the Recovery timesheets panel. You can still add or remove per-send.</div>
+                ${renderRecipientList('recovery_export_recipients', s.recovery_export_recipients || [])}
+            </div>
+
+            <div class="settings-section">
+                <h3>Morning report recipients</h3>
+                <div class="help">Daily "not clocked in" email sent at 08:45 Mon–Sat. Empty = falls back to the TIMEKEEPER_REPORT_RECIPIENTS secret.</div>
+                ${renderRecipientList('morning_report_recipients', s.morning_report_recipients || [])}
+            </div>
+
+            <div class="settings-section">
+                <h3>Recovery geofence</h3>
+                <div class="help">The mobile app uses these coordinates to decide whether a driver is "on site" or "off site". Default is Kerr &amp; Smith Cumnock with a 200&nbsp;m radius.</div>
+                <div class="geofence-grid">
+                    <div class="field-group">
+                        <label for="geoLat">Latitude</label>
+                        <input type="number" id="geoLat" step="0.000001" value="${geo.lat}" />
+                    </div>
+                    <div class="field-group">
+                        <label for="geoLng">Longitude</label>
+                        <input type="number" id="geoLng" step="0.000001" value="${geo.lng}" />
+                    </div>
+                    <div class="field-group">
+                        <label for="geoRadius">Radius (m)</label>
+                        <input type="number" id="geoRadius" step="1" min="10" max="10000" value="${geo.radius}" />
+                    </div>
+                </div>
+                <div class="geofence-meta">
+                    <a href="https://www.google.com/maps/search/?api=1&query=${geo.lat},${geo.lng}" target="_blank" rel="noopener">View current point in Google Maps ↗</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-footer">
+            <span class="settings-status" id="settingsStatus"></span>
+            <button class="btn" id="settingsCancelBtn" type="button">Close</button>
+            <button class="btn btn-primary" id="settingsSaveBtn" type="button">Save changes</button>
+        </div>
+    `;
+
+    document.getElementById('settingsCloseBtn').addEventListener('click', closeSettingsDrawer);
+    document.getElementById('settingsCancelBtn').addEventListener('click', closeSettingsDrawer);
+    document.getElementById('settingsSaveBtn').addEventListener('click', saveSettings);
+
+    // Wire recipient-list interactions
+    container.querySelectorAll('[data-recipient-list]').forEach(wireRecipientList);
+}
+
+// Renders one recipient list (chips + add input) inside a settings section.
+// data-recipient-list attribute names the setting key for read/write.
+function renderRecipientList(key, emails) {
+    const chips = emails.map((e, i) => `
+        <span class="recipient-chip">
+            ${escapeHtml(e)}
+            <button type="button" data-rm-idx="${i}" aria-label="Remove ${escapeHtml(e)}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </span>
+    `).join('');
+    return `
+        <div data-recipient-list="${key}">
+            <div class="recipient-chips" data-chip-list>${chips}</div>
+            <div class="recipient-input-row">
+                <input type="email" placeholder="Add another email…" data-recipient-input />
+                <button class="btn" type="button" data-recipient-add>Add</button>
+            </div>
+        </div>
+    `;
+}
+
+function wireRecipientList(wrapper) {
+    const key = wrapper.dataset.recipientList;
+    const chipList = wrapper.querySelector('[data-chip-list]');
+    const input = wrapper.querySelector('[data-recipient-input]');
+    const addBtn = wrapper.querySelector('[data-recipient-add]');
+
+    const redraw = () => {
+        const emails = state.settings[key] || [];
+        chipList.innerHTML = emails.map((e, i) => `
+            <span class="recipient-chip">
+                ${escapeHtml(e)}
+                <button type="button" data-rm-idx="${i}" aria-label="Remove ${escapeHtml(e)}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </span>
+        `).join('');
+        // Re-wire the new remove buttons
+        chipList.querySelectorAll('[data-rm-idx]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.settings[key] = (state.settings[key] || []).filter((_, i) => i !== Number(btn.dataset.rmIdx));
+                redraw();
+            });
+        });
+    };
+
+    const onAdd = () => {
+        const v = input.value.trim();
+        if (!v) return;
+        if (!v.includes('@')) { alert('Enter a valid email address.'); return; }
+        const cur = state.settings[key] || [];
+        if (cur.includes(v)) { input.value = ''; return; }
+        state.settings[key] = [...cur, v];
+        input.value = '';
+        redraw();
+    };
+
+    addBtn.addEventListener('click', onAdd);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); onAdd(); }
+    });
+
+    // Initial wire for existing chips
+    chipList.querySelectorAll('[data-rm-idx]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            state.settings[key] = (state.settings[key] || []).filter((_, i) => i !== Number(btn.dataset.rmIdx));
+            redraw();
+        });
+    });
+}
+
+async function saveSettings() {
+    if (state.settingsSaving) return;
+    state.settingsSaving = true;
+    const statusEl = document.getElementById('settingsStatus');
+    const saveBtn = document.getElementById('settingsSaveBtn');
+    saveBtn.disabled = true;
+    statusEl.innerHTML = `<span class="settings-saving-dot"></span>Saving…`;
+
+    // Build payload from current state.settings + geofence inputs
+    const geoLat = Number(document.getElementById('geoLat').value);
+    const geoLng = Number(document.getElementById('geoLng').value);
+    const geoRadius = Number(document.getElementById('geoRadius').value);
+
+    const payload = {
+        recovery_notification_recipients: state.settings.recovery_notification_recipients,
+        recovery_export_recipients: state.settings.recovery_export_recipients,
+        morning_report_recipients: state.settings.morning_report_recipients,
+        recovery_geofence: { lat: geoLat, lng: geoLng, radius: geoRadius },
+    };
+
+    try {
+        const data = await auth.api('PUT', '/settings', payload);
+        state.settings = data.settings || state.settings;
+        statusEl.innerHTML = `<span class="settings-saving-dot saved"></span>Saved`;
+        setTimeout(() => { if (statusEl) statusEl.innerHTML = ''; }, 2500);
+    } catch (err) {
+        console.error('Save settings failed:', err);
+        statusEl.innerHTML = `<span class="settings-saving-dot error"></span>${escapeHtml(err.message)}`;
+    } finally {
+        state.settingsSaving = false;
+        saveBtn.disabled = false;
+    }
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -5564,8 +5930,14 @@ function openEmailModal() {
         return;
     }
 
-    // Initialise recipients to the default list each time
-    tsState.emailRecipients = [...TS_DEFAULT_RECIPIENTS];
+    // Initialise recipients from settings. Falls back to the hardcoded
+    // default list if the settings haven't been fetched yet or are empty.
+    const fromSettings = state.settings && Array.isArray(state.settings.recovery_export_recipients)
+        ? state.settings.recovery_export_recipients
+        : null;
+    tsState.emailRecipients = (fromSettings && fromSettings.length)
+        ? [...fromSettings]
+        : [...TS_DEFAULT_RECIPIENTS];
 
     const selectedSheets = tsState.sheets.filter(s => tsState.selectedIds.has(s.id));
     const driverNames = [...new Set(selectedSheets.map(s => {
@@ -5895,6 +6267,8 @@ function wireTimesheetEmailModal() {
     });
     // Close on overlay click for the drawer too
     document.getElementById('tsDrawerOverlay').addEventListener('click', closeTimesheetsDrawer);
+    // Settings drawer close-on-overlay-click
+    document.getElementById('settingsDrawerOverlay').addEventListener('click', closeSettingsDrawer);
 }
 
 document.addEventListener('DOMContentLoaded', init);

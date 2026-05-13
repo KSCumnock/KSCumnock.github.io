@@ -1745,12 +1745,13 @@ const ENDPOINT_ENTRIES   = `${WORKER_URL}/data/entries`;
 const ENDPOINT_TIMESHEETS = `${WORKER_URL}/staff/timesheets`;
 const PIN_LENGTH = 4;
 
-// Geofence — Kerr & Smith Cumnock, 200m radius. Anyone clocking in within
-// this radius is considered "on premises" and clocks in normally; outside,
-// they're asked to give a reason (callout / other).
-const KS_LAT = 55.44993422440035;
-const KS_LNG = -4.270202285452328;
-const GEOFENCE_RADIUS_M = 200;
+// Geofence — Kerr & Smith Cumnock, 200m radius. The mobile app fetches
+// these values from /public/settings on boot so admin can edit them via
+// the dashboard without us redeploying. These are the hardcoded fallbacks
+// used if the fetch fails or the settings endpoint is unreachable.
+let KS_LAT = 55.44993422440035;
+let KS_LNG = -4.270202285452328;
+let GEOFENCE_RADIUS_M = 200;
 
 // GPS lookup constraints. enableHighAccuracy uses GPS hardware where
 // available (vs cell-tower triangulation). timeout caps how long we wait
@@ -1761,7 +1762,7 @@ const GEOFENCE_RADIUS_M = 200;
 const GEO_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 };
 
 // Build version — bumped on each deploy. Visible bottom-right corner.
-const BUILD_VERSION = '2026-05-13-mobile-v11-touch';
+const BUILD_VERSION = '2026-05-13-mobile-v12-settings';
 
 // ════════════════════════════════════════════════════════════════════════
 // STATE
@@ -2851,6 +2852,26 @@ function hideDeleteJobConfirm() {
 // ════════════════════════════════════════════════════════════════════════
 // BOOT
 // ════════════════════════════════════════════════════════════════════════
+// Fetch the latest geofence configuration from the public settings endpoint.
+// Non-blocking and silently falls back to the baked-in defaults if it fails
+// (network down, server error, etc) — drivers can still clock in either way.
+async function fetchGeofenceConfig() {
+    try {
+        const r = await fetch(`${WORKER_URL}/public/settings`, { cache: 'no-store' });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = await r.json();
+        const g = data.geofence;
+        if (g && Number.isFinite(g.lat) && Number.isFinite(g.lng) && Number.isFinite(g.radius)) {
+            KS_LAT = g.lat;
+            KS_LNG = g.lng;
+            GEOFENCE_RADIUS_M = g.radius;
+            console.log(`Geofence updated: ${g.lat}, ${g.lng} (${g.radius}m)`);
+        }
+    } catch (err) {
+        console.warn('Could not fetch geofence config, using defaults:', err.message);
+    }
+}
+
 async function boot(isRetry = false) {
     if (isRetry) {
         $('bootSpinner').hidden = false;
@@ -2859,7 +2880,12 @@ async function boot(isRetry = false) {
         $('bootText').textContent = 'Loading…';
     }
     try {
-        await fetchFresh();
+        // Both can run in parallel — geofence isn't required to start the
+        // app, only to evaluate position once the user PINs in.
+        await Promise.all([
+            fetchFresh(),
+            fetchGeofenceConfig(),
+        ]);
         $('bootScreen').classList.add('hidden');
     } catch (err) {
         console.error('Boot failed:', err);
@@ -2982,10 +3008,13 @@ function bindEvents() {
     window.addEventListener('online',  updateConnectionStatus);
     window.addEventListener('offline', updateConnectionStatus);
 
-    // Refresh on visibility change
+    // Refresh on visibility change — both the employee/entries data and
+    // the geofence config (so admin edits propagate without forcing a
+    // full PWA reload).
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
             fetchFresh().catch(() => {});
+            fetchGeofenceConfig().catch(() => {});
         }
     });
 }
