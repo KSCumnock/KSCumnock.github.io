@@ -1547,6 +1547,44 @@ kbd {
 }
 .tooltip .tt-label { color: #a1a1aa; }
 .tooltip .tt-row { display: flex; justify-content: space-between; gap: 12px; }
+/* Multi-line tooltip body (used by offsite clock-in detail) */
+.tooltip .tt-body { margin-top: 2px; }
+.tooltip .tt-note {
+    color: #d4d4d8;
+    white-space: normal;
+    max-width: 240px;
+    margin-top: 3px;
+    line-height: 1.4;
+}
+
+/* ── Recovery clock-in location badge ──────────────────────────────
+   Shown next to the "clock in" tag in Recent Activity, but only for
+   employees in the Recovery department. Tells the reviewer at a glance
+   whether the driver clocked in on the premises or out on a job. */
+.loc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 6px;
+    padding: 1px 7px 1px 5px;
+    border-radius: 99px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: default;
+    vertical-align: middle;
+}
+.loc-badge svg { width: 9px; height: 9px; }
+.loc-badge[data-loc="onsite"] {
+    background: #f0fdf4;
+    color: #16a34a;
+}
+.loc-badge[data-loc="offsite"] {
+    background: #fff7ed;
+    color: #ea580c;
+}
 
 /* ────────────────────────────────────────────────────────── */
 /* RANGE PICKER                                                */
@@ -3459,7 +3497,25 @@ function renderRows() {
 // ════════════════════════════════════════════════════════════════════════
 const tipEl = document.getElementById('tooltip');
 function showTip(e) {
-    const data = e.currentTarget.dataset.tip;
+    const el = e.currentTarget;
+
+    // Offsite clock-in badge — richer multi-line layout: time as the
+    // dimmed header, then "Offsite · <reason>", then the driver's note.
+    if (el.dataset.tipKind === 'offsite') {
+        const time = el.dataset.tipTime || '';
+        const reason = el.dataset.tipReason || '';
+        const note = el.dataset.tipNote || '';
+        tipEl.innerHTML =
+            `<div class="tt-label">${time}</div>` +
+            `<div class="tt-body">Offsite · ${reason}</div>` +
+            (note ? `<div class="tt-note">${note}</div>` : `<div class="tt-note" style="color:#71717a;">No note provided</div>`);
+        tipEl.classList.add('show');
+        moveTip(e);
+        return;
+    }
+
+    // Standard single-line tooltip (day strips): "label|info"
+    const data = el.dataset.tip;
     if (!data) return;
     const [date, info] = data.split('|');
     tipEl.innerHTML = `<div class="tt-label">${date}</div><div>${info}</div>`;
@@ -3581,11 +3637,54 @@ function renderDrawer() {
     const visibleEvents = allEvents.filter(e => !e.deleted);
     visibleEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     const recentEvents = visibleEvents.slice(0, 20);
+
+    // Recovery drivers clock in either on the premises or out on a job.
+    // For those employees we annotate clock-in events with a location
+    // badge; offsite badges carry a tooltip with the reason + note the
+    // driver entered in the mobile app.
+    const isRecovery = (emp.department || '').toLowerCase() === 'recovery';
+    const OFFSITE_REASON_LABELS = { callout: 'Callout', other: 'Other' };
+
     const activityHtml = recentEvents.map(ev => {
         const t = new Date(ev.timestamp);
+
+        // Build the location badge — only for recovery clock-ins.
+        // NOTE: the raw entry type is 'Clock In' (capitalised) — the
+        // lowercase look in the UI is just CSS text-transform. Match the
+        // real stored value here.
+        let locBadge = '';
+        if (isRecovery && ev.type === 'Clock In') {
+            if (ev.offsiteReason) {
+                // Offsite: badge + hover tooltip with reason and note.
+                // data-tip format mirrors the day-strip tooltips:
+                //   "Header label|info"  — but here we encode richer HTML
+                //   via a dedicated data-tip-kind so showTip knows to
+                //   render the multi-line offsite layout.
+                const reasonLabel = OFFSITE_REASON_LABELS[ev.offsiteReason] || ev.offsiteReason;
+                const note = ev.offsiteNote ? escapeHtml(ev.offsiteNote) : '';
+                locBadge = `<span class="loc-badge" data-loc="offsite"
+                        data-tip-kind="offsite"
+                        data-tip-reason="${escapeHtml(reasonLabel)}"
+                        data-tip-note="${note}"
+                        data-tip-time="${t.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a8 8 0 00-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 00-8-8z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                    Offsite
+                </span>`;
+            } else if (ev.latitude != null) {
+                // Has GPS but no offsite reason = clocked in within the
+                // geofence. Onsite badge, no tooltip needed.
+                locBadge = `<span class="loc-badge" data-loc="onsite">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    Onsite
+                </span>`;
+            }
+            // If neither (no GPS at all — e.g. an admin-added clocking),
+            // we show no badge rather than guessing.
+        }
+
         return `<div class="activity-item" data-entry-id="${ev.id}">
             <div class="time">${t.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
-            <div class="event"><span class="event-tag" data-type="${ev.type}">${ev.type}</span></div>
+            <div class="event"><span class="event-tag" data-type="${ev.type}">${ev.type}</span>${locBadge}</div>
             <div class="activity-actions">
                 <button class="icon-btn" data-action="edit-clk" data-entry-id="${ev.id}" aria-label="Edit clocking" title="Edit">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -3746,6 +3845,14 @@ function renderDrawer() {
             const entry = state.clockings.find(c => c.id === entryId);
             if (entry) confirmDeleteClocking(entry);
         });
+    });
+
+    // Hover tooltips on offsite clock-in badges — reuses the same
+    // showTip/moveTip/hideTip machinery as the day-strip tooltips.
+    document.querySelectorAll('#drawerContent .loc-badge[data-tip-kind="offsite"]').forEach(badge => {
+        badge.addEventListener('mouseenter', showTip);
+        badge.addEventListener('mouseleave', hideTip);
+        badge.addEventListener('mousemove', moveTip);
     });
 }
 
