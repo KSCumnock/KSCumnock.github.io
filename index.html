@@ -421,6 +421,46 @@ button { font-family: inherit; }
 .backup-pill[data-state="stale"] { color: var(--amber-fg); border-color: var(--amber-border); background: var(--amber-soft); }
 .backup-pill[data-state="missing"] { color: var(--red-fg); border-color: var(--red-border); background: var(--red-soft); }
 
+/* Live-messages pill — same shape as backup-pill but green when there
+   are live kiosk messages, with a count badge. Hidden when count = 0
+   so it only appears when there's actually something to flag. A subtle
+   pulse on the dot draws the eye without being noisy. */
+.messages-live-pill {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px 6px 8px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border: 1px solid #86efac;
+    border-radius: 999px;
+    background: #dcfce7;
+    color: #14532d;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.04s ease;
+    margin-left: 8px;
+    white-space: nowrap;
+    font-weight: 700;
+}
+.messages-live-pill.show { display: inline-flex; }
+.messages-live-pill:hover { background: #bbf7d0; border-color: #4ade80; }
+.messages-live-pill:active { transform: scale(0.97); }
+.messages-live-pill svg { width: 12px; height: 12px; }
+.messages-live-pill .ml-dot {
+    width: 7px;
+    height: 7px;
+    background: #16a34a;
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: ml-pulse 2s ease-in-out infinite;
+}
+@keyframes ml-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(0.7); }
+}
+
 /* Spinning state for icon-based action buttons */
 .btn.spinning svg,
 .backup-pill.spinning svg {
@@ -3105,6 +3145,14 @@ kbd {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
             <span id="backupPillLabel">Backup: —</span>
         </button>
+        <!-- Live kiosk messages pill. Hidden by default; appears when one or
+             more messages are live, with a count. Tap opens the messages
+             drawer in list view. -->
+        <button class="messages-live-pill desktop-only" id="messagesLivePill" type="button" title="View live kiosk messages">
+            <span class="ml-dot"></span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8v18l-18-8z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+            <span id="messagesLivePillLabel">—</span>
+        </button>
     </div>
 </header>
 
@@ -5596,6 +5644,12 @@ async function ensureBooted() {
     // recipients from the configured list without an extra round-trip on open.
     // Non-blocking — drawer opens use whatever's cached, then refetch on open.
     fetchSettings().catch(() => {});
+    // Pull kiosk messages on boot so the "live messages" pill in the
+    // header is accurate from the start. Poll occasionally so it stays
+    // current if a message is toggled live/draft on another admin's
+    // session.
+    fetchMessages().catch(() => {});
+    setInterval(() => fetchMessages().catch(() => {}), 5 * 60_000);
 }
 
 // Backup status indicator in topbar — links to the GitHub commit on hover
@@ -5732,6 +5786,8 @@ async function init() {
 
     // Backup pill is now a button — tap runs a manual backup
     document.getElementById('backupPill').addEventListener('click', runBackupNow);
+    // Live-messages pill: hidden by default; opens the messages drawer when shown.
+    document.getElementById('messagesLivePill').addEventListener('click', openMessagesDrawer);
 
     // Wire the recovery-timesheets email modal one-time events (clicks
     // inside the drawer itself are wired per-render in renderTimesheetsList).
@@ -6101,6 +6157,25 @@ async function fetchMessages() {
         msgState.loaded = true;
     } catch (err) {
         console.error('fetchMessages failed:', err.message);
+    }
+    updateMessagesLivePill();
+}
+
+// Header pill — visible only when one or more messages are live.
+// Shows "N LIVE" with a pulsing dot; tapping opens the messages drawer.
+function updateMessagesLivePill() {
+    const pill = document.getElementById('messagesLivePill');
+    const label = document.getElementById('messagesLivePillLabel');
+    if (!pill || !label) return;
+    const liveCount = (msgState.messages || []).filter(m => m.isLive).length;
+    if (liveCount > 0) {
+        label.textContent = `${liveCount} live`;
+        pill.classList.add('show');
+        pill.title = liveCount === 1
+            ? 'One kiosk message is live — tap to view'
+            : `${liveCount} kiosk messages are live — tap to view`;
+    } else {
+        pill.classList.remove('show');
     }
 }
 
