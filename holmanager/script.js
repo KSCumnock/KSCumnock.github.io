@@ -44,12 +44,26 @@ function persistAttViewState() {
     } catch {}
 }
 
+// Single source of truth for "used days" — computed from actual approved requests
+// that deduct from holiday allowance. NEVER read `employee.usedDays` directly for
+// display; that field can drift out of sync after edits/deletions/un-approvals.
+// Pass either an employeeId or a pre-filtered list of approved requests.
+function calculateUsedDaysFromRequests(employeeId) {
+    const approved = holidayRequests.filter(
+        r => r.employeeId === employeeId && r.status === 'approved'
+    );
+    return approved.reduce((sum, req) => {
+        return sum + ((req.deductFromHoliday || req.requestType === 'holiday') ? (req.days || 0) : 0);
+    }, 0);
+}
+
 // Build a per-employee summary used by both filters and the card render.
 function summariseEmployee(employee) {
     const reqs = holidayRequests.filter(r => r.employeeId === employee.id);
     const approved = reqs.filter(r => r.status === 'approved');
     const pending  = reqs.filter(r => r.status === 'pending');
-    const remaining = (employee.totalAllowance || 0) - (employee.usedDays || 0);
+    const usedDays = calculateUsedDaysFromRequests(employee.id);
+    const remaining = (employee.totalAllowance || 0) - usedDays;
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -946,16 +960,8 @@ function selectEmployee(employeeId) {
             adminNotice.classList.toggle('hidden', !isAdminAuthenticated);
         }
 
-        // Calculate remaining days dynamically
-        const employeeRequests = holidayRequests.filter(req => req.employeeId === employeeId);
-        const approvedRequests = employeeRequests.filter(req => req.status === 'approved');
-        
-        // Only count days from approved requests that deduct from allowance
-        const usedDays = approvedRequests.reduce((sum, req) => {
-            return sum + ((req.deductFromHoliday || req.requestType === 'holiday') ? req.days : 0);
-        }, 0);
-        
-        const remainingDays = currentEmployee.totalAllowance - usedDays;
+        // Calculate remaining days dynamically (single source of truth)
+        const remainingDays = currentEmployee.totalAllowance - calculateUsedDaysFromRequests(employeeId);
         
         // Update the display
         document.getElementById('remaining-days').textContent = remainingDays;
@@ -1469,7 +1475,7 @@ async function submitHolidayRequest(event) {
         }
 
         const groups = groupConsecutiveDates(selectedDates);
-        const remainingDays = currentEmployee.totalAllowance - currentEmployee.usedDays;
+        const remainingDays = currentEmployee.totalAllowance - calculateUsedDaysFromRequests(currentEmployee.id);
         
         // Calculate total days needed
         let totalDaysNeeded = 0;
@@ -1578,7 +1584,7 @@ async function submitHolidayRequest(event) {
         const halfDayPeriod = isHalfDay ? document.getElementById('half-day-period').value : null;
         
         const days = calculateDays(startDate, endDate, isHalfDay, currentEmployee.id);
-        const remainingDays = currentEmployee.totalAllowance - currentEmployee.usedDays;
+        const remainingDays = currentEmployee.totalAllowance - calculateUsedDaysFromRequests(currentEmployee.id);
         
         // Check if employee has enough days only if it's a holiday or if deducting from allowance
         if (shouldDeductDays && days > remainingDays) {
@@ -1672,12 +1678,7 @@ async function submitHolidayRequest(event) {
 // when the currently selected employee's request list changes.
 function refreshEmployeeAllowanceDisplay() {
     if (!currentEmployee) return;
-    const employeeRequests = holidayRequests.filter(req => req.employeeId === currentEmployee.id);
-    const approvedRequests = employeeRequests.filter(req => req.status === 'approved');
-    const usedDays = approvedRequests.reduce((sum, req) => {
-        return sum + ((req.deductFromHoliday || req.requestType === 'holiday') ? req.days : 0);
-    }, 0);
-    const remainingDays = currentEmployee.totalAllowance - usedDays;
+    const remainingDays = currentEmployee.totalAllowance - calculateUsedDaysFromRequests(currentEmployee.id);
     const remainingEl = document.getElementById('remaining-days');
     if (remainingEl) remainingEl.textContent = remainingDays;
     const totalEl = document.getElementById('total-days');
@@ -2216,12 +2217,13 @@ function loadEmployeeQuickView() {
         const holidayCount = employeeRequests.filter(req => (!req.requestType || req.requestType === 'holiday')).length;
         const sickCount = employeeRequests.filter(req => req.requestType === 'sick').length;
         const bereavementCount = employeeRequests.filter(req => req.requestType === 'bereavement').length;
-        
+        const usedDays = calculateUsedDaysFromRequests(employee.id);
+
         return `
             <div class="employee-summary" onclick="showEmployeeDetail(${employee.id})">
                 <div class="employee-name">${employee.name}</div>
                 <div class="employee-stats">
-                    Allowance: ${employee.totalAllowance} | Used: ${employee.usedDays} | Remaining: ${employee.totalAllowance - employee.usedDays} |
+                    Allowance: ${employee.totalAllowance} | Used: ${usedDays} | Remaining: ${employee.totalAllowance - usedDays} |
                     Requests: ${employeeRequests.length} total (${pendingCount} pending, ${approvedCount} approved, ${cancelledCount} cancelled) |
                     Types: ${holidayCount} holidays, ${sickCount} sick, ${bereavementCount} bereavement
                 </div>
@@ -2235,13 +2237,14 @@ function showEmployeeDetail(employeeId) {
     if (!employee) return;
     
     const employeeRequests = holidayRequests.filter(req => req.employeeId === employeeId);
+    const usedDays = calculateUsedDaysFromRequests(employeeId);
     
     document.getElementById('employee-modal-title').textContent = `${employee.name} - Request History (${currentYear})`;
     
     let content = `
         <div class="allowance-info" style="margin-bottom: 20px;">
             <h4>Holiday Allowance Summary</h4>
-            <p>Total: ${employee.totalAllowance} days | Used: ${employee.usedDays} days | Remaining: ${employee.totalAllowance - employee.usedDays} days</p>
+            <p>Total: ${employee.totalAllowance} days | Used: ${usedDays} days | Remaining: ${employee.totalAllowance - usedDays} days</p>
         </div>
     `;
     
@@ -3114,18 +3117,21 @@ function loadEmployeeList() {
         return;
     }
     
-    container.innerHTML = employees.map(employee => `
+    container.innerHTML = employees.map(employee => {
+        const usedDays = calculateUsedDaysFromRequests(employee.id);
+        return `
         <div class="employee-card">
             <div>
                 <h5>${employee.name}</h5>
-                <p style="font-size: 13px;">Total: ${employee.totalAllowance} | Used: ${employee.usedDays} | Remaining: ${employee.totalAllowance - employee.usedDays}</p>
+                <p style="font-size: 13px;">Total: ${employee.totalAllowance} | Used: ${usedDays} | Remaining: ${employee.totalAllowance - usedDays}</p>
             </div>
             <div style="display: flex; gap: 8px;">
                 <button class="btn-edit btn-small" onclick="openEditEmployeeModal(${employee.id})">Edit</button>
                 <button class="btn-danger btn-small" onclick="removeEmployee(${employee.id})">Remove</button>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // Edit Employee Modal Functions
@@ -3136,8 +3142,9 @@ function openEditEmployeeModal(employeeId) {
     document.getElementById('edit-employee-id').value = employee.id;
     document.getElementById('edit-employee-name-display').textContent = employee.name;
     document.getElementById('edit-employee-current-allowance').textContent = employee.totalAllowance;
-    document.getElementById('edit-employee-used-days').textContent = employee.usedDays;
-    document.getElementById('edit-employee-remaining').textContent = employee.totalAllowance - employee.usedDays;
+    const usedDays = calculateUsedDaysFromRequests(employee.id);
+    document.getElementById('edit-employee-used-days').textContent = usedDays;
+    document.getElementById('edit-employee-remaining').textContent = employee.totalAllowance - usedDays;
     document.getElementById('edit-allowance-adjustment').value = '';
     document.getElementById('edit-adjustment-reason').value = '';
     document.getElementById('edit-saturday-deduction').checked = employee.includeSaturdayDeduction || false;
@@ -3941,7 +3948,7 @@ function generateEmployeeReportData(employeeId) {
             totalDaysRequested,
             approvedDays,
             pendingDays,
-            remainingDays: employee.totalAllowance - employee.usedDays,
+            remainingDays: employee.totalAllowance - calculateUsedDaysFromRequests(employee.id),
             toilEarned: employee.toilEarned || 0,
             toilEntryCount: (employee.toilHistory || []).length
         },
@@ -4041,7 +4048,7 @@ function generateEmployeeSectionHTML(data, isSection = true) {
                 <div>Total Allowance</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">${employee.usedDays}</div>
+                <div class="stat-value">${employee.totalAllowance - stats.remainingDays}</div>
                 <div>Days Used</div>
             </div>
             <div class="stat-card">
