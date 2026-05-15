@@ -873,6 +873,118 @@ html.screensaver-active body {
     cursor: default;
 }
 
+/* ────────────────────────────────────────────────────────── */
+/* LEAVE CONFLICT OVERLAY                                      */
+/* Shown when an employee PINs in but is marked on approved   */
+/* leave in the Holiday Manager for today. Soft-block: they   */
+/* can override and clock in anyway, but the contradiction is */
+/* surfaced so it triggers a conversation.                    */
+/* ────────────────────────────────────────────────────────── */
+.leave-conflict-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.62);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 130;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.18s ease, visibility 0.18s ease;
+    padding: 24px;
+}
+.leave-conflict-overlay.show { opacity: 1; visibility: visible; }
+.leave-conflict-card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 32px 28px 24px;
+    max-width: 520px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+    transform: scale(0.94);
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    text-align: center;
+}
+.leave-conflict-overlay.show .leave-conflict-card { transform: scale(1); }
+.leave-conflict-icon {
+    width: 56px;
+    height: 56px;
+    display: grid;
+    place-items: center;
+    background: #dbeafe;
+    color: #1e40af;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.leave-conflict-icon svg { width: 32px; height: 32px; }
+.leave-conflict-icon[data-type="sick"] { background: #f3e8ff; color: #6b21a8; }
+.leave-conflict-icon[data-type="bereavement"] { background: #e2e8f0; color: #334155; }
+.leave-conflict-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    margin-top: 2px;
+}
+.leave-conflict-meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    background: var(--bg-muted);
+    padding: 4px 12px;
+    border-radius: 999px;
+    margin-top: 4px;
+}
+.leave-conflict-body {
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    max-width: 380px;
+}
+.leave-conflict-actions {
+    width: 100%;
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.leave-conflict-actions button {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 14px;
+    font-family: var(--font-ui);
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s ease, transform 0.04s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+.leave-conflict-actions .leave-stay {
+    background: var(--text);
+    color: #fff;
+}
+.leave-conflict-actions .leave-stay:hover { background: #000; }
+.leave-conflict-actions .leave-stay:active { transform: scale(0.98); }
+.leave-conflict-actions .leave-proceed {
+    background: var(--bg-muted);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+.leave-conflict-actions .leave-proceed:hover { background: var(--border); }
+.leave-conflict-actions .leave-proceed:active { transform: scale(0.98); }
+
 /* Screensaver overlay — appears after IDLE_TIMEOUT_MS of no input.
    Dark, edge-to-edge (extends under the iOS status bar AND home indicator
    via inset:0 + body bg matching). Content respects safe-area-inset so
@@ -1386,6 +1498,30 @@ html.screensaver-active body {
     </div>
 </div>
 
+<!-- Leave-conflict overlay. Shown after PIN entry when the Holiday
+     Manager has the employee marked on approved leave for today. Soft
+     warning rather than hard block — they can still clock in (returned
+     from holiday early, etc.) but the contradiction is surfaced. -->
+<div class="leave-conflict-overlay" id="leaveConflictOverlay" aria-hidden="true">
+    <div class="leave-conflict-card">
+        <div class="leave-conflict-icon" id="leaveConflictIcon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+        </div>
+        <div class="leave-conflict-meta" id="leaveConflictMeta">Booked off today</div>
+        <div class="leave-conflict-title" id="leaveConflictTitle">You're booked off today</div>
+        <div class="leave-conflict-body" id="leaveConflictBody"></div>
+        <div class="leave-conflict-actions">
+            <button class="leave-stay" id="leaveStayBtn" type="button">I'm still off — go back</button>
+            <button class="leave-proceed" id="leaveProceedBtn" type="button">I'm coming in anyway</button>
+        </div>
+    </div>
+</div>
+
 <!-- Screensaver — fades in after IDLE_TIMEOUT_MS of no activity. Clean
      minimal clock display: K&S brand mark, HH:MM in JetBrains Mono with
      a 1Hz blinking colon, and the date below. Tap anywhere to wake. -->
@@ -1434,7 +1570,7 @@ const EARLY_CLOCKOUT_BUMPER_MIN = 3;
 // Build version — bumped on each deploy. The boot routine compares this to
 // the version embedded in the (no-cache) HTML and reloads if mismatched, so
 // kiosks don't get stuck on stale code after a deploy.
-const BUILD_VERSION = '2026-05-15-auto-update';
+const BUILD_VERSION = '2026-05-15-leave-integration';
 
 // ════════════════════════════════════════════════════════════════════════
 // STATE
@@ -1765,6 +1901,7 @@ let workTimeTimer = null;
 
 function enterActionScreen(employee) {
     state.currentEmployee = employee;
+    state.pendingLeaveConflict = null;
     clearPin();
     $('idleScreen').classList.add('hidden');
     $('actionScreen').classList.remove('hidden');
@@ -1775,10 +1912,15 @@ function enterActionScreen(employee) {
     // delay showing the action buttons; if messages arrive they cover
     // the buttons until acknowledged.
     loadAndShowMessagesForEmployee(employee);
+    // In parallel, check whether the Holiday Manager has approved leave
+    // covering today for this employee. If so, surface a soft-block
+    // warning before they clock in. Deferred until after any messages.
+    loadAndCheckLeaveForEmployee(employee);
 }
 
 function exitActionScreen() {
     state.currentEmployee = null;
+    state.pendingLeaveConflict = null;
     clearTimeout(actionReturnTimer);
     clearInterval(workTimeTimer);
     actionReturnTimer = null;
@@ -1786,6 +1928,7 @@ function exitActionScreen() {
     hideDisallowedAlert(); // ensure alert doesn't linger when returning to idle
     hideEarlyReasonPicker(); // ditto for the early clock-out reason picker
     hideMessageOverlay(); // and the admin message overlay
+    hideLeaveConflict();  // and the leave-conflict overlay
     $('actionScreen').classList.add('hidden');
     $('idleScreen').classList.remove('hidden');
 }
@@ -2008,6 +2151,13 @@ async function acknowledgeCurrentMessage() {
     }
     state.messageIdx++;
     showCurrentMessage();
+    // If the queue is now empty AND we deferred a leave-conflict check
+    // because the message overlay was up, surface it now.
+    if (state.messageIdx >= state.messageQueue.length && state.pendingLeaveConflict) {
+        const pending = state.pendingLeaveConflict;
+        state.pendingLeaveConflict = null;
+        showLeaveConflict(pending);
+    }
 }
 
 function hideMessageOverlay() {
@@ -2016,6 +2166,92 @@ function hideMessageOverlay() {
     overlay.setAttribute('aria-hidden', 'true');
     state.messageQueue = [];
     state.messageIdx = 0;
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// LEAVE-CONFLICT CHECK
+// ════════════════════════════════════════════════════════════════════════
+// Cross-references the Holiday Manager via the TimeKeeper Worker (which
+// proxies + caches HM and returns only this employee's status, so we
+// don't leak anyone else's leave to the shared kiosk). Shown AFTER the
+// message overlay clears, so acknowledged messages take priority but
+// the conflict surfaces before the action buttons become useful.
+//
+// Soft block: the employee can override and clock in anyway (e.g. came
+// home from holiday early, wants to grab a tool from the depot). The
+// override prompt + the underlying Sick Day / Holiday record in the
+// audit trail make the contradiction reviewable later.
+async function loadAndCheckLeaveForEmployee(emp) {
+    if (!emp) return;
+    try {
+        const url = `${WORKER_URL}/staff/leave-today?employeeId=${encodeURIComponent(emp.id)}&pin=${encodeURIComponent(emp.pin)}`;
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) return;       // soft-fail; missing warning is better than blocked kiosk
+        const data = await r.json();
+        if (!data || !data.onLeave) return;
+        if (!state.currentEmployee || state.currentEmployee.id !== emp.id) return;
+        // If a message overlay is currently visible, defer until it's
+        // dismissed so we don't stack two modals.
+        if ($('messageOverlay').classList.contains('show')) {
+            state.pendingLeaveConflict = data;
+            return;
+        }
+        showLeaveConflict(data);
+    } catch (e) {
+        console.error('Failed to check leave-today:', e);
+    }
+}
+
+function showLeaveConflict(leave) {
+    const overlay = $('leaveConflictOverlay');
+    const icon = $('leaveConflictIcon');
+    const meta = $('leaveConflictMeta');
+    const title = $('leaveConflictTitle');
+    const body = $('leaveConflictBody');
+
+    const type = (leave.type || 'holiday').toLowerCase();
+    const typeLabel = type === 'sick' ? 'Off sick'
+                    : type === 'bereavement' ? 'Bereavement'
+                    : 'Annual leave';
+    icon.dataset.type = type;
+    meta.textContent = typeLabel;
+    // Pretty date range, handling block bookings.
+    const fmtOne = (s) => {
+        const d = new Date(s + 'T00:00:00');
+        return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    };
+    let dateLine = '';
+    if (Array.isArray(leave.selectedDates) && leave.selectedDates.length) {
+        const sorted = leave.selectedDates.slice().sort();
+        dateLine = sorted.length === 1
+            ? fmtOne(sorted[0])
+            : `${fmtOne(sorted[0])} → ${fmtOne(sorted[sorted.length - 1])}`;
+    } else if (leave.startDate && leave.endDate) {
+        dateLine = leave.startDate === leave.endDate
+            ? fmtOne(leave.startDate)
+            : `${fmtOne(leave.startDate)} → ${fmtOne(leave.endDate)}`;
+    }
+    const auth = leave.approvedBy ? ` Authorised by ${leave.approvedBy}.` : '';
+    title.textContent = `You're booked off today on ${typeLabel.toLowerCase()}`;
+    body.innerHTML = `${dateLine ? escapeForOverlay(dateLine) + '.' : ''}${auth ? ' ' + escapeForOverlay(auth) : ''}<br><br>Did you cancel that leave?`;
+
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden', 'false');
+    clearTimeout(actionReturnTimer);
+}
+
+function hideLeaveConflict() {
+    const overlay = $('leaveConflictOverlay');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+}
+
+// Minimal HTML-escape for overlay text content (textContent is used
+// elsewhere; here we mix newlines via innerHTML so we need to be safe).
+function escapeForOverlay(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
 }
 
 async function submitClocking(type, opts = {}) {
@@ -2258,6 +2494,23 @@ function bindEvents() {
     // Deliberately no backdrop-tap dismiss — acknowledgement must be
     // explicit so we can record it server-side.
     document.getElementById('messageAck').addEventListener('click', acknowledgeCurrentMessage);
+
+    // Leave-conflict buttons. "I'm still off" returns to idle without
+    // recording anything — the kiosk simply forgets the PIN entry, the
+    // employee walks away. "I'm coming in anyway" closes the overlay
+    // and lets them clock in normally — the override is implicit in
+    // the resulting clock-in entry, reviewable later against the
+    // approved leave record.
+    document.getElementById('leaveStayBtn').addEventListener('click', () => {
+        hideLeaveConflict();
+        exitActionScreen();
+    });
+    document.getElementById('leaveProceedBtn').addEventListener('click', () => {
+        hideLeaveConflict();
+        // Reset the auto-return timer so the action screen behaves normally
+        clearTimeout(actionReturnTimer);
+        actionReturnTimer = setTimeout(exitActionScreen, ACTION_RETURN_DELAY_MS);
+    });
 
     // Exit
     $('exitBtn').addEventListener('click', exitActionScreen);

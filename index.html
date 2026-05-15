@@ -485,7 +485,7 @@ main {
 /* KPI strip */
 .kpis {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 12px;
 }
 .kpi {
@@ -536,6 +536,7 @@ main {
 .kpi[data-state="break"]   .kpi-label .dot { background: var(--amber); }
 .kpi[data-state="out"]     .kpi-label .dot { background: var(--text-quaternary); }
 .kpi[data-state="absent"]  .kpi-label .dot { background: var(--red); }
+.kpi[data-state="leave"]   .kpi-label .dot { background: var(--blue); }
 
 /* Section header */
 .section-head {
@@ -672,6 +673,163 @@ main {
 .status-pill[data-state="sick"] { background: var(--purple-soft); border-color: var(--purple-border); color: var(--purple-fg); }
 .status-pill[data-state="sick"] .pill-dot { background: var(--purple); }
 
+/* Leave states — surface when an employee has approved Holiday Manager
+   leave covering today AND hasn't clocked in. Three buckets so each has
+   a distinct visual identity: blue = planned/holiday (positive), purple
+   = sick (matches existing in-app Sick Day convention), slate = bereavement
+   (sober). */
+.status-pill[data-state="leave-holiday"] { background: var(--blue-soft); border-color: #93c5fd; color: var(--blue-fg); }
+.status-pill[data-state="leave-holiday"] .pill-dot { background: var(--blue); }
+.status-pill[data-state="leave-sick"] { background: var(--purple-soft); border-color: var(--purple-border); color: var(--purple-fg); }
+.status-pill[data-state="leave-sick"] .pill-dot { background: var(--purple); }
+.status-pill[data-state="leave-bereavement"] { background: #e2e8f0; border-color: #cbd5e1; color: #334155; }
+.status-pill[data-state="leave-bereavement"] .pill-dot { background: #64748b; }
+
+/* "Who's off today" banner — compact summary above the employee list.
+   Groups names by leave type with subtle chips. Hidden when nobody is
+   off so it doesn't take vertical space on a fully-attended day. */
+.today-leave-banner {
+    margin: 14px 0 8px;
+    padding: 14px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px 20px;
+    font-size: 13px;
+    color: var(--text);
+}
+.today-leave-banner-head {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+}
+.today-leave-banner-head svg { width: 14px; height: 14px; }
+.today-leave-group {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+}
+.today-leave-group-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+}
+.today-leave-group-label[data-bucket="leave-holiday"] {
+    background: var(--blue-soft); color: var(--blue-fg);
+}
+.today-leave-group-label[data-bucket="leave-sick"] {
+    background: var(--purple-soft); color: var(--purple-fg);
+}
+.today-leave-group-label[data-bucket="leave-bereavement"] {
+    background: #e2e8f0; color: #334155;
+}
+.today-leave-group-label[data-bucket="absent-now"] {
+    background: var(--red-soft); color: var(--red-fg);
+}
+.today-leave-group-label[data-bucket="in-now"] {
+    background: var(--green-soft); color: var(--green-fg);
+}
+.today-leave-name {
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    transition: background 0.1s ease;
+    font-size: 13px;
+    line-height: 1.3;
+}
+.today-leave-name:hover { background: var(--bg-muted); }
+.today-leave-empty {
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+/* Upcoming-leave chip — small subtle pill rendered under the employee
+   name in the main list, when their next approved leave is within the
+   next 14 days. Tells you at a glance when each person is next off. */
+.upcoming-leave-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 4px;
+    padding: 2px 8px 2px 6px;
+    background: var(--blue-soft);
+    color: var(--blue-fg);
+    border: 1px solid #93c5fd;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
+    vertical-align: middle;
+    line-height: 1.4;
+}
+.upcoming-leave-chip[data-type="sick"] {
+    background: var(--purple-soft);
+    color: var(--purple-fg);
+    border-color: var(--purple-border);
+}
+.upcoming-leave-chip[data-type="bereavement"] {
+    background: #e2e8f0;
+    color: #334155;
+    border-color: #cbd5e1;
+}
+.upcoming-leave-chip svg { width: 10px; height: 10px; flex-shrink: 0; }
+
+/* Drawer holiday-balance row — sits above the period overview. Compact
+   numeric summary of HM allowance usage. */
+.drawer-leave-row {
+    margin: 10px 20px 0;
+    padding: 12px 14px;
+    background: var(--blue-soft);
+    border: 1px solid #bfdbfe;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    font-size: 13px;
+}
+.drawer-leave-row .lhs {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--blue-fg);
+}
+.drawer-leave-row .lhs svg { width: 18px; height: 18px; }
+.drawer-leave-row .balance {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--blue-fg);
+}
+.drawer-leave-row .balance .used {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+.drawer-leave-row[data-low="yes"] {
+    background: var(--amber-soft);
+    border-color: var(--amber-border);
+}
+.drawer-leave-row[data-low="yes"] .lhs,
+.drawer-leave-row[data-low="yes"] .balance,
+.drawer-leave-row[data-low="yes"] .balance .used {
+    color: var(--amber-fg);
+}
+
 .stat {
     display: flex;
     flex-direction: column;
@@ -750,6 +908,12 @@ main {
 .seg-out     { background: transparent; }
 .seg-sick    { background: var(--purple); }
 .seg-absent-day { background: repeating-linear-gradient(45deg, var(--red-soft), var(--red-soft) 4px, #fff 4px, #fff 8px); }
+/* Leave-day fills for the timeline strips and the drawer day rows.
+   Diagonal stripe pattern keeps them visually distinct from worked
+   segments (solid fill) while making the colour bucket obvious. */
+.seg-leave-holiday { background: repeating-linear-gradient(45deg, var(--blue-soft), var(--blue-soft) 4px, #fff 4px, #fff 8px); border: 1px solid #bfdbfe; }
+.seg-leave-sick    { background: repeating-linear-gradient(45deg, var(--purple-soft), var(--purple-soft) 4px, #fff 4px, #fff 8px); border: 1px solid var(--purple-border); }
+.seg-leave-bereavement { background: repeating-linear-gradient(45deg, #e2e8f0, #e2e8f0 4px, #fff 4px, #fff 8px); border: 1px solid #cbd5e1; }
 .seg-live { background: linear-gradient(90deg, var(--green) 0%, var(--green) 70%, rgba(22, 163, 74, 0.6) 100%); }
 .seg-live::after {
     content: '';
@@ -986,6 +1150,8 @@ main {
 .bar-fill[data-kind="sick"] { background: var(--purple); }
 .bar-fill[data-kind="absent"] { background: var(--red-soft); border: 1px solid var(--red-border); }
 .bar-fill[data-kind="weekend"] { background: var(--bg-muted); }
+.bar-fill[data-kind="holiday"] { background: var(--blue-soft); border: 1px solid #93c5fd; }
+.bar-fill[data-kind="bereavement"] { background: #e2e8f0; border: 1px solid #cbd5e1; }
 .bar-col:hover .bar-fill { opacity: 0.7; }
 .bar-col .bar-label {
     font-family: var(--font-mono);
@@ -1059,7 +1225,10 @@ main {
     letter-spacing: 0.04em;
 }
 .day-row[data-state="absent"] .day-num,
-.day-row[data-state="sick"] .day-num { color: var(--text-tertiary); }
+.day-row[data-state="sick"] .day-num,
+.day-row[data-state="leave-holiday"] .day-num,
+.day-row[data-state="leave-sick"] .day-num,
+.day-row[data-state="leave-bereavement"] .day-num { color: var(--text-tertiary); }
 
 .activity-log {
     background: var(--bg-card);
@@ -3179,7 +3348,17 @@ kbd {
             <div class="kpi-value mono" id="kpi-absent">—</div>
             <div class="kpi-meta" id="kpi-absent-meta">&nbsp;</div>
         </div>
+        <div class="kpi" data-state="leave">
+            <div class="kpi-label"><span class="dot"></span>Booked leave</div>
+            <div class="kpi-value mono" id="kpi-leave">—</div>
+            <div class="kpi-meta" id="kpi-leave-meta">&nbsp;</div>
+        </div>
     </section>
+
+    <!-- "Who's off today" — populated by renderTodayLeaveBanner() from
+         leave_state + state.employees. Hidden by CSS when there's nobody
+         off so the dashboard stays compact on a fully-attended day. -->
+    <section class="today-leave-banner" id="todayLeaveBanner" hidden></section>
 
     <!-- Employee List -->
     <div class="section-head">
@@ -3382,6 +3561,243 @@ async function fetchHolidayManagerEmployees(force = false) {
     return _hmEmployeesCache;
 }
 
+// ════════════════════════════════════════════════════════════════════════
+// HOLIDAY MANAGER — LEAVE REQUESTS
+// ════════════════════════════════════════════════════════════════════════
+// Pulls `holiday-requests{year}.json` from the Holiday Manager repo and
+// keeps it cached for 15 minutes. Used to enrich every "absent" surface
+// in the dashboard with the actual reason (holiday / sick / bereavement)
+// instead of just "Not in today", and to correct attendance % so booked
+// leave isn't counted as a missed working day.
+//
+// Year boundary: we always pull BOTH the current year file AND the next
+// year file, then merge. That covers leave booked late-December that
+// extends into January — depending on when it was filed it could live
+// in either file.
+//
+// Persistence: latest successful merge is mirrored to localStorage under
+// `tk:leave:v1` so the dashboard renders informed pills instantly on
+// reload, before the fresh fetch returns. Stale-while-revalidate.
+const LEAVE_CACHE_TTL_MS = 15 * 60 * 1000;
+const LEAVE_LS_KEY = 'tk:leave:v1';
+const _leaveState = {
+    requests: [],            // merged list across the year files we pulled
+    byHmEmpId: new Map(),    // hmEmployeeId → array of requests (filtered to approved only — pending shouldn't drive UI)
+    fetchedAt: 0,            // ms epoch of last successful fetch
+    loading: null,           // in-flight promise, prevents duplicate fetches
+    lastError: null,
+};
+
+// Bootstraps the in-memory cache from localStorage on first import so
+// pills don't flash "Absent" during the initial network round-trip.
+(function hydrateLeaveFromStorage() {
+    try {
+        const raw = localStorage.getItem(LEAVE_LS_KEY);
+        if (!raw) return;
+        const obj = JSON.parse(raw);
+        if (!obj || !Array.isArray(obj.requests)) return;
+        _leaveState.requests = obj.requests;
+        _leaveState.fetchedAt = obj.fetchedAt || 0;
+        rebuildLeaveIndex();
+    } catch { /* ignore corrupt cache */ }
+})();
+
+function rebuildLeaveIndex() {
+    const idx = new Map();
+    for (const r of _leaveState.requests) {
+        if (r.status !== 'approved') continue;
+        const arr = idx.get(r.employeeId) || [];
+        arr.push(r);
+        idx.set(r.employeeId, arr);
+    }
+    // Sort each employee's list by start date so "next upcoming" is fast
+    for (const arr of idx.values()) {
+        arr.sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
+    }
+    _leaveState.byHmEmpId = idx;
+}
+
+async function fetchOneRequestsYear(year) {
+    const resp = await fetch(HOLIDAY_MANAGER.workerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            action: 'get',
+            owner: HOLIDAY_MANAGER.owner,
+            repo: HOLIDAY_MANAGER.repo,
+            path: `holiday-requests${year}.json`,
+        }),
+    });
+    if (resp.status === 404) return [];     // file may not exist yet for a fresh year
+    if (!resp.ok) throw new Error(`HM requests ${year} fetch failed (${resp.status})`);
+    const data = await resp.json();
+    return Array.isArray(data.content) ? data.content : [];
+}
+
+async function fetchHolidayRequests(force = false) {
+    if (_leaveState.loading) return _leaveState.loading;
+    if (!force && _leaveState.fetchedAt && (Date.now() - _leaveState.fetchedAt) < LEAVE_CACHE_TTL_MS) {
+        return _leaveState.requests;
+    }
+    _leaveState.loading = (async () => {
+        try {
+            const thisYear = new Date().getFullYear();
+            // Always pull this year + next year. In January also pull last
+            // year (covers leave that started 28 Dec and runs to 5 Jan,
+            // filed under the previous year).
+            const month = new Date().getMonth();
+            const years = [thisYear, thisYear + 1];
+            if (month === 0) years.unshift(thisYear - 1);
+            const results = await Promise.all(years.map(y => fetchOneRequestsYear(y).catch(e => {
+                console.warn(`HM requests ${y} failed:`, e.message);
+                return [];
+            })));
+            // Merge + dedupe by id (across files an id should be unique
+            // per year but we guard anyway).
+            const seen = new Set();
+            const merged = [];
+            for (const list of results) {
+                for (const r of list) {
+                    const key = `${r.id}:${r.startDate}`;
+                    if (seen.has(key)) continue;
+                    seen.add(key);
+                    merged.push(r);
+                }
+            }
+            _leaveState.requests = merged;
+            _leaveState.fetchedAt = Date.now();
+            _leaveState.lastError = null;
+            rebuildLeaveIndex();
+            try {
+                localStorage.setItem(LEAVE_LS_KEY, JSON.stringify({
+                    requests: merged,
+                    fetchedAt: _leaveState.fetchedAt,
+                }));
+            } catch { /* quota */ }
+            return merged;
+        } catch (e) {
+            console.error('fetchHolidayRequests failed:', e.message);
+            _leaveState.lastError = e.message;
+            return _leaveState.requests; // keep last-known-good
+        } finally {
+            _leaveState.loading = null;
+        }
+    })();
+    return _leaveState.loading;
+}
+
+// Returns the HM employee ID for a TimeKeeper employee, or null if not mapped.
+function hmIdForTkEmp(empOrId) {
+    const tkEmp = (typeof empOrId === 'object') ? empOrId :
+        state.employees.find(e => String(e.id) === String(empOrId));
+    if (!tkEmp || tkEmp.holidayManagerId == null) return null;
+    return Number(tkEmp.holidayManagerId);
+}
+
+// Returns the approved leave covering a specific date for an employee,
+// or null. dateStr is the local YYYY-MM-DD string used elsewhere.
+function leaveForEmpOnDate(tkEmpOrId, dateStr) {
+    const hmId = hmIdForTkEmp(tkEmpOrId);
+    if (hmId == null) return null;
+    const arr = _leaveState.byHmEmpId.get(hmId);
+    if (!arr) return null;
+    for (const r of arr) {
+        if (r.isBlockBooking && Array.isArray(r.selectedDates)) {
+            if (r.selectedDates.includes(dateStr)) return r;
+        } else if (r.startDate && r.endDate) {
+            if (r.startDate <= dateStr && r.endDate >= dateStr) return r;
+        }
+    }
+    return null;
+}
+
+// Returns the next approved leave starting within `daysAhead` days, or null.
+function upcomingLeaveForEmp(tkEmpOrId, daysAhead = 14) {
+    const hmId = hmIdForTkEmp(tkEmpOrId);
+    if (hmId == null) return null;
+    const arr = _leaveState.byHmEmpId.get(hmId);
+    if (!arr) return null;
+    const todayStr = localDateStr();
+    const today = startOfDay(todayStr);
+    const limit = new Date(today);
+    limit.setDate(limit.getDate() + daysAhead);
+    const limitStr = localDateStr(limit);
+    let best = null;
+    for (const r of arr) {
+        const start = r.isBlockBooking && Array.isArray(r.selectedDates) && r.selectedDates.length
+            ? r.selectedDates[0]
+            : r.startDate;
+        if (!start || start <= todayStr) continue;    // already in progress or past
+        if (start > limitStr) continue;
+        if (!best || start < (best.isBlockBooking ? best.selectedDates[0] : best.startDate)) {
+            best = r;
+        }
+    }
+    return best;
+}
+
+// Returns true if any approved leave covers this date for this employee.
+function isLeaveDay(tkEmpOrId, dateStr) {
+    return leaveForEmpOnDate(tkEmpOrId, dateStr) != null;
+}
+
+// All employees on approved leave today, with their leave record.
+function allOnLeaveToday() {
+    const todayStr = localDateStr();
+    const out = [];
+    for (const emp of state.employees) {
+        const lv = leaveForEmpOnDate(emp, todayStr);
+        if (lv) out.push({ emp, leave: lv });
+    }
+    return out;
+}
+
+// Returns the holiday balance for a TimeKeeper employee, derived from
+// the cached HM employees list + approved leave requests in the index.
+// Uses the same `calculateUsedDaysFromRequests` semantics as HM.
+function holidayBalanceForEmp(tkEmp) {
+    const hmId = hmIdForTkEmp(tkEmp);
+    if (hmId == null || !_hmEmployeesCache) return null;
+    const hmEmp = _hmEmployeesCache.find(e => Number(e.id) === hmId);
+    if (!hmEmp) return null;
+    const arr = _leaveState.byHmEmpId.get(hmId) || [];
+    let usedDays = 0;
+    for (const r of arr) {
+        if (r.deductFromHoliday || r.requestType === 'holiday') {
+            usedDays += (r.days || 0);
+        }
+    }
+    const total = hmEmp.totalAllowance || 0;
+    return { total, used: usedDays, remaining: total - usedDays };
+}
+
+// Pretty label + colour-bucket for a leave record (holiday/sick/bereavement).
+// Returns { label, dotKey, bucket } where bucket is 'leave-holiday' |
+// 'leave-sick' | 'leave-bereavement' for status-pill data-state.
+function describeLeave(r) {
+    if (!r) return null;
+    const t = (r.requestType || (r.deductFromHoliday ? 'holiday' : 'holiday'));
+    if (t === 'sick') return { label: 'Off sick', bucket: 'leave-sick', short: 'Sick' };
+    if (t === 'bereavement') return { label: 'Bereavement', bucket: 'leave-bereavement', short: 'Bereavement' };
+    return { label: 'On holiday', bucket: 'leave-holiday', short: 'Holiday' };
+}
+
+// Date-range pretty printer for the leave info chip / tooltip.
+// "19–23 May" or "21 May" (single day) or "30 Dec – 3 Jan" (cross-year).
+function fmtLeaveDateRange(r) {
+    const fmt = (s) => {
+        const d = startOfDay(s);
+        return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    };
+    if (r.isBlockBooking && Array.isArray(r.selectedDates) && r.selectedDates.length) {
+        const sorted = r.selectedDates.slice().sort();
+        if (sorted.length === 1) return fmt(sorted[0]);
+        return `${fmt(sorted[0])} – ${fmt(sorted[sorted.length - 1])}`;
+    }
+    if (r.startDate === r.endDate) return fmt(r.startDate);
+    return `${fmt(r.startDate)} – ${fmt(r.endDate)}`;
+}
+
 // Populate the <select id="fldHmId"> in the employee modal. Tries to auto-suggest
 // the best match by exact name when adding a new employee or one without a mapping.
 async function populateHolidayManagerSelect(currentHmId, tkName) {
@@ -3444,6 +3860,13 @@ const STATUS_LABELS = {
     out:     'Clocked out',
     absent:  'Not in today',
     sick:    'Sick day',
+    // Leave states surface when an employee has approved Holiday Manager
+    // leave covering today AND they haven't clocked in. If they DO clock
+    // in despite booked leave they show as 'working' — actual work
+    // overrides scheduled leave for the live pill.
+    'leave-holiday':     'On holiday',
+    'leave-sick':        'Off sick',
+    'leave-bereavement': 'Bereavement',
 };
 
 // ════════════════════════════════════════════════════════════════════════
@@ -3589,9 +4012,18 @@ function groupClockings(clockings) {
 }
 
 // Compute current live status for today
-function computeLiveStatus(todayEntries, todayStr) {
+function computeLiveStatus(todayEntries, todayStr, tkEmp) {
     if (!todayEntries || todayEntries.length === 0) {
-        // Only "absent" if it's a non-weekend; otherwise "out" by default
+        // No clockings today. If there's approved leave covering today,
+        // surface that — it's far more useful than "Absent". Falls back
+        // to the original out/absent logic if no leave is on record.
+        if (tkEmp) {
+            const lv = leaveForEmpOnDate(tkEmp, todayStr);
+            if (lv) {
+                const desc = describeLeave(lv);
+                return { state: desc.bucket, since: null, leave: lv };
+            }
+        }
         return { state: isWeekend(todayStr) ? 'out' : 'absent', since: null };
     }
     if (todayEntries.some(e => e.type === 'Sick Day')) {
@@ -3706,9 +4138,10 @@ function computeDayStats(entries, dateStr, isToday = false) {
 }
 
 // Compute period totals for an employee across multiple days
-function computePeriodStats(empDays, dateRange, todayStr) {
+function computePeriodStats(empDays, dateRange, todayStr, tkEmp) {
     let totalWorked = 0, totalBreak = 0;
     let workingDays = 0, presentDays = 0, sickDays = 0, absentDays = 0;
+    let holidayDays = 0, bereavementDays = 0;
     let clockInTimes = [];
     let dailyHours = [];
     let dailyStats = {};
@@ -3717,14 +4150,35 @@ function computePeriodStats(empDays, dateRange, todayStr) {
         const entries = empDays.get(dateStr) || [];
         const isToday = dateStr === todayStr;
         const stats = computeDayStats(entries, dateStr, isToday);
+        // Decorate dayStats with leave info so renderers can colour the
+        // day strip and the day-row breakdown appropriately. We only
+        // care about leave when the employee didn't actually clock in.
+        let leaveOnDay = null;
+        if (entries.length === 0 && tkEmp && !stats.isWeekend) {
+            leaveOnDay = leaveForEmpOnDate(tkEmp, dateStr);
+            if (leaveOnDay) {
+                const d = describeLeave(leaveOnDay);
+                stats.leaveType = d.bucket;       // 'leave-holiday' | 'leave-sick' | 'leave-bereavement'
+                stats.leaveRecord = leaveOnDay;
+                stats.isAbsent = false;           // override default "absent" for tooltip/colour
+            }
+        }
         dailyStats[dateStr] = stats;
 
         const wkend = stats.isWeekend;
 
         if (stats.isSick) {
+            // In-app Sick Day clocking entry — already had this category.
             sickDays++;
         } else if (entries.length === 0) {
-            if (!wkend && !isToday) absentDays++;
+            // No work today. Bucket by type if we have a leave record;
+            // otherwise it's a genuine unaccounted absence.
+            if (!wkend && !isToday) {
+                if (stats.leaveType === 'leave-holiday')      holidayDays++;
+                else if (stats.leaveType === 'leave-sick')    sickDays++;
+                else if (stats.leaveType === 'leave-bereavement') bereavementDays++;
+                else                                          absentDays++;
+            }
         } else {
             if (stats.clockIn) {
                 const hr = stats.clockIn.getHours() + stats.clockIn.getMinutes() / 60;
@@ -3736,7 +4190,14 @@ function computePeriodStats(empDays, dateRange, todayStr) {
         }
 
         if (!wkend) workingDays++;
-        dailyHours.push({ date: dateStr, hours: stats.workedMs / 3600000, isWeekend: wkend, isSick: stats.isSick, isAbsent: !stats.isSick && entries.length === 0 && !isToday && !wkend });
+        dailyHours.push({
+            date: dateStr,
+            hours: stats.workedMs / 3600000,
+            isWeekend: wkend,
+            isSick: stats.isSick,
+            isAbsent: !stats.isSick && entries.length === 0 && !isToday && !wkend && !stats.leaveType,
+            leaveType: stats.leaveType || null,
+        });
     }
 
     const avgClockIn = clockInTimes.length ? clockInTimes.reduce((a, b) => a + b, 0) / clockInTimes.length : null;
@@ -3744,11 +4205,23 @@ function computePeriodStats(empDays, dateRange, todayStr) {
     const earliestClockIn = clockInTimes.length ? Math.min(...clockInTimes) : null;
     const avgDailyMs = presentDays > 0 ? totalWorked / presentDays : 0;
     const avgBreakMs = presentDays > 0 ? totalBreak / presentDays : 0;
-    const attendancePct = workingDays > 0 ? Math.round((presentDays / workingDays) * 100) : 0;
+    // Attendance % now excludes approved leave (holiday, bereavement,
+    // and approved sick from HM) from the denominator — those are
+    // authorised absences, not skives. In-app Sick Day clockings ARE
+    // kept in the denominator (and counted as missed) because they're
+    // marked retrospectively by an admin and act as the audit trail.
+    // Adjust by removing holidayDays + bereavementDays from the working
+    // days count when computing the ratio.
+    const adjustedWorkingDays = Math.max(0, workingDays - holidayDays - bereavementDays);
+    const attendancePct = adjustedWorkingDays > 0
+        ? Math.round((presentDays / adjustedWorkingDays) * 100)
+        : 0;
 
     return {
         totalWorked, totalBreak,
         workingDays, presentDays, sickDays, absentDays,
+        holidayDays, bereavementDays,
+        adjustedWorkingDays,
         avgClockIn, latestClockIn, earliestClockIn,
         avgDailyMs, avgBreakMs, attendancePct,
         dailyHours, dailyStats,
@@ -3792,9 +4265,9 @@ function buildEmployeeStats() {
     for (const emp of state.employees) {
         const empDays = grouped.get(emp.id) || new Map();
         const todayEntries = empDays.get(todayStr) || [];
-        const live = computeLiveStatus(todayEntries, todayStr);
+        const live = computeLiveStatus(todayEntries, todayStr, emp);
         const periodStats = (startDate && endDate)
-            ? computePeriodStats(empDays, daysBetween(startDate, endDate), todayStr)
+            ? computePeriodStats(empDays, daysBetween(startDate, endDate), todayStr, emp)
             : null;
         const todayStats = computeDayStats(todayEntries, todayStr, true);
         out.push({ employee: emp, live, periodStats, todayStats, empDays });
@@ -3814,7 +4287,7 @@ function applyFiltersAndSort(employeeStats) {
                               (e.employee.department || '').toLowerCase().includes(q));
     }
 
-    const statusOrder = { working: 0, break: 1, lunch: 2, out: 3, absent: 4, sick: 5 };
+    const statusOrder = { working: 0, break: 1, lunch: 2, out: 3, 'leave-holiday': 4, 'leave-sick': 5, 'leave-bereavement': 6, absent: 7, sick: 8 };
     arr.sort((a, b) => {
         switch (sortBy) {
             case 'name':       return a.employee.name.localeCompare(b.employee.name);
@@ -3831,11 +4304,16 @@ function applyFiltersAndSort(employeeStats) {
 }
 
 function renderKpis(employeeStats) {
-    const counts = { working: 0, break: 0, lunch: 0, out: 0, absent: 0, sick: 0 };
+    const counts = { working: 0, break: 0, lunch: 0, out: 0, absent: 0, sick: 0,
+                     'leave-holiday': 0, 'leave-sick': 0, 'leave-bereavement': 0 };
     for (const e of employeeStats) counts[e.live.state] = (counts[e.live.state] || 0) + 1;
     const total = state.employees.length;
     const breakAndLunch = counts.break + counts.lunch;
-    const absentAndSick = counts.absent + counts.sick;
+    // "Absent / Sick" KPI: only unaccounted absences and in-app sick days.
+    // Booked leave (holiday / bereavement / pre-approved sick) is its own
+    // KPI now so the red number doesn't include planned absences.
+    const absentAndSick = counts.absent + counts.sick + counts['leave-sick'];
+    const onLeave = counts['leave-holiday'] + counts['leave-bereavement'];
 
     document.getElementById('kpi-working').textContent = counts.working;
     document.getElementById('kpi-working-meta').innerHTML = `<strong>${total}</strong> total employees`;
@@ -3844,11 +4322,86 @@ function renderKpis(employeeStats) {
     document.getElementById('kpi-out').textContent = counts.out;
     document.getElementById('kpi-out-meta').innerHTML = `not currently in`;
     document.getElementById('kpi-absent').textContent = absentAndSick;
-    document.getElementById('kpi-absent-meta').innerHTML = `<strong>${counts.absent}</strong> absent · <strong>${counts.sick}</strong> sick`;
+    const sickTotal = counts.sick + counts['leave-sick'];
+    document.getElementById('kpi-absent-meta').innerHTML = `<strong>${counts.absent}</strong> absent · <strong>${sickTotal}</strong> sick`;
+
+    // Optional 5th KPI for booked leave — only render if the element exists.
+    const leaveValEl = document.getElementById('kpi-leave');
+    if (leaveValEl) {
+        leaveValEl.textContent = onLeave;
+        const leaveMetaEl = document.getElementById('kpi-leave-meta');
+        if (leaveMetaEl) {
+            leaveMetaEl.innerHTML = onLeave === 0
+                ? `<span style="color:var(--text-quaternary)">nobody booked off</span>`
+                : `<strong>${counts['leave-holiday']}</strong> holiday · <strong>${counts['leave-bereavement']}</strong> bereavement`;
+        }
+    }
+}
+
+// "Who's off today" — compact banner above the employee list. Groups
+// people by leave type (holiday / sick / bereavement / unaccounted
+// absent) and emits clickable name chips that open the employee drawer.
+// Hidden when nobody is off and everyone is in (the dashboard stays
+// compact on a fully-attended day).
+function renderTodayLeaveBanner(employeeStats) {
+    const el = document.getElementById('todayLeaveBanner');
+    if (!el) return;
+    if (!employeeStats || !employeeStats.length) { el.hidden = true; return; }
+
+    const buckets = {
+        'leave-holiday': [],
+        'leave-sick': [],
+        'leave-bereavement': [],
+        'absent-now': [],   // proper unaccounted absence (no leave record)
+        'sick-now': [],     // in-app Sick Day entries
+    };
+    let inCount = 0;
+    for (const e of employeeStats) {
+        const st = e.live.state;
+        if (st === 'working' || st === 'break' || st === 'lunch') inCount++;
+        else if (st === 'leave-holiday') buckets['leave-holiday'].push(e);
+        else if (st === 'leave-sick') buckets['leave-sick'].push(e);
+        else if (st === 'leave-bereavement') buckets['leave-bereavement'].push(e);
+        else if (st === 'absent') buckets['absent-now'].push(e);
+        else if (st === 'sick') buckets['sick-now'].push(e);
+    }
+
+    const offCount = buckets['leave-holiday'].length + buckets['leave-sick'].length +
+                     buckets['leave-bereavement'].length + buckets['absent-now'].length +
+                     buckets['sick-now'].length;
+    if (offCount === 0) { el.hidden = true; return; }
+
+    const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    const nameChip = (e) => `<span class="today-leave-name" data-empid="${e.employee.id}">${escapeHtml(e.employee.name)}</span>`;
+    const group = (label, bucket, items) => {
+        if (!items.length) return '';
+        return `<div class="today-leave-group">
+            <span class="today-leave-group-label" data-bucket="${bucket}">${escapeHtml(label)} · ${items.length}</span>
+            ${items.map(nameChip).join('')}
+        </div>`;
+    };
+
+    el.innerHTML = `
+        <div class="today-leave-banner-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            ${today} · ${inCount} in
+        </div>
+        ${group('Holiday', 'leave-holiday', buckets['leave-holiday'])}
+        ${group('Off sick', 'leave-sick', [...buckets['leave-sick'], ...buckets['sick-now']])}
+        ${group('Bereavement', 'leave-bereavement', buckets['leave-bereavement'])}
+        ${group('Unaccounted', 'absent-now', buckets['absent-now'])}
+    `;
+    el.hidden = false;
+
+    // Wire chip clicks to open the relevant employee drawer.
+    el.querySelectorAll('.today-leave-name').forEach(n => {
+        n.addEventListener('click', () => openDrawer(n.dataset.empid));
+    });
 }
 
 // Builds the small 7-day timeline strip (today + 6 days back) for a row
-function renderInlineTimeline(empDays, todayStr) {
+function renderInlineTimeline(empDays, todayStr, tkEmpForInlineTimeline) {
     // Days = last 7 days inclusive of today, oldest → newest
     const days = [];
     const cur = startOfDay(todayStr);
@@ -3864,9 +4417,20 @@ function renderInlineTimeline(empDays, todayStr) {
         const stats = computeDayStats(entries, dateStr, isToday);
         const lbl = dayLabel(dateStr);
 
+        // Leave check: if there are no clockings and the employee has
+        // approved leave covering this day, prefer a leave-coloured
+        // stripe over the generic absent stripe.
+        let leaveOnDay = null;
+        if (entries.length === 0 && !stats.isWeekend && tkEmpForInlineTimeline) {
+            leaveOnDay = leaveForEmpOnDate(tkEmpForInlineTimeline, dateStr);
+        }
+
         let segmentsHtml = '';
         if (stats.isSick) {
             segmentsHtml = `<div class="seg seg-sick" style="left:0;width:100%"></div>`;
+        } else if (leaveOnDay) {
+            const desc = describeLeave(leaveOnDay);
+            segmentsHtml = `<div class="seg seg-${desc.bucket}" style="left:0;width:100%"></div>`;
         } else if (entries.length === 0 && !stats.isWeekend && !isToday) {
             // absent
             segmentsHtml = `<div class="seg seg-absent-day" style="left:0;width:100%"></div>`;
@@ -3881,6 +4445,7 @@ function renderInlineTimeline(empDays, todayStr) {
         }
 
         const tooltipData = (stats.isSick) ? 'Sick day'
+            : leaveOnDay ? `${describeLeave(leaveOnDay).label}${leaveOnDay.approvedBy ? ' · auth ' + leaveOnDay.approvedBy : ''}`
             : (entries.length === 0) ? (stats.isWeekend ? 'Weekend' : (isToday ? 'No clockings yet' : 'Absent'))
             : `In ${fmtTimeOfDay(stats.clockIn)} · ${fmtDurationCompact(stats.workedMs)} worked${stats.clockOut ? ' · Out ' + fmtTimeOfDay(stats.clockOut) : ' · still in'}`;
 
@@ -3939,6 +4504,33 @@ function renderEmployeeRow({ employee, live, periodStats, todayStats, empDays },
         }
     }
 
+    // Upcoming leave chip — small pill under the employee name when the
+    // next approved leave is within the next 14 days. Lets the admin see
+    // at a glance who's booked off coming up without leaving this view.
+    let upcomingChip = '';
+    const nextLeave = upcomingLeaveForEmp(employee, 14);
+    if (nextLeave) {
+        const desc = describeLeave(nextLeave);
+        const lvType = (nextLeave.requestType === 'sick') ? 'sick'
+                     : (nextLeave.requestType === 'bereavement') ? 'bereavement'
+                     : 'holiday';
+        upcomingChip = `<span class="upcoming-leave-chip" data-type="${lvType}"
+            title="${escapeHtml(desc.label)} — ${escapeHtml(fmtLeaveDateRange(nextLeave))}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
+            Off ${escapeHtml(fmtLeaveDateRange(nextLeave))}
+        </span>`;
+    }
+
+    // Status pill tooltip: when the live state IS a leave state, surface
+    // the dates + authoriser so a hover/long-press reveals the booking
+    // detail without needing to click into the drawer.
+    let pillTitle = '';
+    if (live.leave) {
+        const range = fmtLeaveDateRange(live.leave);
+        const auth = live.leave.approvedBy ? ` · auth: ${live.leave.approvedBy}` : '';
+        pillTitle = `${STATUS_LABELS[live.state]} · ${range}${auth}`;
+    }
+
     const todayLine = (() => {
         if (live.state === 'sick') return { v: 'Sick day', s: '' };
         if (live.state === 'absent') return { v: 'Not in', s: '' };
@@ -3963,14 +4555,16 @@ function renderEmployeeRow({ employee, live, periodStats, todayStats, empDays },
                 <div class="employee-info">
                     <div class="employee-name">${employee.name}${offsiteBadge}</div>
                     <div class="employee-dept">${employee.department || '—'}</div>
+                    ${upcomingChip}
                 </div>
             </div>
 
             <div>
-                <span class="status-pill" data-state="${live.state}">
+                <span class="status-pill" data-state="${live.state}"${pillTitle ? ` title="${escapeHtml(pillTitle)}"` : ''}>
                     <span class="pill-dot"></span>${statusLabel}
                 </span>
                 ${live.since ? `<div class="stat-sub mono" style="margin-top:4px">since ${since}</div>` : ''}
+                ${live.leave ? `<div class="stat-sub mono" style="margin-top:4px">${escapeHtml(fmtLeaveDateRange(live.leave))}</div>` : ''}
             </div>
 
             <div class="stat">
@@ -3986,7 +4580,7 @@ function renderEmployeeRow({ employee, live, periodStats, todayStats, empDays },
             </div>
 
             <div class="cell-timeline">
-                ${renderInlineTimeline(empDays, todayStr)}
+                ${renderInlineTimeline(empDays, todayStr, employee)}
             </div>
 
             <div class="chevron">
@@ -4001,6 +4595,7 @@ function renderRows() {
     const visible = applyFiltersAndSort(employeeStats);
 
     renderKpis(employeeStats); // KPIs reflect the WHOLE workforce, not filtered
+    renderTodayLeaveBanner(employeeStats); // ditto: banner is whole-workforce, ignores filters
 
     const rowsEl = document.getElementById('employeeRows');
     if (visible.length === 0) {
@@ -4108,9 +4703,9 @@ function renderDrawer() {
     const empDaysAll = groupClockings(state.clockings).get(emp.id) || new Map();
     const { startDate, endDate } = state.filters;
     const dateRange = daysBetween(startDate, endDate);
-    const periodStats = computePeriodStats(empDaysAll, dateRange, todayStr);
+    const periodStats = computePeriodStats(empDaysAll, dateRange, todayStr, emp);
     const todayStats = computeDayStats(empDaysAll.get(todayStr) || [], todayStr, true);
-    const live = computeLiveStatus(empDaysAll.get(todayStr) || [], todayStr);
+    const live = computeLiveStatus(empDaysAll.get(todayStr) || [], todayStr, emp);
 
     const c = colorOf(emp.id);
     const dailyHours = periodStats.dailyHours;
@@ -4120,15 +4715,24 @@ function renderDrawer() {
     const chart = dailyHours.map(d => {
         const pct = (d.hours / maxHours) * 100;
         let kind = 'work';
-        if (d.isSick) kind = 'sick';
-        else if (d.isAbsent) kind = 'absent';
-        else if (d.isWeekend && d.hours === 0) kind = 'weekend';
+        let tooltip;
+        if (d.isSick) {
+            kind = 'sick'; tooltip = 'Sick day';
+        } else if (d.leaveType === 'leave-holiday') {
+            kind = 'holiday'; tooltip = 'On holiday';
+        } else if (d.leaveType === 'leave-sick') {
+            kind = 'sick'; tooltip = 'Off sick';
+        } else if (d.leaveType === 'leave-bereavement') {
+            kind = 'bereavement'; tooltip = 'Bereavement';
+        } else if (d.isAbsent) {
+            kind = 'absent'; tooltip = 'Absent';
+        } else if (d.isWeekend && d.hours === 0) {
+            kind = 'weekend'; tooltip = 'Weekend';
+        } else {
+            tooltip = `${d.hours.toFixed(2)}h`;
+        }
 
         const lbl = dayLabel(d.date);
-        const tooltip = d.isSick ? 'Sick day'
-            : d.isAbsent ? 'Absent'
-            : d.isWeekend && d.hours === 0 ? 'Weekend'
-            : `${d.hours.toFixed(2)}h`;
 
         return `<div class="bar-col" title="${fullDateLabel(d.date)} — ${tooltip}">
             <span class="bar-value">${tooltip}</span>
@@ -4152,6 +4756,15 @@ function renderDrawer() {
             segmentsHtml = `<div class="seg seg-sick" style="left:0;width:100%"></div>`;
             summaryHtml = `<span class="day-status">Sick day</span>`;
             stateAttr = 'sick';
+        } else if (entries.length === 0 && stats.leaveType) {
+            // Approved leave from Holiday Manager — use a stripe in the
+            // matching bucket colour and show the type + auth in the row
+            // summary, just like the timeline strip tooltips.
+            const desc = describeLeave(stats.leaveRecord);
+            segmentsHtml = `<div class="seg seg-${desc.bucket}" style="left:0;width:100%"></div>`;
+            const authBit = stats.leaveRecord.approvedBy ? ` · auth ${escapeHtml(stats.leaveRecord.approvedBy)}` : '';
+            summaryHtml = `<span class="day-status">${escapeHtml(desc.label)}${authBit}</span>`;
+            stateAttr = desc.bucket;
         } else if (entries.length === 0) {
             if (stats.isWeekend) {
                 summaryHtml = `<span class="day-status">Weekend</span>`;
@@ -4250,6 +4863,20 @@ function renderDrawer() {
     const savedNotes = localStorage.getItem(notesKey) || '';
     const notesTs = localStorage.getItem(`${notesKey}-ts`);
 
+    // Holiday balance — pulled from cached HM employees + computed
+    // usedDays from the request index. Renders only when the employee
+    // is linked to a Holiday Manager record. Highlights amber when
+    // remaining ≤ 5 days so it's easy to spot at a glance.
+    const bal = holidayBalanceForEmp(emp);
+    const balanceHtml = bal ? `
+        <div class="drawer-leave-row" data-low="${bal.remaining <= 5 ? 'yes' : 'no'}">
+            <div class="lhs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Annual leave
+            </div>
+            <div class="balance">${bal.remaining} <span class="used">of ${bal.total} remaining · ${bal.used} used</span></div>
+        </div>` : '';
+
     document.getElementById('drawerContent').innerHTML = `
         <div class="drawer-header">
             <div class="avatar" data-color="${c}">${initials(emp.name)}</div>
@@ -4261,12 +4888,15 @@ function renderDrawer() {
                         <span class="pill-dot"></span>${STATUS_LABELS[live.state]}
                     </span>
                     ${live.since ? `<span class="stat-sub mono">since ${fmtTimeOfDay(live.since)}</span>` : ''}
+                    ${live.leave ? `<span class="stat-sub mono">${escapeHtml(fmtLeaveDateRange(live.leave))}${live.leave.approvedBy ? ' · ' + escapeHtml(live.leave.approvedBy) : ''}</span>` : ''}
                 </div>
             </div>
             <button class="drawer-close" id="drawerCloseBtn" aria-label="Close">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
             </button>
         </div>
+
+        ${balanceHtml}
 
         <div class="drawer-body">
             <!-- Period metrics -->
@@ -4281,7 +4911,7 @@ function renderDrawer() {
                     <div class="metric">
                         <div class="metric-label">Attendance</div>
                         <div class="metric-value">${periodStats.attendancePct}%</div>
-                        <div class="metric-meta">${periodStats.presentDays} / ${periodStats.workingDays} working days</div>
+                        <div class="metric-meta">${periodStats.presentDays} / ${periodStats.adjustedWorkingDays} working days${(periodStats.holidayDays + periodStats.bereavementDays) > 0 ? ` <span style="color:var(--text-tertiary)">(excl. ${periodStats.holidayDays + periodStats.bereavementDays} authorised)</span>` : ''}</div>
                     </div>
                     <div class="metric">
                         <div class="metric-label">Avg clock-in</div>
@@ -4297,6 +4927,11 @@ function renderDrawer() {
                         <div class="metric-label">Sick days</div>
                         <div class="metric-value">${periodStats.sickDays}</div>
                         <div class="metric-meta">${periodStats.sickDays > 0 ? Math.round((periodStats.sickDays / periodStats.workingDays) * 100) + '% of working days' : 'none in period'}</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Booked off</div>
+                        <div class="metric-value">${periodStats.holidayDays + periodStats.bereavementDays}</div>
+                        <div class="metric-meta"><strong>${periodStats.holidayDays}</strong> holiday · <strong>${periodStats.bereavementDays}</strong> bereavement</div>
                     </div>
                     <div class="metric">
                         <div class="metric-label">Absent days</div>
@@ -5529,6 +6164,16 @@ function openClockingForm(empId, entry = null) {
     // datetime-local needs YYYY-MM-DDTHH:MM in LOCAL time
     const dtLocal = `${defaultLocal.getFullYear()}-${String(defaultLocal.getMonth()+1).padStart(2,'0')}-${String(defaultLocal.getDate()).padStart(2,'0')}T${String(defaultLocal.getHours()).padStart(2,'0')}:${String(defaultLocal.getMinutes()).padStart(2,'0')}`;
 
+    // Holiday Manager cross-write is only meaningful when:
+    //   - the entry is new (don't double-record on edits)
+    //   - the employee is mapped to a HM record
+    //   - we're recording a Sick Day specifically
+    // We surface the checkbox always but only enable it when type=Sick Day.
+    // Default to checked because the explicit reason to record a sick day
+    // here is the same reason to record it in the leave system — otherwise
+    // the two will drift apart.
+    const hmEligible = !editing && emp.holidayManagerId != null;
+
     openModal(`
         <div class="modal-header">
             <div class="modal-title">${title}</div>
@@ -5548,6 +6193,15 @@ function openClockingForm(empId, entry = null) {
                 <input type="datetime-local" id="clkTime" value="${dtLocal}" />
                 <div class="help">Time is recorded in local time (BST/GMT). Use this to correct missed or forgotten clockings.</div>
             </div>
+            ${hmEligible ? `
+            <div class="field-group" id="clkHmRow" style="display:none;">
+                <label class="msg-dept-row" style="margin:0;">
+                    <input type="checkbox" id="clkHmCross" checked />
+                    <span class="msg-dept-row-label">Also record in Holiday Manager</span>
+                    <span class="msg-dept-row-count">auto-approved sick</span>
+                </label>
+                <div class="help">Posts a sick request in the Holiday Manager so both systems stay in sync. You'll be asked for the authoriser when you save.</div>
+            </div>` : ''}
         </div>
         <div class="modal-actions">
             <button class="btn" data-action="close">Cancel</button>
@@ -5556,12 +6210,39 @@ function openClockingForm(empId, entry = null) {
     `);
     document.querySelectorAll('[data-action="close"]').forEach(b => b.addEventListener('click', closeModal));
 
+    // Show the HM cross-write row only when type === 'Sick Day'. The
+    // checkbox stays checked-by-default but only takes effect when it's
+    // visible (the .display toggle gates it).
+    const clkHmRow = document.getElementById('clkHmRow');
+    function updateHmRowVisibility() {
+        if (!clkHmRow) return;
+        clkHmRow.style.display = (document.getElementById('clkType').value === 'Sick Day') ? '' : 'none';
+    }
+    document.getElementById('clkType').addEventListener('change', updateHmRowVisibility);
+    updateHmRowVisibility();
+
     document.getElementById('clkSaveBtn').addEventListener('click', async () => {
         const type = document.getElementById('clkType').value;
         const timeLocal = document.getElementById('clkTime').value;
         if (!timeLocal) return modalError('Date/time required');
         // datetime-local is parsed as local time; convert to ISO UTC
         const iso = new Date(timeLocal).toISOString().replace(/\.\d+Z$/, 'Z');
+
+        // Cross-write decision: only when adding a NEW Sick Day for a
+        // HM-linked employee with the box ticked. Prompt for the
+        // authoriser up-front so we don't half-create the records on
+        // either side (TK save commits first; if HM cross-write fails
+        // we surface a warning rather than rolling back — the TK Sick
+        // Day record is already audit-trail enough on its own).
+        const crossWriteToHm = !editing && type === 'Sick Day' && hmEligible
+            && document.getElementById('clkHmCross') && document.getElementById('clkHmCross').checked;
+        let hmAuthoriser = null;
+        if (crossWriteToHm) {
+            hmAuthoriser = prompt(`Authoriser for this sick day (your name or initials) — recorded in Holiday Manager:`);
+            if (hmAuthoriser === null) return;     // user cancelled prompt
+            hmAuthoriser = hmAuthoriser.trim();
+            if (!hmAuthoriser) return modalError('Authoriser is required when cross-recording to Holiday Manager');
+        }
 
         const btn = document.getElementById('clkSaveBtn');
         btn.disabled = true;
@@ -5575,12 +6256,132 @@ function openClockingForm(empId, entry = null) {
             closeModal();
             await refresh();
             if (state.selectedEmployeeId) renderDrawer();
+            // Cross-write to HM AFTER the TK save succeeds — the TK side
+            // is the source of truth for clockings; HM is a mirror for
+            // the leave system. Failures here are non-fatal but noisy:
+            // we want the admin to know it didn't sync so they can fix
+            // it manually if needed.
+            if (crossWriteToHm) {
+                try {
+                    await recordSickDayInHM(emp, iso, hmAuthoriser);
+                    // Background refresh so the dashboard picks up the
+                    // new record without a manual reload.
+                    fetchHolidayRequests(true).then(() => { try { renderRows(); renderTodayLeaveBanner(); } catch {} });
+                } catch (hmErr) {
+                    console.error('HM cross-write failed:', hmErr);
+                    alert(`Sick day saved in TimeKeeper, but the Holiday Manager cross-write failed:\n\n${hmErr.message}\n\nYou can add it manually in the Holiday Manager.`);
+                }
+            }
         } catch (err) {
             btn.disabled = false;
             btn.textContent = editing ? 'Save changes' : 'Add clocking';
             modalError(err.message);
         }
     });
+}
+
+// Posts a sick-leave request to the Holiday Manager so it appears
+// alongside admin-entered records. Matches the schema HM uses for
+// auto-approved sick days (see HM script.js — block booking with a
+// single selected date, status pre-set to 'approved', authoriser
+// stamped). Concurrency: HM stores requests as a single JSON file via
+// the GitHub Contents API; we fetch the latest with its SHA, append,
+// and write back. On a 409 (someone else updated the file in between)
+// we retry once with a fresh fetch.
+async function recordSickDayInHM(tkEmp, sickDayIso, authoriser) {
+    const hmId = Number(tkEmp.holidayManagerId);
+    if (!hmId) throw new Error('Employee is not linked to Holiday Manager');
+
+    // Pull the date from the clocking timestamp (local). Sick records
+    // in HM are date-only — we use the date portion of the local time.
+    const d = new Date(sickDayIso);
+    const yyyy = d.getFullYear();
+    const dateStr = `${yyyy}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const fileName = `holiday-requests${yyyy}.json`;
+
+    const fetchHm = async () => {
+        const resp = await fetch(HOLIDAY_MANAGER.workerUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'get',
+                owner: HOLIDAY_MANAGER.owner,
+                repo: HOLIDAY_MANAGER.repo,
+                path: fileName,
+            }),
+        });
+        if (resp.status === 404) return { content: [], sha: null };
+        if (!resp.ok) throw new Error(`HM read failed (${resp.status})`);
+        const data = await resp.json();
+        return { content: Array.isArray(data.content) ? data.content : [], sha: data.sha || null };
+    };
+
+    const writeHm = async (content, sha) => {
+        const resp = await fetch(HOLIDAY_MANAGER.workerUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'update',
+                owner: HOLIDAY_MANAGER.owner,
+                repo: HOLIDAY_MANAGER.repo,
+                path: fileName,
+                content,
+                sha,
+                message: `Sick day cross-written from TimeKeeper for ${tkEmp.name} on ${dateStr}`,
+                branch: 'main',
+            }),
+        });
+        return resp;
+    };
+
+    // Build the new request — schema mirrors HM's own sick-leave creation
+    // (block booking with a single date, status pre-set to approved).
+    const buildRequest = (existingMaxId) => ({
+        id: existingMaxId + 1,
+        employeeId: hmId,
+        employeeName: tkEmp.name,
+        startDate: dateStr,
+        endDate: dateStr,
+        days: 1,
+        isHalfDay: false,
+        halfDayPeriod: null,
+        reason: 'Recorded via TimeKeeper',
+        status: 'approved',
+        submittedDate: new Date().toISOString().split('T')[0],
+        requestType: 'sick',
+        deductFromHoliday: false,
+        isBlockBooking: true,
+        selectedDates: [dateStr],
+        approvedBy: authoriser,
+        approvedDate: new Date().toISOString().split('T')[0],
+    });
+
+    const tryOnce = async () => {
+        const { content, sha } = await fetchHm();
+        // De-duplicate: don't double-record if a sick request for this
+        // employee already covers this date.
+        const already = content.some(r => Number(r.employeeId) === hmId && r.requestType === 'sick' && (
+            (r.isBlockBooking && Array.isArray(r.selectedDates) && r.selectedDates.includes(dateStr)) ||
+            (r.startDate && r.endDate && r.startDate <= dateStr && r.endDate >= dateStr)
+        ));
+        if (already) return { skipped: true };
+        const maxId = content.reduce((m, r) => Math.max(m, Number(r.id) || 0), 0);
+        const updated = content.concat([buildRequest(maxId)]);
+        const resp = await writeHm(updated, sha);
+        return { resp };
+    };
+
+    let result = await tryOnce();
+    if (result.skipped) return;
+    if (result.resp.ok) return;
+    // 409 = SHA mismatch (another write happened). Retry once.
+    if (result.resp.status === 409 || result.resp.status === 422) {
+        result = await tryOnce();
+        if (result.skipped) return;
+        if (result.resp.ok) return;
+    }
+    const errText = await result.resp.text().catch(() => '');
+    throw new Error(`HM write failed (${result.resp.status}) ${errText.slice(0, 120)}`);
 }
 
 function confirmDeleteClocking(entry) {
@@ -5650,6 +6451,16 @@ async function ensureBooted() {
     // session.
     fetchMessages().catch(() => {});
     setInterval(() => fetchMessages().catch(() => {}), 5 * 60_000);
+    // Pull Holiday Manager data once on boot, then on the standard 15-min
+    // cycle. The first call is also responsible for kicking off the
+    // employees fetch (used for holiday balances in the drawer) — both
+    // are slow-changing, both safe to background-load.
+    fetchHolidayRequests().then(() => { try { renderRows(); renderTodayLeaveBanner(); } catch {} }).catch(() => {});
+    fetchHolidayManagerEmployees().catch(() => {});
+    setInterval(() => {
+        fetchHolidayRequests(true).then(() => { try { renderRows(); renderTodayLeaveBanner(); } catch {} }).catch(() => {});
+        fetchHolidayManagerEmployees(true).catch(() => {});
+    }, 15 * 60_000);
 }
 
 // Backup status indicator in topbar — links to the GitHub commit on hover
