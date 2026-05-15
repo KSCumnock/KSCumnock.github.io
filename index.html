@@ -2416,6 +2416,418 @@ kbd {
     font-family: inherit;
 }
 
+/* ════════════════════════════════════════════════════════════════ */
+/* KIOSK MESSAGES DRAWER                                            */
+/* ════════════════════════════════════════════════════════════════ */
+.msg-empty {
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 14px;
+}
+.msg-empty-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    opacity: 0.5;
+}
+.msg-new-btn-row {
+    padding: 16px 20px 8px;
+    display: flex;
+    justify-content: flex-end;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.msg-list {
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.msg-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+    background: var(--bg-card);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+    transition: border-color 0.12s ease, background 0.12s ease;
+}
+.msg-card:hover {
+    border-color: var(--border-strong);
+    background: var(--bg-card-hover);
+}
+.msg-card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.msg-card-title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+}
+.msg-status-pill {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 7px;
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+.msg-status-pill[data-live="yes"] {
+    background: #dcfce7;
+    color: #14532d;
+}
+.msg-status-pill[data-live="no"] {
+    background: var(--bg-muted);
+    color: var(--text-tertiary);
+}
+.msg-card-body {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    white-space: pre-wrap;
+}
+.msg-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-family: ui-monospace, Menlo, monospace;
+}
+.msg-card-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Edit-form view inside the drawer */
+.msg-edit {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+.msg-edit .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.msg-edit label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    font-family: ui-monospace, Menlo, monospace;
+}
+.msg-edit input[type="text"],
+.msg-edit textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg-card);
+}
+.msg-edit textarea {
+    min-height: 140px;
+    resize: vertical;
+    line-height: 1.5;
+    font-family: inherit;
+}
+.msg-edit input[type="text"]:focus,
+.msg-edit textarea:focus {
+    outline: none;
+    border-color: var(--text);
+}
+.msg-edit .help {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    line-height: 1.4;
+}
+
+/* Toggle switch for "Live" */
+.msg-live-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg-muted);
+}
+.msg-live-row.is-live {
+    background: #dcfce7;
+    border-color: #86efac;
+}
+.msg-live-row-info {
+    flex: 1;
+}
+.msg-live-row-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+}
+.msg-live-row-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+.msg-toggle {
+    position: relative;
+    width: 44px;
+    height: 26px;
+    background: var(--border-strong);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.18s ease;
+    flex-shrink: 0;
+    border: none;
+    padding: 0;
+}
+.msg-toggle[data-on="yes"] { background: #16a34a; }
+.msg-toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.18s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.msg-toggle[data-on="yes"]::after { transform: translateX(18px); }
+
+/* Department checkboxes */
+.msg-dept-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.msg-dept-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.1s ease, border-color 0.1s ease;
+}
+.msg-dept-row:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-strong);
+}
+.msg-dept-row input { width: 16px; height: 16px; accent-color: var(--text); cursor: pointer; }
+.msg-dept-row-label {
+    font-size: 14px;
+    color: var(--text);
+    flex: 1;
+}
+.msg-dept-row-count {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-family: ui-monospace, Menlo, monospace;
+}
+.msg-dept-all {
+    background: var(--bg-muted);
+    border-color: var(--border);
+}
+.msg-dept-all .msg-dept-row-label { font-weight: 600; }
+
+/* Edit-form footer (sticky-feeling) */
+.msg-edit-footer {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-subtle);
+}
+.msg-edit-footer .left {
+    margin-right: auto;
+    display: flex;
+    gap: 8px;
+}
+
+/* ════════════════════════════════════════════════════════════════ */
+/* OFFSITE BADGE — appears next to an employee's name in the main   */
+/* list when their current active session was started offsite.     */
+/* ════════════════════════════════════════════════════════════════ */
+.offsite-row-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 6px;
+    padding: 2px 7px 2px 5px;
+    background: #fef3c7;
+    color: #78350f;
+    border: 1px solid #fcd34d;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-family: ui-monospace, Menlo, monospace;
+    cursor: pointer;
+    vertical-align: middle;
+    transition: background 0.12s ease, transform 0.04s ease;
+}
+.offsite-row-badge:hover { background: #fde68a; }
+.offsite-row-badge:active { transform: scale(0.96); }
+.offsite-row-badge svg { width: 11px; height: 11px; }
+.offsite-row-badge .place {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 600;
+    color: #78350f;
+    font-family: inherit;
+}
+
+/* ════════════════════════════════════════════════════════════════ */
+/* OFFSITE MAP MODAL                                                 */
+/* ════════════════════════════════════════════════════════════════ */
+.offsite-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(9, 9, 11, 0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 1000;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.18s ease, visibility 0.18s ease;
+    padding: 24px;
+}
+.offsite-modal-overlay.open {
+    opacity: 1;
+    visibility: visible;
+}
+.offsite-modal-card {
+    background: var(--bg-card);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 560px;
+    max-height: calc(100dvh - 48px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+    transform: scale(0.96);
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.offsite-modal-overlay.open .offsite-modal-card {
+    transform: scale(1);
+}
+.offsite-modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.offsite-modal-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.01em;
+}
+.offsite-modal-sub {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+}
+.offsite-modal-map {
+    width: 100%;
+    height: 280px;
+    background: var(--bg-muted);
+    position: relative;
+}
+.offsite-modal-map .leaflet-container {
+    width: 100%;
+    height: 100%;
+}
+.offsite-modal-map.is-loading::before {
+    content: 'Loading map…';
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--text-tertiary);
+    font-size: 13px;
+    font-family: ui-monospace, Menlo, monospace;
+}
+.offsite-modal-body {
+    padding: 12px 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+}
+.offsite-fact-row {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 12px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+.offsite-fact-row .lbl {
+    color: var(--text-tertiary);
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-top: 1px;
+}
+.offsite-fact-row .val {
+    color: var(--text);
+    word-wrap: break-word;
+}
+.offsite-fact-row .val.muted { color: var(--text-tertiary); }
+.offsite-modal-links {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-subtle);
+}
+.offsite-modal-links a {
+    flex: 1;
+    text-align: center;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 500;
+    transition: background 0.12s ease;
+}
+.offsite-modal-links a:hover { background: var(--bg-muted); }
+
 /* Job edit inline modal — reuses .modal but tighter form */
 .job-edit-fields {
     display: grid;
@@ -2658,6 +3070,10 @@ kbd {
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
                         <span>Manage employees</span>
                     </button>
+                    <button class="menu-item" data-action="messages" role="menuitem">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8v18l-18-8z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+                        <span>Kiosk messages</span>
+                    </button>
                     <a class="menu-item" href="https://github.com/SCOSeanKly/TimeKeeperReports" target="_blank" rel="noopener" role="menuitem">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>
                         <span>View backups on GitHub</span>
@@ -2757,6 +3173,42 @@ kbd {
 <aside class="drawer" id="settingsDrawer" aria-hidden="true">
     <div id="settingsDrawerContent"></div>
 </aside>
+
+<!-- ─── Kiosk Messages Drawer ───────────────────────────────────────
+     Admin authors messages here; live ones overlay the kiosk action
+     screen until each targeted employee taps "I acknowledge". The
+     drawer has two views: a list of messages (with edit/rebroadcast
+     /delete actions) and an edit form (title, body, live toggle,
+     department checkboxes). The view state is tracked in
+     msgState.mode = 'list' | 'edit'. -->
+<div class="drawer-overlay" id="messagesDrawerOverlay"></div>
+<aside class="drawer" id="messagesDrawer" aria-hidden="true">
+    <div id="messagesDrawerContent"></div>
+</aside>
+
+<!-- ─── Offsite Map Modal ───────────────────────────────────────────
+     Shown when an admin taps the offsite badge next to an employee's
+     name in the list. Loads Leaflet on first open, drops a pin at the
+     employee's clock-in coords, reverse-geocodes for an address via
+     Nominatim (cached in localStorage), and shows distance from the
+     geofence centre + the offsite reason/note. -->
+<div class="offsite-modal-overlay" id="offsiteMapOverlay" aria-hidden="true">
+    <div class="offsite-modal-card" role="dialog" aria-modal="true" aria-labelledby="offsiteMapTitle">
+        <div class="offsite-modal-head">
+            <div>
+                <div class="offsite-modal-title" id="offsiteMapTitle">Clock-in location</div>
+                <div class="offsite-modal-sub" id="offsiteMapSub">—</div>
+            </div>
+            <button class="btn btn-icon" id="offsiteMapClose" type="button" aria-label="Close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="offsite-modal-map" id="offsiteMapCanvas"></div>
+        <div class="offsite-modal-body" id="offsiteMapBody">
+            <!-- populated by JS: address row, coords row, distance row, reason row, note row, links -->
+        </div>
+    </div>
+</div>
 
 <!-- ─── Recovery Timesheets Drawer ──────────────────────────────────
      Two-mode panel: LIST shows all sheets with filters + multi-select.
@@ -3401,6 +3853,44 @@ function renderEmployeeRow({ employee, live, periodStats, todayStats, empDays },
     const statusLabel = STATUS_LABELS[live.state] || '—';
     const since = live.since ? fmtTimeOfDay(live.since) : '—';
 
+    // Offsite badge — shown when the employee's *current* active session
+    // was started offsite. We look at today's entries, find the most
+    // recent Clock In (the one anchoring the current session), and if
+    // it has offsite_reason set we render a tappable pin badge that
+    // opens the map modal. We deliberately only show this while the
+    // session is live (working / break / lunch); once they clock out
+    // the badge disappears.
+    let offsiteBadge = '';
+    if (['working', 'break', 'lunch'].includes(live.state)) {
+        const todayEntries = empDays.get(todayStr) || [];
+        let activeClockIn = null;
+        for (let i = todayEntries.length - 1; i >= 0; i--) {
+            const ev = todayEntries[i];
+            if (ev.deleted) continue;
+            if (ev.type === 'Clock In') { activeClockIn = ev; break; }
+        }
+        if (activeClockIn && activeClockIn.offsiteReason) {
+            // Look up a cached reverse-geocoded place name; if we haven't
+            // resolved this lat/lng yet, kick off the lookup in the
+            // background (it'll appear on the next renderRows tick — the
+            // dashboard re-renders every 60s) and show "Offsite" alone
+            // in the meantime.
+            const place = geocodeFromCache(activeClockIn.latitude, activeClockIn.longitude);
+            if (!place) maybeQueueGeocode(activeClockIn.latitude, activeClockIn.longitude);
+            const placeBit = place ? `<span class="place">· ${escapeHtml(place)}</span>` : '';
+            // Encode the data we need to open the modal on click. Done
+            // via data-attrs so renderRows can wire the click handler
+            // generically alongside the existing row click.
+            offsiteBadge = `<button type="button" class="offsite-row-badge"
+                data-offsite-empid="${employee.id}"
+                data-offsite-event-id="${activeClockIn.id}"
+                title="View clock-in location">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a8 8 0 00-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 00-8-8z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                Offsite${placeBit}
+            </button>`;
+        }
+    }
+
     const todayLine = (() => {
         if (live.state === 'sick') return { v: 'Sick day', s: '' };
         if (live.state === 'absent') return { v: 'Not in', s: '' };
@@ -3423,7 +3913,7 @@ function renderEmployeeRow({ employee, live, periodStats, todayStats, empDays },
             <div class="cell-employee">
                 <div class="avatar" data-color="${c}">${initials(employee.name)}</div>
                 <div class="employee-info">
-                    <div class="employee-name">${employee.name}</div>
+                    <div class="employee-name">${employee.name}${offsiteBadge}</div>
                     <div class="employee-dept">${employee.department || '—'}</div>
                 </div>
             </div>
@@ -3482,6 +3972,17 @@ function renderRows() {
     // Bind row clicks
     rowsEl.querySelectorAll('.row').forEach(row => {
         row.addEventListener('click', () => openDrawer(row.dataset.empid));
+    });
+
+    // Offsite badge clicks open the map modal. Stop propagation so the
+    // surrounding row click (which opens the employee drawer) doesn't
+    // also fire — the admin tapped the badge specifically for the
+    // location view.
+    rowsEl.querySelectorAll('.offsite-row-badge').forEach(b => {
+        b.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openOffsiteMapForEvent(b.dataset.offsiteEmpid, b.dataset.offsiteEventId);
+        });
     });
 
     // Bind tooltips on day strips
@@ -5295,6 +5796,8 @@ function bindMenuDropdown() {
                 openEmployeesDrawer();
             } else if (action === 'settings') {
                 openSettingsDrawer();
+            } else if (action === 'messages') {
+                openMessagesDrawer();
             } else if (action === 'timesheets') {
                 openTimesheetsDrawer();
             } else if (action === 'signout') {
@@ -5551,6 +6054,622 @@ async function saveSettings() {
         saveBtn.disabled = false;
     }
 }
+
+// ════════════════════════════════════════════════════════════════════════
+// KIOSK MESSAGES — admin drawer
+// ════════════════════════════════════════════════════════════════════════
+// CRUD for the `messages` table. Two views inside the drawer:
+//   - mode 'list': all messages with status pill + meta (departments, ack
+//     count, age). Tap a card to edit; "+ New" button at the top.
+//   - mode 'edit': form for title, body, live toggle, dept checkboxes.
+//     Save round-trips through /messages (POST or PATCH) and bounces
+//     back to the list view. Delete and Rebroadcast actions live here.
+//
+// Departments are derived from the current employee list — whatever
+// distinct department names exist, the admin can target those. An
+// empty selection = "everyone".
+const msgState = {
+    messages: [],
+    mode: 'list',         // 'list' | 'edit'
+    editing: null,         // currently-edited message object, or 'new'
+    saving: false,
+    loaded: false,
+};
+
+function openMessagesDrawer() {
+    document.getElementById('messagesDrawerOverlay').classList.add('open');
+    const drawer = document.getElementById('messagesDrawer');
+    drawer.setAttribute('aria-hidden', 'false');
+    drawer.classList.add('open');
+    msgState.mode = 'list';
+    msgState.editing = null;
+    renderMessagesDrawer();           // immediate render with cached data (if any)
+    fetchMessages().then(() => renderMessagesDrawer());
+}
+function closeMessagesDrawer() {
+    document.getElementById('messagesDrawerOverlay').classList.remove('open');
+    const drawer = document.getElementById('messagesDrawer');
+    drawer.setAttribute('aria-hidden', 'true');
+    drawer.classList.remove('open');
+}
+document.getElementById('messagesDrawerOverlay').addEventListener('click', closeMessagesDrawer);
+
+async function fetchMessages() {
+    try {
+        const data = await auth.api('GET', '/messages');
+        msgState.messages = Array.isArray(data.messages) ? data.messages : [];
+        msgState.loaded = true;
+    } catch (err) {
+        console.error('fetchMessages failed:', err.message);
+    }
+}
+
+// Compute the set of departments currently in use, with employee counts.
+function distinctDepartments() {
+    const counts = new Map();
+    for (const emp of state.employees || []) {
+        const d = (emp.department || '').trim();
+        if (!d) continue;
+        counts.set(d, (counts.get(d) || 0) + 1);
+    }
+    return [...counts.entries()]
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function renderMessagesDrawer() {
+    const container = document.getElementById('messagesDrawerContent');
+    if (msgState.mode === 'edit') {
+        renderMessagesEditView(container);
+    } else {
+        renderMessagesListView(container);
+    }
+}
+
+function renderMessagesListView(container) {
+    const messages = msgState.messages;
+    const loaded = msgState.loaded;
+
+    let listHtml;
+    if (!loaded) {
+        listHtml = `<div class="msg-empty"><div class="msg-empty-icon">⌛</div>Loading messages…</div>`;
+    } else if (!messages.length) {
+        listHtml = `<div class="msg-empty">
+            <div class="msg-empty-icon">📣</div>
+            No messages yet. Tap <strong>+ New message</strong> to author one — drafts can be created and previewed before going live.
+        </div>`;
+    } else {
+        listHtml = `<div class="msg-list">${
+            messages.map(m => {
+                const depts = (m.departments && m.departments.length)
+                    ? m.departments.join(', ')
+                    : 'Everyone';
+                const ageMs = Date.now() - new Date(m.createdAt).getTime();
+                const ageLbl = ageMs < 60_000 ? 'just now'
+                    : ageMs < 3600_000 ? `${Math.floor(ageMs / 60_000)}m ago`
+                    : ageMs < 86_400_000 ? `${Math.floor(ageMs / 3600_000)}h ago`
+                    : `${Math.floor(ageMs / 86_400_000)}d ago`;
+                const ack = (m.ackCount != null) ? `${m.ackCount} acknowledged` : '';
+                return `<div class="msg-card" data-msg-id="${m.id}">
+                    <div class="msg-card-head">
+                        <div class="msg-card-title">${escapeHtml(m.title)}</div>
+                        <span class="msg-status-pill" data-live="${m.isLive ? 'yes' : 'no'}">${m.isLive ? 'Live' : 'Draft'}</span>
+                    </div>
+                    <div class="msg-card-body">${escapeHtml(m.body)}</div>
+                    <div class="msg-card-meta">
+                        <span class="msg-card-meta-item">👥 ${escapeHtml(depts)}</span>
+                        ${ack ? `<span class="msg-card-meta-item">✓ ${ack}</span>` : ''}
+                        <span class="msg-card-meta-item">⏱ ${ageLbl}</span>
+                    </div>
+                </div>`;
+            }).join('')
+        }</div>`;
+    }
+
+    container.innerHTML = `
+        <div class="settings-head">
+            <div>
+                <div class="settings-head-title">Kiosk messages</div>
+                <div class="settings-head-sub">Author messages that overlay the action screen on the kiosk</div>
+            </div>
+            <button class="btn btn-icon" id="msgCloseBtn" type="button" aria-label="Close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="msg-new-btn-row">
+            <button class="btn btn-primary" id="msgNewBtn" type="button">+ New message</button>
+        </div>
+        ${listHtml}
+    `;
+
+    document.getElementById('msgCloseBtn').addEventListener('click', closeMessagesDrawer);
+    document.getElementById('msgNewBtn').addEventListener('click', () => {
+        msgState.mode = 'edit';
+        msgState.editing = 'new';
+        renderMessagesDrawer();
+    });
+    container.querySelectorAll('.msg-card[data-msg-id]').forEach(card => {
+        card.addEventListener('click', () => {
+            const id = card.dataset.msgId;
+            const msg = msgState.messages.find(m => m.id === id);
+            if (!msg) return;
+            msgState.mode = 'edit';
+            msgState.editing = { ...msg, departments: [...(msg.departments || [])] };
+            renderMessagesDrawer();
+        });
+    });
+}
+
+function renderMessagesEditView(container) {
+    const isNew = msgState.editing === 'new';
+    const m = isNew
+        ? { id: null, title: '', body: '', isLive: false, departments: [], ackCount: 0 }
+        : msgState.editing;
+    const depts = distinctDepartments();
+    const selectedSet = new Set((m.departments || []).map(d => d.toLowerCase()));
+    const allChecked = (m.departments || []).length === 0;
+
+    const deptRowsHtml = depts.length
+        ? depts.map(d => {
+            const checked = selectedSet.has(d.name.toLowerCase());
+            return `<label class="msg-dept-row">
+                <input type="checkbox" data-dept-name="${escapeHtml(d.name)}" ${checked ? 'checked' : ''} />
+                <span class="msg-dept-row-label">${escapeHtml(d.name)}</span>
+                <span class="msg-dept-row-count">${d.count} ${d.count === 1 ? 'employee' : 'employees'}</span>
+            </label>`;
+        }).join('')
+        : `<div class="msg-empty" style="padding:14px;">No departments found on any employee records.</div>`;
+
+    container.innerHTML = `
+        <div class="settings-head">
+            <div>
+                <div class="settings-head-title">${isNew ? 'New message' : 'Edit message'}</div>
+                <div class="settings-head-sub">${isNew ? 'Compose, choose departments, and toggle live when ready' : (m.ackCount != null ? `${m.ackCount} ${m.ackCount === 1 ? 'employee has' : 'employees have'} acknowledged` : '')}</div>
+            </div>
+            <button class="btn btn-icon" id="msgBackBtn" type="button" aria-label="Back to list">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+        </div>
+
+        <div class="msg-edit">
+            <div class="msg-live-row ${m.isLive ? 'is-live' : ''}" id="msgLiveRow">
+                <div class="msg-live-row-info">
+                    <div class="msg-live-row-label">${m.isLive ? 'Live — shown on the kiosk' : 'Draft — not yet visible to staff'}</div>
+                    <div class="msg-live-row-sub">${m.isLive
+                        ? 'Targeted employees will see this on their next kiosk session until they acknowledge.'
+                        : 'Toggle on to publish. Acknowledgments only count once a message is live.'}</div>
+                </div>
+                <button type="button" class="msg-toggle" id="msgLiveToggle" data-on="${m.isLive ? 'yes' : 'no'}" aria-label="Toggle live"></button>
+            </div>
+
+            <div class="field-group">
+                <label for="msgTitle">Title</label>
+                <input type="text" id="msgTitle" maxlength="200" value="${escapeHtml(m.title)}" placeholder="e.g. New uniform policy from Monday" />
+            </div>
+
+            <div class="field-group">
+                <label for="msgBody">Message</label>
+                <textarea id="msgBody" maxlength="5000" placeholder="Write the full message. Line breaks are preserved.">${escapeHtml(m.body)}</textarea>
+                <div class="help">Plain text — line breaks preserved on the kiosk. Max 5,000 characters.</div>
+            </div>
+
+            <div class="field-group">
+                <label>Show to</label>
+                <div class="msg-dept-grid">
+                    <label class="msg-dept-row msg-dept-all">
+                        <input type="checkbox" id="msgDeptAll" ${allChecked ? 'checked' : ''} />
+                        <span class="msg-dept-row-label">Everyone</span>
+                        <span class="msg-dept-row-count">all departments</span>
+                    </label>
+                    ${deptRowsHtml}
+                </div>
+                <div class="help">Tick "Everyone" to target every employee, or pick specific departments. Untargeted (no boxes) = everyone too.</div>
+            </div>
+
+            <div class="msg-edit-footer">
+                ${!isNew ? `<div class="left">
+                    <button class="btn" id="msgRebroadcastBtn" type="button">Re-broadcast</button>
+                    <button class="btn btn-danger" id="msgDeleteBtn" type="button">Delete</button>
+                </div>` : ''}
+                <button class="btn" id="msgCancelBtn" type="button">Cancel</button>
+                <button class="btn btn-primary" id="msgSaveBtn" type="button">${isNew ? 'Create message' : 'Save changes'}</button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('msgBackBtn').addEventListener('click', () => {
+        msgState.mode = 'list';
+        msgState.editing = null;
+        renderMessagesDrawer();
+    });
+    document.getElementById('msgCancelBtn').addEventListener('click', () => {
+        msgState.mode = 'list';
+        msgState.editing = null;
+        renderMessagesDrawer();
+    });
+    document.getElementById('msgLiveToggle').addEventListener('click', (e) => {
+        const btn = e.currentTarget;
+        const next = btn.dataset.on === 'yes' ? 'no' : 'yes';
+        btn.dataset.on = next;
+        const row = document.getElementById('msgLiveRow');
+        const info = row.querySelector('.msg-live-row-label');
+        const sub = row.querySelector('.msg-live-row-sub');
+        if (next === 'yes') {
+            row.classList.add('is-live');
+            info.textContent = 'Live — shown on the kiosk';
+            sub.textContent = 'Targeted employees will see this on their next kiosk session until they acknowledge.';
+        } else {
+            row.classList.remove('is-live');
+            info.textContent = 'Draft — not yet visible to staff';
+            sub.textContent = 'Toggle on to publish. Acknowledgments only count once a message is live.';
+        }
+    });
+    // "Everyone" checkbox is a convenience — ticking it unticks all
+    // per-dept boxes; unticking just goes back to whatever was selected
+    // (functionally, "Everyone unticked + no depts ticked" still means
+    // everyone, but the explicit tick makes intent clear in the UI).
+    document.getElementById('msgDeptAll').addEventListener('change', (e) => {
+        if (e.target.checked) {
+            container.querySelectorAll('[data-dept-name]').forEach(cb => cb.checked = false);
+        }
+    });
+    container.querySelectorAll('[data-dept-name]').forEach(cb => {
+        cb.addEventListener('change', () => {
+            const anyDept = !![...container.querySelectorAll('[data-dept-name]')].find(x => x.checked);
+            document.getElementById('msgDeptAll').checked = !anyDept;
+        });
+    });
+    document.getElementById('msgSaveBtn').addEventListener('click', () => saveMessage());
+    if (!isNew) {
+        document.getElementById('msgRebroadcastBtn').addEventListener('click', () => rebroadcastMessage(m.id));
+        document.getElementById('msgDeleteBtn').addEventListener('click', () => deleteMessage(m.id));
+    }
+}
+
+async function saveMessage() {
+    if (msgState.saving) return;
+    msgState.saving = true;
+    const saveBtn = document.getElementById('msgSaveBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+
+    const title = document.getElementById('msgTitle').value.trim();
+    const body = document.getElementById('msgBody').value.trim();
+    const isLive = document.getElementById('msgLiveToggle').dataset.on === 'yes';
+    const allTicked = document.getElementById('msgDeptAll').checked;
+    let departments;
+    if (allTicked) {
+        departments = [];
+    } else {
+        departments = [...document.querySelectorAll('[data-dept-name]')]
+            .filter(cb => cb.checked)
+            .map(cb => cb.dataset.deptName);
+    }
+
+    if (!title) { alert('Title is required.'); resetSaveBtn(); return; }
+    if (!body) { alert('Message body is required.'); resetSaveBtn(); return; }
+
+    const payload = { title, body, isLive, departments };
+    try {
+        const editing = msgState.editing;
+        if (editing === 'new') {
+            await auth.api('POST', '/messages', payload);
+        } else {
+            await auth.api('PATCH', `/messages/${editing.id}`, payload);
+        }
+        await fetchMessages();
+        msgState.mode = 'list';
+        msgState.editing = null;
+        renderMessagesDrawer();
+    } catch (err) {
+        console.error('Save message failed:', err);
+        alert(`Save failed: ${err.message}`);
+        resetSaveBtn();
+    } finally {
+        msgState.saving = false;
+    }
+    function resetSaveBtn() {
+        saveBtn.disabled = false;
+        saveBtn.textContent = msgState.editing === 'new' ? 'Create message' : 'Save changes';
+        msgState.saving = false;
+    }
+}
+
+async function deleteMessage(id) {
+    if (!confirm('Delete this message? Acknowledgments are kept for the record but the message will no longer be shown to anyone.')) return;
+    try {
+        await auth.api('DELETE', `/messages/${id}`);
+        await fetchMessages();
+        msgState.mode = 'list';
+        msgState.editing = null;
+        renderMessagesDrawer();
+    } catch (err) {
+        console.error('Delete failed:', err);
+        alert(`Delete failed: ${err.message}`);
+    }
+}
+
+async function rebroadcastMessage(id) {
+    if (!confirm('Clear all acknowledgments and re-broadcast?\n\nEvery targeted employee will see this message again on their next kiosk session, even if they already acknowledged it once.')) return;
+    const btn = document.getElementById('msgRebroadcastBtn');
+    btn.disabled = true;
+    btn.textContent = 'Re-broadcasting…';
+    try {
+        const r = await auth.api('POST', `/messages/${id}/rebroadcast`);
+        await fetchMessages();
+        // Refresh the edit view's ack-count subtitle by re-rendering.
+        const fresh = msgState.messages.find(m => m.id === id);
+        if (fresh) msgState.editing = { ...fresh, departments: [...(fresh.departments || [])] };
+        renderMessagesDrawer();
+        // Tiny inline confirmation; reusing alert keeps this code small.
+        const cleared = r && r.clearedAcks != null ? r.clearedAcks : 'all';
+        setTimeout(() => alert(`Cleared ${cleared} acknowledgment${cleared === 1 ? '' : 's'}. Targeted employees will see this again on their next kiosk session.`), 0);
+    } catch (err) {
+        console.error('Rebroadcast failed:', err);
+        alert(`Re-broadcast failed: ${err.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Re-broadcast';
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// OFFSITE MAP MODAL — reverse-geocode + Leaflet pin
+// ════════════════════════════════════════════════════════════════════════
+// Lazy-loads Leaflet (no API key needed) and Nominatim for reverse
+// geocoding. Results are cached in localStorage keyed by coords rounded
+// to 4dp (~11m precision — plenty for "what was the place name").
+const offsiteState = {
+    leafletReady: false,
+    leafletLoading: null,
+    map: null,
+    marker: null,
+    geofenceCircle: null,
+};
+const GEOCODE_CACHE_KEY = 'tk:geocode:v1';
+let geocodeCacheMem = null;
+function loadGeocodeCache() {
+    if (geocodeCacheMem) return geocodeCacheMem;
+    try { geocodeCacheMem = JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY) || '{}') || {}; }
+    catch { geocodeCacheMem = {}; }
+    return geocodeCacheMem;
+}
+function saveGeocodeCache() {
+    try { localStorage.setItem(GEOCODE_CACHE_KEY, JSON.stringify(geocodeCacheMem || {})); }
+    catch { /* quota; ignore */ }
+}
+function geocodeKey(lat, lng) {
+    // 4dp rounds nearby clock-ins into the same cache bucket, which both
+    // reduces Nominatim hits and gives a stable place name for a fleet
+    // depot or job site regardless of GPS jitter.
+    return `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}`;
+}
+function geocodeFromCache(lat, lng) {
+    if (lat == null || lng == null) return null;
+    const cache = loadGeocodeCache();
+    const e = cache[geocodeKey(lat, lng)];
+    return e && e.short ? e.short : null;
+}
+const geocodeInFlight = new Set();
+function maybeQueueGeocode(lat, lng) {
+    if (lat == null || lng == null) return;
+    const key = geocodeKey(lat, lng);
+    if (geocodeInFlight.has(key)) return;
+    const cache = loadGeocodeCache();
+    if (cache[key]) return;
+    geocodeInFlight.add(key);
+    fetchGeocode(lat, lng).then(res => {
+        if (res) {
+            cache[key] = res;
+            geocodeCacheMem = cache;
+            saveGeocodeCache();
+        }
+    }).catch(() => {}).finally(() => {
+        geocodeInFlight.delete(key);
+    });
+}
+async function fetchGeocode(lat, lng) {
+    // Nominatim usage policy: 1 req/sec, requires a UA — browsers set
+    // their own UA which is fine. We don't need an API key. For a small
+    // dealership this is well within the policy.
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&format=json&zoom=18&addressdetails=1`;
+    const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) throw new Error(`Nominatim ${r.status}`);
+    const data = await r.json();
+    // Build a short label and keep the full display_name for the modal.
+    const a = data.address || {};
+    const shortParts = [
+        a.road || a.pedestrian || a.footway || a.neighbourhood,
+        a.suburb || a.village || a.town || a.city || a.hamlet,
+    ].filter(Boolean);
+    const short = shortParts.join(', ') || (data.display_name ? data.display_name.split(',').slice(0, 2).join(',').trim() : null);
+    return {
+        short,
+        full: data.display_name || null,
+        fetchedAt: new Date().toISOString(),
+    };
+}
+
+// Load Leaflet from CDN on first map open. Cached after that.
+async function ensureLeaflet() {
+    if (offsiteState.leafletReady) return;
+    if (offsiteState.leafletLoading) return offsiteState.leafletLoading;
+    offsiteState.leafletLoading = new Promise((resolve, reject) => {
+        // CSS
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+        link.crossOrigin = '';
+        document.head.appendChild(link);
+        // JS
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+        script.crossOrigin = '';
+        script.onload = () => { offsiteState.leafletReady = true; resolve(); };
+        script.onerror = () => reject(new Error('Failed to load Leaflet'));
+        document.head.appendChild(script);
+    });
+    return offsiteState.leafletLoading;
+}
+
+// Haversine distance between two lat/lng pairs in metres.
+function haversineMeters(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const toRad = (d) => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+const OFFSITE_REASON_LABELS_MODAL = { callout: 'Callout', other: 'Other' };
+
+async function openOffsiteMapForEvent(empId, eventId) {
+    const emp = state.employees.find(e => String(e.id) === String(empId));
+    const ev = state.clockings.find(e => e.id === eventId);
+    if (!emp || !ev || ev.latitude == null || ev.longitude == null) {
+        alert('Location data is not available for that clock-in.');
+        return;
+    }
+    const overlay = document.getElementById('offsiteMapOverlay');
+    const sub = document.getElementById('offsiteMapSub');
+    const body = document.getElementById('offsiteMapBody');
+    const mapEl = document.getElementById('offsiteMapCanvas');
+    document.getElementById('offsiteMapTitle').textContent = `${emp.name} · clock-in location`;
+    sub.textContent = new Date(ev.timestamp).toLocaleString('en-GB', {
+        weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+    });
+
+    // Render body content now so it's there even while the map loads.
+    const reasonLbl = OFFSITE_REASON_LABELS_MODAL[ev.offsiteReason] || (ev.offsiteReason ? ev.offsiteReason : '—');
+    const note = ev.offsiteNote ? escapeHtml(ev.offsiteNote) : '<span class="muted">No note provided</span>';
+    const cached = geocodeFromCache(ev.latitude, ev.longitude);
+    const fullCached = (loadGeocodeCache()[geocodeKey(ev.latitude, ev.longitude)] || {}).full;
+    const addressLineId = `offsiteAddr_${ev.id}`;
+    const lat = Number(ev.latitude), lng = Number(ev.longitude);
+    // Geofence-based distance — pulled from cached settings if available.
+    let distLine = '<span class="muted">—</span>';
+    const geo = state.settings && state.settings.recovery_geofence;
+    if (geo && Number.isFinite(geo.lat) && Number.isFinite(geo.lng)) {
+        const m = haversineMeters(geo.lat, geo.lng, lat, lng);
+        const outside = geo.radius && m > geo.radius;
+        distLine = `${(m / 1000).toFixed(2)} km from depot${outside ? ` <span class="muted">(outside ${geo.radius}m geofence)</span>` : ''}`;
+    }
+    body.innerHTML = `
+        <div class="offsite-fact-row">
+            <div class="lbl">Address</div>
+            <div class="val" id="${addressLineId}">${fullCached ? escapeHtml(fullCached) : (cached ? escapeHtml(cached) : '<span class="muted">Looking up…</span>')}</div>
+        </div>
+        <div class="offsite-fact-row">
+            <div class="lbl">Coords</div>
+            <div class="val mono" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;">${lat.toFixed(6)}, ${lng.toFixed(6)}</div>
+        </div>
+        <div class="offsite-fact-row">
+            <div class="lbl">Distance</div>
+            <div class="val">${distLine}</div>
+        </div>
+        <div class="offsite-fact-row">
+            <div class="lbl">Reason</div>
+            <div class="val">${escapeHtml(reasonLbl)}</div>
+        </div>
+        <div class="offsite-fact-row">
+            <div class="lbl">Note</div>
+            <div class="val">${note}</div>
+        </div>
+        <div class="offsite-modal-links">
+            <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank" rel="noopener">Open in Google Maps ↗</a>
+            <a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=18/${lat}/${lng}" target="_blank" rel="noopener">Open in OpenStreetMap ↗</a>
+        </div>
+    `;
+
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+    mapEl.classList.add('is-loading');
+
+    try {
+        await ensureLeaflet();
+        // Reset previous map instance if any — Leaflet doesn't like
+        // re-initialising onto a container it already owns.
+        if (offsiteState.map) {
+            offsiteState.map.remove();
+            offsiteState.map = null;
+        }
+        const map = L.map(mapEl, { zoomControl: true, scrollWheelZoom: false }).setView([lat, lng], 17);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+        L.marker([lat, lng]).addTo(map);
+        // Show the geofence circle if we know where the depot is.
+        if (geo && Number.isFinite(geo.lat) && Number.isFinite(geo.lng) && Number.isFinite(geo.radius)) {
+            L.circle([geo.lat, geo.lng], {
+                radius: geo.radius,
+                color: '#16a34a',
+                fillColor: '#16a34a',
+                fillOpacity: 0.08,
+                weight: 1.5,
+            }).addTo(map);
+        }
+        offsiteState.map = map;
+        mapEl.classList.remove('is-loading');
+        // Leaflet needs a size invalidation when its container was
+        // hidden at init time (modal animating in).
+        setTimeout(() => map.invalidateSize(), 250);
+    } catch (e) {
+        console.error('Map load failed:', e);
+        mapEl.classList.remove('is-loading');
+        mapEl.innerHTML = `<div style="padding:20px;color:#71717a;font-size:13px;text-align:center;">Map failed to load. The link buttons below still work.</div>`;
+    }
+
+    // Reverse-geocode (or use cache if there). If we get a fresh result
+    // afterwards, patch the address line in place.
+    if (!fullCached) {
+        try {
+            const res = await fetchGeocode(lat, lng);
+            if (res) {
+                const cache = loadGeocodeCache();
+                cache[geocodeKey(lat, lng)] = res;
+                geocodeCacheMem = cache;
+                saveGeocodeCache();
+                const addrEl = document.getElementById(addressLineId);
+                if (addrEl) addrEl.textContent = res.full || res.short || '—';
+            }
+        } catch (e) {
+            console.warn('Reverse geocode failed:', e.message);
+            const addrEl = document.getElementById(addressLineId);
+            if (addrEl && !cached) addrEl.innerHTML = '<span class="muted">Could not resolve address</span>';
+        }
+    }
+}
+
+function closeOffsiteMap() {
+    const overlay = document.getElementById('offsiteMapOverlay');
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+    if (offsiteState.map) {
+        // Defer the remove() until after the close transition so the
+        // map doesn't visibly vanish mid-fade.
+        setTimeout(() => {
+            if (offsiteState.map) {
+                offsiteState.map.remove();
+                offsiteState.map = null;
+            }
+        }, 220);
+    }
+}
+document.getElementById('offsiteMapClose').addEventListener('click', closeOffsiteMap);
+document.getElementById('offsiteMapOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'offsiteMapOverlay') closeOffsiteMap();
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('offsiteMapOverlay').classList.contains('open')) {
+        closeOffsiteMap();
+    }
+});
 
 // ════════════════════════════════════════════════════════════════════════
 // RECOVERY TIMESHEETS — admin drawer

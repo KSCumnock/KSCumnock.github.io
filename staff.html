@@ -766,6 +766,113 @@ html.screensaver-active body {
 .reason-cancel:hover { background: var(--border); }
 .reason-cancel:active { background: var(--border-strong); }
 
+/* ────────────────────────────────────────────────────────── */
+/* KIOSK MESSAGES                                              */
+/* Admin-authored announcements shown over the action-buttons  */
+/* screen when there's something the employee needs to ack.    */
+/* Higher z-index than .reason-overlay because we want this to */
+/* sit on top of EVERYTHING — even early clock-out prompts.    */
+/* ────────────────────────────────────────────────────────── */
+.message-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.62);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 120;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.18s ease, visibility 0.18s ease;
+    padding: 24px;
+}
+.message-overlay.show { opacity: 1; visibility: visible; }
+.message-card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 32px 28px 24px;
+    max-width: 520px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+    transform: scale(0.94);
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-height: calc(100dvh - 48px);
+    overflow: hidden;
+}
+.message-overlay.show .message-card { transform: scale(1); }
+.message-icon {
+    color: #4f46e5;
+    width: 56px;
+    height: 56px;
+    display: grid;
+    place-items: center;
+    background: #eef2ff;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.message-icon svg { width: 32px; height: 32px; }
+.message-counter {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    background: var(--bg-muted);
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin-top: 4px;
+}
+.message-title {
+    font-size: 22px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--text);
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    margin-top: 2px;
+}
+.message-body {
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--text);
+    width: 100%;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 50dvh;
+    padding: 4px 8px;
+    margin-top: 2px;
+    text-align: left;
+}
+.message-ack {
+    width: 100%;
+    margin-top: 10px;
+    padding: 18px;
+    border: none;
+    border-radius: 14px;
+    background: var(--text);
+    color: #fff;
+    font-family: var(--font-ui);
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s ease, transform 0.04s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+.message-ack:hover { background: #000; }
+.message-ack:active { transform: scale(0.98); }
+.message-ack:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
 /* Screensaver overlay — appears after IDLE_TIMEOUT_MS of no input.
    Dark, edge-to-edge (extends under the iOS status bar AND home indicator
    via inset:0 + body bg matching). Content respects safe-area-inset so
@@ -1220,6 +1327,28 @@ html.screensaver-active body {
     </div>
 </div>
 
+<!-- Kiosk message overlay. Shown after PIN entry when there are admin
+     messages this employee hasn't acknowledged yet. Blocks the action
+     buttons until "I acknowledge" is tapped. If there are multiple
+     messages they're shown in turn (oldest first), and a "1 of N"
+     counter appears at the top. Acknowledgments are posted to the
+     Worker so the kiosk knows not to show that message to that
+     employee again. -->
+<div class="message-overlay" id="messageOverlay" aria-hidden="true">
+    <div class="message-card">
+        <div class="message-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 11l18-8v18l-18-8z"/>
+                <path d="M11.6 16.8a3 3 0 11-5.8-1.6"/>
+            </svg>
+        </div>
+        <div class="message-counter" id="messageCounter" style="display:none;"></div>
+        <div class="message-title" id="messageTitle"></div>
+        <div class="message-body" id="messageBody"></div>
+        <button class="message-ack" id="messageAck" type="button">I acknowledge</button>
+    </div>
+</div>
+
 <!-- Screensaver — fades in after IDLE_TIMEOUT_MS of no activity. Clean
      minimal clock display: K&S brand mark, HH:MM in JetBrains Mono with
      a 1Hz blinking colon, and the date below. Tap anywhere to wake. -->
@@ -1268,7 +1397,7 @@ const EARLY_CLOCKOUT_BUMPER_MIN = 3;
 // Build version — bumped on each deploy. The boot routine compares this to
 // the version embedded in the (no-cache) HTML and reloads if mismatched, so
 // kiosks don't get stuck on stale code after a deploy.
-const BUILD_VERSION = '2026-05-14-early-clockout-reasons';
+const BUILD_VERSION = '2026-05-15-kiosk-messages';
 
 // ════════════════════════════════════════════════════════════════════════
 // STATE
@@ -1282,6 +1411,11 @@ const state = {
     lastLoad: null,
     brandTaps: 0,
     brandTapResetTimer: null,
+    // Admin-authored kiosk messages for the current employee, queued so
+    // they can be shown one at a time. Reset on every entry to the action
+    // screen so a stale queue from a previous user can never leak.
+    messageQueue: [],
+    messageIdx: 0,
 };
 
 // ════════════════════════════════════════════════════════════════════════
@@ -1599,6 +1733,11 @@ function enterActionScreen(employee) {
     $('actionScreen').classList.remove('hidden');
     renderActionScreen();
     workTimeTimer = setInterval(updateWorkTimeDisplay, 1000);
+    // Fetch any unacknowledged admin messages and overlay them. Fires in
+    // parallel with the action screen render so a slow network doesn't
+    // delay showing the action buttons; if messages arrive they cover
+    // the buttons until acknowledged.
+    loadAndShowMessagesForEmployee(employee);
 }
 
 function exitActionScreen() {
@@ -1609,6 +1748,7 @@ function exitActionScreen() {
     workTimeTimer = null;
     hideDisallowedAlert(); // ensure alert doesn't linger when returning to idle
     hideEarlyReasonPicker(); // ditto for the early clock-out reason picker
+    hideMessageOverlay(); // and the admin message overlay
     $('actionScreen').classList.add('hidden');
     $('idleScreen').classList.remove('hidden');
 }
@@ -1746,6 +1886,99 @@ function hideEarlyReasonPicker() {
     const overlay = document.getElementById('reasonOverlay');
     overlay.classList.remove('show');
     overlay.setAttribute('aria-hidden', 'true');
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// KIOSK MESSAGES
+// ════════════════════════════════════════════════════════════════════════
+// Admin posts a message via the dashboard; if it's targeted at this
+// employee's department (or untargeted = everyone) and they haven't
+// acknowledged it yet, the Worker returns it here and we overlay it on
+// the action screen. Multiple messages stack — acknowledge one, the
+// next appears, then the action buttons are usable.
+async function loadAndShowMessagesForEmployee(emp) {
+    if (!emp) return;
+    try {
+        const url = `${WORKER_URL}/staff/messages?employeeId=${encodeURIComponent(emp.id)}&pin=${encodeURIComponent(emp.pin)}`;
+        const r = await fetch(url);
+        if (!r.ok) return; // soft-fail: missing message is better than blocking the kiosk
+        const data = await r.json();
+        const msgs = Array.isArray(data.messages) ? data.messages : [];
+        if (!msgs.length) return;
+        // Guard against the employee having already left the screen by
+        // the time the response arrives.
+        if (!state.currentEmployee || state.currentEmployee.id !== emp.id) return;
+        state.messageQueue = msgs;
+        state.messageIdx = 0;
+        showCurrentMessage();
+    } catch (e) {
+        console.error('Failed to load kiosk messages:', e);
+    }
+}
+
+function showCurrentMessage() {
+    const total = state.messageQueue.length;
+    if (!total || state.messageIdx >= total) {
+        hideMessageOverlay();
+        return;
+    }
+    const msg = state.messageQueue[state.messageIdx];
+    const counterEl = $('messageCounter');
+    if (total > 1) {
+        counterEl.textContent = `${state.messageIdx + 1} of ${total}`;
+        counterEl.style.display = '';
+    } else {
+        counterEl.style.display = 'none';
+    }
+    // textContent (not innerHTML) so admin-entered titles/bodies can't
+    // inject HTML into the kiosk. Line breaks in the body are preserved
+    // via CSS `white-space: pre-wrap` on .message-body.
+    $('messageTitle').textContent = msg.title || '';
+    $('messageBody').textContent = msg.body || '';
+    const ack = $('messageAck');
+    ack.disabled = false;
+    ack.textContent = 'I acknowledge';
+    const overlay = $('messageOverlay');
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden', 'false');
+    // While a message is up, pause the auto-return-to-idle countdown —
+    // an important notice shouldn't auto-dismiss because the kiosk
+    // thinks the user walked away.
+    clearTimeout(actionReturnTimer);
+}
+
+async function acknowledgeCurrentMessage() {
+    const msg = state.messageQueue[state.messageIdx];
+    const emp = state.currentEmployee;
+    if (!msg || !emp) {
+        hideMessageOverlay();
+        return;
+    }
+    const ack = $('messageAck');
+    ack.disabled = true;
+    ack.textContent = 'Acknowledging…';
+    try {
+        await fetch(`${WORKER_URL}/staff/messages/${encodeURIComponent(msg.id)}/ack`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ employeeId: emp.id, pin: emp.pin }),
+        });
+        // Soft-fail: if the ack POST errors (network blip), we still
+        // advance locally. The message will reappear on next entry,
+        // which is the correct fallback — users can ack again.
+    } catch (e) {
+        console.error('Ack failed (will retry on next session):', e);
+    }
+    state.messageIdx++;
+    showCurrentMessage();
+}
+
+function hideMessageOverlay() {
+    const overlay = $('messageOverlay');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+    state.messageQueue = [];
+    state.messageIdx = 0;
 }
 
 async function submitClocking(type, opts = {}) {
@@ -1978,6 +2211,11 @@ function bindEvents() {
             hideEarlyReasonPicker();
         }
     });
+
+    // Kiosk message overlay: the only way out is to tap "I acknowledge".
+    // Deliberately no backdrop-tap dismiss — acknowledgement must be
+    // explicit so we can record it server-side.
+    document.getElementById('messageAck').addEventListener('click', acknowledgeCurrentMessage);
 
     // Exit
     $('exitBtn').addEventListener('click', exitActionScreen);
