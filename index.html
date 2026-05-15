@@ -685,6 +685,36 @@ main {
 .status-pill[data-state="leave-bereavement"] { background: #e2e8f0; border-color: #cbd5e1; color: #334155; }
 .status-pill[data-state="leave-bereavement"] .pill-dot { background: #64748b; }
 
+/* Post-clockout & half-day states. Colour grouped by semantics:
+   half-day variants borrow the blue from leave-holiday because that's
+   what they are — planned/authorised leave. Appointment is amber.
+   Gone-home-sick is purple to match the wider sick palette. Family
+   emergency is amber-leaning red. Authorised-off is slate. */
+.status-pill[data-state="early-half-day"],
+.status-pill[data-state="half-day-am"],
+.status-pill[data-state="half-day-pm-pending"] {
+    background: var(--blue-soft); border-color: #93c5fd; color: var(--blue-fg);
+}
+.status-pill[data-state="early-half-day"] .pill-dot,
+.status-pill[data-state="half-day-am"] .pill-dot,
+.status-pill[data-state="half-day-pm-pending"] .pill-dot { background: var(--blue); }
+.status-pill[data-state="early-appointment"] {
+    background: var(--amber-soft); border-color: var(--amber-border); color: var(--amber-fg);
+}
+.status-pill[data-state="early-appointment"] .pill-dot { background: var(--amber); }
+.status-pill[data-state="early-sick"] {
+    background: var(--purple-soft); border-color: var(--purple-border); color: var(--purple-fg);
+}
+.status-pill[data-state="early-sick"] .pill-dot { background: var(--purple); }
+.status-pill[data-state="early-emergency"] {
+    background: #fef2f2; border-color: #fca5a5; color: #7f1d1d;
+}
+.status-pill[data-state="early-emergency"] .pill-dot { background: #dc2626; }
+.status-pill[data-state="early-authorised"] {
+    background: #e2e8f0; border-color: #cbd5e1; color: #334155;
+}
+.status-pill[data-state="early-authorised"] .pill-dot { background: #64748b; }
+
 /* "Who's off today" banner — compact summary above the employee list.
    Groups names by leave type with subtle chips. Hidden when nobody is
    off so it doesn't take vertical space on a fully-attended day. */
@@ -3867,6 +3897,33 @@ const STATUS_LABELS = {
     'leave-holiday':     'On holiday',
     'leave-sick':        'Off sick',
     'leave-bereavement': 'Bereavement',
+    // Post-clockout states — when the last clocking today is a Clock Out
+    // AND it carries an early_reason from the kiosk picker, we surface
+    // that reason instead of the generic "Clocked out". Lets the admin
+    // see at a glance that Stuart isn't skiving, he's on half-day leave.
+    'early-half-day':    'Half day off',
+    'early-appointment': 'At appointment',
+    'early-sick':        'Gone home sick',
+    'early-emergency':   'Family emergency',
+    'early-authorised':  'Authorised off',
+    // Half-day flag from a HM request, surfaced before/after the working
+    // portion of the day so the admin always knows the planned context.
+    'half-day-am':       'Half day off (AM)',
+    'half-day-pm-pending': 'PM booked off',
+};
+
+// Maps the literal early_reason string (as stored in the clocking record
+// by the kiosk picker) onto a pill state. Source of truth for the
+// reason strings is EARLY_CLOCKOUT_REASONS in staff.html — keep them
+// in sync. Unknown reasons fall back to generic 'early-authorised' so
+// even custom future reasons still look distinct from "Clocked out".
+const EARLY_REASON_STATES = {
+    'Half-day holiday':                            'early-half-day',
+    'Medical / dental appointment':                'early-appointment',
+    'Feeling unwell — going home':                 'early-sick',
+    'Family / domestic emergency':                 'early-emergency',
+    'Authorised early finish (manager approved)':  'early-authorised',
+    'Other authorised absence':                    'early-authorised',
 };
 
 // ════════════════════════════════════════════════════════════════════════
@@ -4020,6 +4077,19 @@ function computeLiveStatus(todayEntries, todayStr, tkEmp) {
         if (tkEmp) {
             const lv = leaveForEmpOnDate(tkEmp, todayStr);
             if (lv) {
+                // Half-day in HM gets its own state so we can show which
+                // half is booked. AM half-day before they've clocked in
+                // = "Half day off (AM)". PM half-day with no clockings
+                // yet = "PM booked off" (they're presumably going to
+                // come in this morning — once they do they'll show as
+                // 'working', and after clocking out we'll resolve back
+                // to a PM half-day state via the Clock Out branch).
+                if (lv.isHalfDay && lv.halfDayPeriod === 'morning') {
+                    return { state: 'half-day-am', since: null, leave: lv };
+                }
+                if (lv.isHalfDay && lv.halfDayPeriod === 'afternoon') {
+                    return { state: 'half-day-pm-pending', since: null, leave: lv };
+                }
                 const desc = describeLeave(lv);
                 return { state: desc.bucket, since: null, leave: lv };
             }
@@ -4040,8 +4110,31 @@ function computeLiveStatus(todayEntries, todayStr, tkEmp) {
             return { state: 'break', since: lastTime };
         case 'Lunch Start':
             return { state: 'lunch', since: lastTime };
-        case 'Clock Out':
+        case 'Clock Out': {
+            // Smart resolution: if the kiosk early-clockout picker
+            // captured a reason on this Clock Out, surface it as the
+            // pill state instead of generic "Clocked out". Stuart's
+            // case — clocked out at 12:01 with reason "Half-day
+            // holiday" — should show "Half day off", not "Clocked out".
+            //
+            // Also cross-check the Holiday Manager: if the employee has
+            // a half-day PM record today and they've clocked out, that
+            // confirms the PM half-day. Either signal alone is enough.
+            if (last.earlyReason && EARLY_REASON_STATES[last.earlyReason]) {
+                return {
+                    state: EARLY_REASON_STATES[last.earlyReason],
+                    since: lastTime,
+                    earlyReason: last.earlyReason,
+                };
+            }
+            if (tkEmp) {
+                const lv = leaveForEmpOnDate(tkEmp, todayStr);
+                if (lv && lv.isHalfDay && lv.halfDayPeriod === 'afternoon') {
+                    return { state: 'early-half-day', since: lastTime, leave: lv };
+                }
+            }
             return { state: 'out', since: lastTime };
+        }
         default:
             return { state: 'out', since: lastTime };
     }
@@ -4287,7 +4380,16 @@ function applyFiltersAndSort(employeeStats) {
                               (e.employee.department || '').toLowerCase().includes(q));
     }
 
-    const statusOrder = { working: 0, break: 1, lunch: 2, out: 3, 'leave-holiday': 4, 'leave-sick': 5, 'leave-bereavement': 6, absent: 7, sick: 8 };
+    const statusOrder = {
+        working: 0, break: 1, lunch: 2,
+        out: 3,
+        'early-authorised': 3.3, 'early-appointment': 3.5, 'early-half-day': 3.7,
+        'half-day-am': 3.8, 'half-day-pm-pending': 3.9,
+        'leave-holiday': 4,
+        'leave-sick': 5, 'early-sick': 5.2, 'early-emergency': 5.5,
+        'leave-bereavement': 6,
+        absent: 7, sick: 8,
+    };
     arr.sort((a, b) => {
         switch (sortBy) {
             case 'name':       return a.employee.name.localeCompare(b.employee.name);
@@ -4305,24 +4407,34 @@ function applyFiltersAndSort(employeeStats) {
 
 function renderKpis(employeeStats) {
     const counts = { working: 0, break: 0, lunch: 0, out: 0, absent: 0, sick: 0,
-                     'leave-holiday': 0, 'leave-sick': 0, 'leave-bereavement': 0 };
+                     'leave-holiday': 0, 'leave-sick': 0, 'leave-bereavement': 0,
+                     'early-half-day': 0, 'early-appointment': 0, 'early-sick': 0,
+                     'early-emergency': 0, 'early-authorised': 0,
+                     'half-day-am': 0, 'half-day-pm-pending': 0 };
     for (const e of employeeStats) counts[e.live.state] = (counts[e.live.state] || 0) + 1;
     const total = state.employees.length;
     const breakAndLunch = counts.break + counts.lunch;
-    // "Absent / Sick" KPI: only unaccounted absences and in-app sick days.
-    // Booked leave (holiday / bereavement / pre-approved sick) is its own
-    // KPI now so the red number doesn't include planned absences.
-    const absentAndSick = counts.absent + counts.sick + counts['leave-sick'];
-    const onLeave = counts['leave-holiday'] + counts['leave-bereavement'];
+    // The "Clocked out" KPI groups everyone who's done for the day:
+    // vanilla clock-outs PLUS anyone clocked out with an authorised
+    // reason (half-day, appointment, etc.). Sean's "9 left at 5pm" view
+    // is more useful than splitting them by reason at this level — the
+    // pill on each row already gives the per-employee detail.
+    const outAll = counts.out + counts['early-authorised'] + counts['early-appointment']
+                  + counts['early-half-day'] + counts['early-emergency'];
+    // Booked leave: full-day holiday/bereavement + the half-day flavours.
+    // Gone-home-sick and leave-sick still feed the sick bucket below.
+    const onLeave = counts['leave-holiday'] + counts['leave-bereavement']
+                  + counts['half-day-am'] + counts['half-day-pm-pending'];
+    const sickTotal = counts.sick + counts['leave-sick'] + counts['early-sick'];
+    const absentAndSick = counts.absent + sickTotal;
 
     document.getElementById('kpi-working').textContent = counts.working;
     document.getElementById('kpi-working-meta').innerHTML = `<strong>${total}</strong> total employees`;
     document.getElementById('kpi-break').textContent = breakAndLunch;
     document.getElementById('kpi-break-meta').innerHTML = `<strong>${counts.break}</strong> break · <strong>${counts.lunch}</strong> lunch`;
-    document.getElementById('kpi-out').textContent = counts.out;
+    document.getElementById('kpi-out').textContent = outAll;
     document.getElementById('kpi-out-meta').innerHTML = `not currently in`;
     document.getElementById('kpi-absent').textContent = absentAndSick;
-    const sickTotal = counts.sick + counts['leave-sick'];
     document.getElementById('kpi-absent-meta').innerHTML = `<strong>${counts.absent}</strong> absent · <strong>${sickTotal}</strong> sick`;
 
     // Optional 5th KPI for booked leave — only render if the element exists.
@@ -4331,9 +4443,10 @@ function renderKpis(employeeStats) {
         leaveValEl.textContent = onLeave;
         const leaveMetaEl = document.getElementById('kpi-leave-meta');
         if (leaveMetaEl) {
+            const halfDays = counts['early-half-day'] + counts['half-day-am'] + counts['half-day-pm-pending'];
             leaveMetaEl.innerHTML = onLeave === 0
                 ? `<span style="color:var(--text-quaternary)">nobody booked off</span>`
-                : `<strong>${counts['leave-holiday']}</strong> holiday · <strong>${counts['leave-bereavement']}</strong> bereavement`;
+                : `<strong>${counts['leave-holiday']}</strong> holiday · <strong>${halfDays}</strong> half-day · <strong>${counts['leave-bereavement']}</strong> bereavement`;
         }
     }
 }
@@ -4350,25 +4463,32 @@ function renderTodayLeaveBanner(employeeStats) {
 
     const buckets = {
         'leave-holiday': [],
-        'leave-sick': [],
+        'half-day':      [],   // early-half-day + half-day-am + half-day-pm-pending
+        'sick':          [],   // sick + leave-sick + early-sick
         'leave-bereavement': [],
-        'absent-now': [],   // proper unaccounted absence (no leave record)
-        'sick-now': [],     // in-app Sick Day entries
+        'appointment':   [],   // early-appointment
+        'emergency':     [],   // early-emergency
+        'authorised':    [],   // early-authorised
+        'absent-now':    [],   // proper unaccounted absence
     };
     let inCount = 0;
     for (const e of employeeStats) {
         const st = e.live.state;
         if (st === 'working' || st === 'break' || st === 'lunch') inCount++;
         else if (st === 'leave-holiday') buckets['leave-holiday'].push(e);
-        else if (st === 'leave-sick') buckets['leave-sick'].push(e);
+        else if (st === 'leave-sick' || st === 'sick' || st === 'early-sick') buckets['sick'].push(e);
         else if (st === 'leave-bereavement') buckets['leave-bereavement'].push(e);
+        else if (st === 'early-half-day' || st === 'half-day-am' || st === 'half-day-pm-pending') buckets['half-day'].push(e);
+        else if (st === 'early-appointment') buckets['appointment'].push(e);
+        else if (st === 'early-emergency') buckets['emergency'].push(e);
+        else if (st === 'early-authorised') buckets['authorised'].push(e);
         else if (st === 'absent') buckets['absent-now'].push(e);
-        else if (st === 'sick') buckets['sick-now'].push(e);
     }
 
-    const offCount = buckets['leave-holiday'].length + buckets['leave-sick'].length +
-                     buckets['leave-bereavement'].length + buckets['absent-now'].length +
-                     buckets['sick-now'].length;
+    const offCount = buckets['leave-holiday'].length + buckets['half-day'].length +
+                     buckets['sick'].length + buckets['leave-bereavement'].length +
+                     buckets['appointment'].length + buckets['emergency'].length +
+                     buckets['authorised'].length + buckets['absent-now'].length;
     if (offCount === 0) { el.hidden = true; return; }
 
     const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -4388,8 +4508,12 @@ function renderTodayLeaveBanner(employeeStats) {
             ${today} · ${inCount} in
         </div>
         ${group('Holiday', 'leave-holiday', buckets['leave-holiday'])}
-        ${group('Off sick', 'leave-sick', [...buckets['leave-sick'], ...buckets['sick-now']])}
+        ${group('Half-day', 'leave-holiday', buckets['half-day'])}
+        ${group('Off sick', 'leave-sick', buckets['sick'])}
         ${group('Bereavement', 'leave-bereavement', buckets['leave-bereavement'])}
+        ${group('Appointment', 'leave-sick', buckets['appointment'])}
+        ${group('Family emergency', 'absent-now', buckets['emergency'])}
+        ${group('Authorised off', 'leave-bereavement', buckets['authorised'])}
         ${group('Unaccounted', 'absent-now', buckets['absent-now'])}
     `;
     el.hidden = false;
@@ -4529,6 +4653,9 @@ function renderEmployeeRow({ employee, live, periodStats, todayStats, empDays },
         const range = fmtLeaveDateRange(live.leave);
         const auth = live.leave.approvedBy ? ` · auth: ${live.leave.approvedBy}` : '';
         pillTitle = `${STATUS_LABELS[live.state]} · ${range}${auth}`;
+    } else if (live.earlyReason) {
+        // Spontaneous early-clockout reason from the kiosk picker.
+        pillTitle = `${STATUS_LABELS[live.state]} · ${live.earlyReason}`;
     }
 
     const todayLine = (() => {
