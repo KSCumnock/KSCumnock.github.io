@@ -658,6 +658,114 @@ html.screensaver-active body {
     border-color: var(--border);
 }
 
+/* ────────────────────────────────────────────────────────── */
+/* EARLY CLOCK-OUT REASON PICKER                               */
+/* Shown when an employee taps "Clock Out" before their        */
+/* scheduled finish time (minus EARLY_CLOCKOUT_BUMPER_MIN).     */
+/* Same overlay treatment as .alert-overlay, but the card holds */
+/* a scrollable list of reason buttons.                        */
+/* ────────────────────────────────────────────────────────── */
+.reason-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 110;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.18s ease, visibility 0.18s ease;
+    padding: 24px;
+}
+.reason-overlay.show { opacity: 1; visibility: visible; }
+.reason-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 24px 22px;
+    max-width: 460px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    transform: scale(0.94);
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+}
+.reason-overlay.show .reason-card { transform: scale(1); }
+.reason-icon {
+    color: var(--amber);
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    background: var(--amber-soft);
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.reason-icon svg { width: 30px; height: 30px; }
+.reason-heading {
+    font-size: 19px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--text);
+    letter-spacing: -0.01em;
+}
+.reason-sub {
+    font-size: 14px;
+    line-height: 1.45;
+    text-align: center;
+    color: var(--text-secondary);
+    margin-top: -4px;
+}
+.reason-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    margin-top: 4px;
+}
+.reason-btn {
+    width: 100%;
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-card);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 16px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.04s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+.reason-btn:hover { background: var(--bg-muted); border-color: var(--border-strong); }
+.reason-btn:active { transform: scale(0.98); }
+.reason-cancel {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: background 0.12s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+.reason-cancel:hover { background: var(--border); }
+.reason-cancel:active { background: var(--border-strong); }
+
 /* Screensaver overlay — appears after IDLE_TIMEOUT_MS of no input.
    Dark, edge-to-edge (extends under the iOS status bar AND home indicator
    via inset:0 + body bg matching). Content respects safe-area-inset so
@@ -1091,6 +1199,27 @@ html.screensaver-active body {
     </div>
 </div>
 
+<!-- Early clock-out reason picker. Shown when an employee taps "Clock Out"
+     before their scheduled finish time (minus EARLY_CLOCKOUT_BUMPER_MIN). They
+     must pick a reason to proceed; the reason is recorded with the clocking and
+     emailed to the early-clock-out recipients. Tapping "Not yet — go back" or
+     the backdrop cancels without clocking out. Reason buttons are injected by
+     JS so the list is driven by the EARLY_CLOCKOUT_REASONS constant. -->
+<div class="reason-overlay" id="reasonOverlay" aria-hidden="true">
+    <div class="reason-card">
+        <div class="reason-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+            </svg>
+        </div>
+        <div class="reason-heading">You're not scheduled to finish yet</div>
+        <div class="reason-sub" id="reasonSub">Pick a reason to finish early.</div>
+        <div class="reason-list" id="reasonList"><!-- reason buttons injected by JS --></div>
+        <button class="reason-cancel" id="reasonCancel" type="button">Not yet — go back</button>
+    </div>
+</div>
+
 <!-- Screensaver — fades in after IDLE_TIMEOUT_MS of no activity. Clean
      minimal clock display: K&S brand mark, HH:MM in JetBrains Mono with
      a 1Hz blinking colon, and the date below. Tap anywhere to wake. -->
@@ -1131,10 +1260,15 @@ const ACTION_RETURN_DELAY_MS = 3500;        // after a clock action, return to i
 const ACTION_FEEDBACK_DELAY_MS = 250;       // brief delay before showing toast
 const IDLE_TIMEOUT_MS = 20 * 1000;          // 20s of no input → screensaver
 
+// How many minutes before an employee's scheduled finish time still counts
+// as a "normal" clock-out. Clocking out earlier than (finishTime - bumper)
+// pops the early clock-out reason picker. Spec: 3-minute bumper.
+const EARLY_CLOCKOUT_BUMPER_MIN = 3;
+
 // Build version — bumped on each deploy. The boot routine compares this to
 // the version embedded in the (no-cache) HTML and reloads if mismatched, so
 // kiosks don't get stuck on stale code after a deploy.
-const BUILD_VERSION = '2026-05-12-17.00-colon-center';
+const BUILD_VERSION = '2026-05-14-early-clockout-reasons';
 
 // ════════════════════════════════════════════════════════════════════════
 // STATE
@@ -1368,6 +1502,50 @@ function isActionAllowed(status, action) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+// EARLY CLOCK-OUT
+// ════════════════════════════════════════════════════════════════════════
+// Reasons offered when someone clocks out before their scheduled finish time.
+// These are plain labels — the selected label is sent to the Worker as-is,
+// recorded against the clocking, and included in the notification email.
+// To change the list, just edit this array (no other code changes needed).
+const EARLY_CLOCKOUT_REASONS = [
+    'Half-day holiday',
+    'Medical / dental appointment',
+    'Feeling unwell — going home',
+    'Family / domestic emergency',
+    'Authorised early finish (manager approved)',
+    'Other authorised absence',
+];
+
+// Returns the employee's scheduled finish time as a minute-of-day (0–1439),
+// or null if they have no finish time on file. The Worker stores start/finish
+// as ISO UTC strings whose *clock components* are the UK local wall-clock time
+// (see formatScheduledTime / isShiftStartedByNow in the Worker) — so we read
+// the UTC hours/minutes here to match.
+function getScheduledFinishMinute(emp) {
+    if (!emp || !emp.finishTime) return null;
+    const d = new Date(emp.finishTime);
+    if (isNaN(d.getTime())) return null;
+    return d.getUTCHours() * 60 + d.getUTCMinutes();
+}
+
+// True if clocking out *right now* is earlier than (scheduled finish − bumper).
+// Flexible-schedule staff and anyone without a finish time on file are never
+// gated — there's no fixed finish to measure "early" against.
+function isEarlyClockOut(emp) {
+    if (!emp || emp.hasFlexibleSchedule) return false;
+    const finishMin = getScheduledFinishMinute(emp);
+    if (finishMin == null) return false;
+    return currentMinuteOfDay() < (finishMin - EARLY_CLOCKOUT_BUMPER_MIN);
+}
+
+function fmtMinuteOfDay(min) {
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+// ════════════════════════════════════════════════════════════════════════
 // IDLE SCREEN — PIN keypad
 // ════════════════════════════════════════════════════════════════════════
 function renderPinDots() {
@@ -1430,6 +1608,7 @@ function exitActionScreen() {
     actionReturnTimer = null;
     workTimeTimer = null;
     hideDisallowedAlert(); // ensure alert doesn't linger when returning to idle
+    hideEarlyReasonPicker(); // ditto for the early clock-out reason picker
     $('actionScreen').classList.add('hidden');
     $('idleScreen').classList.remove('hidden');
 }
@@ -1518,7 +1697,58 @@ function hideDisallowedAlert() {
     overlay.setAttribute('aria-hidden', 'true');
 }
 
-async function submitClocking(type) {
+// Early clock-out reason picker. Built fresh each time it's shown so the
+// button list always reflects EARLY_CLOCKOUT_REASONS. Picking a reason fires
+// the clock-out with that reason attached; "Not yet — go back" or a backdrop
+// tap cancels without clocking out.
+function showEarlyReasonPicker() {
+    const emp = state.currentEmployee;
+    if (!emp) return;
+
+    const finishMin = getScheduledFinishMinute(emp);
+    const nowMin = currentMinuteOfDay();
+    const sub = $('reasonSub');
+    if (finishMin != null) {
+        const minsEarly = Math.max(0, finishMin - nowMin);
+        sub.textContent = `Your shift ends at ${fmtMinuteOfDay(finishMin)} — that's ${minsEarly} min early. Choose a reason to finish now.`;
+    } else {
+        sub.textContent = 'Choose a reason to finish early.';
+    }
+
+    const list = $('reasonList');
+    list.innerHTML = '';
+    EARLY_CLOCKOUT_REASONS.forEach(reason => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'reason-btn';
+        b.textContent = reason;
+        b.addEventListener('click', () => {
+            hideEarlyReasonPicker();
+            submitClocking('Clock Out', { earlyReason: reason });
+        });
+        list.appendChild(b);
+    });
+
+    const overlay = $('reasonOverlay');
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden', 'false');
+
+    // Hold the auto-return-to-idle timer while they decide (same pattern as
+    // showDisallowedAlert). If they walk away, bail back to idle after 25s
+    // WITHOUT clocking out — an unexplained early clock-out shouldn't record.
+    clearTimeout(actionReturnTimer);
+    actionReturnTimer = setTimeout(() => {
+        hideEarlyReasonPicker();
+        exitActionScreen();
+    }, 25000);
+}
+function hideEarlyReasonPicker() {
+    const overlay = document.getElementById('reasonOverlay');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+}
+
+async function submitClocking(type, opts = {}) {
     const emp = state.currentEmployee;
     if (!emp) return;
 
@@ -1528,14 +1758,19 @@ async function submitClocking(type) {
     showRecordingOverlay(RECORDING_LABELS[type] || 'Recording…');
 
     try {
+        const payload = {
+            employeeId: emp.id,
+            pin: emp.pin,
+            type,
+        };
+        // Early clock-outs carry the reason the employee picked; the Worker
+        // records it against the clocking and emails the early-clock-out list.
+        if (opts.earlyReason) payload.earlyReason = opts.earlyReason;
+
         const r = await fetch(`${WORKER_URL}/staff/clocking`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                employeeId: emp.id,
-                pin: emp.pin,
-                type,
-            }),
+            body: JSON.stringify(payload),
         });
 
         const data = await r.json().catch(() => ({}));
@@ -1712,6 +1947,12 @@ function bindEvents() {
                 showDisallowedAlert(btn.dataset.disallowMessage || 'That action isn\'t available right now.');
                 return;
             }
+            // Clocking out before the scheduled finish time (minus the 3-min
+            // bumper) → ask for a reason before recording the clock-out.
+            if (btn.dataset.type === 'Clock Out' && isEarlyClockOut(state.currentEmployee)) {
+                showEarlyReasonPicker();
+                return;
+            }
             submitClocking(btn.dataset.type);
         });
     });
@@ -1721,6 +1962,21 @@ function bindEvents() {
     // Alert: tap on backdrop (outside the card) also dismisses
     document.getElementById('alertOverlay').addEventListener('click', (e) => {
         if (e.target.id === 'alertOverlay') hideDisallowedAlert();
+    });
+
+    // Early clock-out reason picker: "Not yet — go back" and backdrop taps
+    // cancel without clocking out. Clear the held auto-return timer so the
+    // kiosk doesn't kick back to idle on the picker's countdown. (Individual
+    // reason buttons are wired up in showEarlyReasonPicker when built.)
+    document.getElementById('reasonCancel').addEventListener('click', () => {
+        clearTimeout(actionReturnTimer);
+        hideEarlyReasonPicker();
+    });
+    document.getElementById('reasonOverlay').addEventListener('click', (e) => {
+        if (e.target.id === 'reasonOverlay') {
+            clearTimeout(actionReturnTimer);
+            hideEarlyReasonPicker();
+        }
     });
 
     // Exit

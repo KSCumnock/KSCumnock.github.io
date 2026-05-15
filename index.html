@@ -5402,6 +5402,12 @@ function renderSettingsDrawer() {
             </div>
 
             <div class="settings-section">
+                <h3>Early clock-out notifications</h3>
+                <div class="help">Emailed whenever an employee clocks out before their scheduled finish time (allowing a 3&nbsp;min bumper) and picks a reason on the kiosk. The email shows who, their scheduled finish, the actual time, and the reason given.</div>
+                ${renderRecipientList('early_clockout_recipients', s.early_clockout_recipients || [])}
+            </div>
+
+            <div class="settings-section">
                 <h3>Recovery geofence</h3>
                 <div class="help">The mobile app uses these coordinates to decide whether a driver is "on site" or "off site". Default is Kerr &amp; Smith Cumnock with a 200&nbsp;m radius.</div>
                 <div class="geofence-grid">
@@ -5528,6 +5534,7 @@ async function saveSettings() {
         recovery_notification_recipients: state.settings.recovery_notification_recipients,
         recovery_export_recipients: state.settings.recovery_export_recipients,
         morning_report_recipients: state.settings.morning_report_recipients,
+        early_clockout_recipients: state.settings.early_clockout_recipients,
         recovery_geofence: { lat: geoLat, lng: geoLng, radius: geoRadius },
     };
 
