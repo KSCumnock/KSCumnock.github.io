@@ -2905,6 +2905,165 @@ kbd {
     gap: 8px;
 }
 
+/* Acknowledgments panel inside the message edit view. Two columns
+   (acknowledged | outstanding) with a progress bar header summarising
+   coverage. Avatar-tiny is a 24px variant used only here so the rows
+   stay compact. */
+.avatar-tiny {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 10px !important;
+}
+.avatar-muted {
+    background: var(--bg-muted) !important;
+    color: var(--text-tertiary) !important;
+    border-color: var(--border) !important;
+}
+.msg-acks {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+    background: var(--bg-card);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.msg-acks-head {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.msg-acks-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.msg-acks-count {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    background: var(--bg-muted);
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+.msg-acks-meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+}
+.msg-acks-bar {
+    height: 4px;
+    background: var(--bg-muted);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.msg-acks-bar-fill {
+    height: 100%;
+    background: #16a34a;
+    transition: width 0.3s ease;
+}
+.msg-acks-draft-note {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-style: italic;
+    padding: 6px 10px;
+    background: var(--bg-muted);
+    border-radius: var(--radius-sm);
+}
+.msg-acks-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+@media (max-width: 600px) {
+    .msg-acks-cols { grid-template-columns: 1fr; }
+}
+.msg-acks-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.msg-acks-col-head {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+}
+.msg-acks-col-head svg { width: 13px; height: 13px; }
+.msg-acks-col:first-child .msg-acks-col-head { background: var(--green-soft); color: var(--green-fg); }
+.msg-acks-col:nth-child(2) .msg-acks-col-head { background: var(--amber-soft); color: var(--amber-fg); }
+.msg-acks-col-head.muted { background: var(--bg-muted); color: var(--text-tertiary); }
+.msg-acks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+.msg-ack-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    transition: background 0.1s ease;
+}
+.msg-ack-row:hover { background: var(--bg-muted); }
+.msg-ack-row[data-pending="yes"] { opacity: 0.78; }
+.msg-ack-row[data-former="yes"] { opacity: 0.62; }
+.msg-ack-info {
+    flex: 1;
+    min-width: 0;
+}
+.msg-ack-name {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.msg-ack-sub {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.3;
+}
+.msg-ack-time {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+.msg-acks-empty {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-style: italic;
+    padding: 8px;
+    text-align: center;
+}
+.msg-acks-extra {
+    padding-top: 10px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.msg-acks-extra-note {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
 /* ════════════════════════════════════════════════════════════════ */
 /* OFFSITE BADGE — appears next to an employee's name in the main   */
 /* list when their current active session was started offsite.     */
@@ -7068,6 +7227,12 @@ const msgState = {
     editing: null,         // currently-edited message object, or 'new'
     saving: false,
     loaded: false,
+    // Acknowledgment details for the currently-edited message. Loaded
+    // on demand when the edit view opens; null = not yet fetched,
+    // [] = fetched and there are no acks. Cleared whenever the edit
+    // target changes.
+    editingAcks: null,
+    editingAcksLoading: false,
 };
 
 function openMessagesDrawer() {
@@ -7199,6 +7364,8 @@ function renderMessagesListView(container) {
     document.getElementById('msgNewBtn').addEventListener('click', () => {
         msgState.mode = 'edit';
         msgState.editing = 'new';
+        msgState.editingAcks = null;
+        msgState.editingAcksLoading = false;
         renderMessagesDrawer();
     });
     container.querySelectorAll('.msg-card[data-msg-id]').forEach(card => {
@@ -7208,9 +7375,159 @@ function renderMessagesListView(container) {
             if (!msg) return;
             msgState.mode = 'edit';
             msgState.editing = { ...msg, departments: [...(msg.departments || [])] };
+            // Reset and kick off the ack fetch for this message. The
+            // edit view renders immediately with a "loading" hint and
+            // re-renders when the fetch completes.
+            msgState.editingAcks = null;
+            msgState.editingAcksLoading = true;
+            fetchMessageAcks(id).finally(() => {
+                msgState.editingAcksLoading = false;
+                // Only re-render if we're still viewing the same message
+                // (user may have navigated away during the round-trip).
+                if (msgState.mode === 'edit' && msgState.editing && msgState.editing.id === id) {
+                    renderMessagesDrawer();
+                }
+            });
             renderMessagesDrawer();
         });
     });
+}
+
+async function fetchMessageAcks(messageId) {
+    try {
+        const data = await auth.api('GET', `/messages/${messageId}/acknowledgments`);
+        msgState.editingAcks = Array.isArray(data.acks) ? data.acks : [];
+    } catch (err) {
+        console.error('fetchMessageAcks failed:', err.message);
+        msgState.editingAcks = [];      // render as "none acknowledged" rather than spinning forever
+    }
+}
+
+// Returns the current-employee set targeted by a message, derived from
+// the message's `departments` array vs the live `state.employees`. Empty
+// departments = "Everyone", matching the Worker-side filter. Case-
+// insensitive comparison so admin typos like "BodyShop" vs "Bodyshop"
+// still match.
+function targetedEmployeesForMessage(msg) {
+    if (!msg || !Array.isArray(msg.departments) || msg.departments.length === 0) {
+        return state.employees.slice();
+    }
+    const want = new Set(msg.departments.map(d => String(d).toLowerCase()));
+    return state.employees.filter(e => want.has((e.department || '').toLowerCase()));
+}
+
+// Renders the "Acknowledgments" panel inside the message edit view:
+// two columns — who's acked (with timestamp) and who hasn't yet. Live
+// counts in the header. Only meaningful for existing messages; the
+// caller skips this entirely for new drafts.
+function renderAcksSection(msg) {
+    const targeted = targetedEmployeesForMessage(msg);
+    const targetedCount = targeted.length;
+
+    // Loading state — first paint after the user opens an existing
+    // message. Keep the layout in place so the section doesn't pop in.
+    if (msgState.editingAcksLoading && !msgState.editingAcks) {
+        return `<div class="msg-acks">
+            <div class="msg-acks-head">
+                <div class="msg-acks-title">Acknowledgments</div>
+                <div class="msg-acks-meta">loading…</div>
+            </div>
+        </div>`;
+    }
+
+    const acks = msgState.editingAcks || [];
+    const ackedById = new Map(acks.map(a => [a.employeeId, a]));
+    const ackedTargeted = targeted.filter(e => ackedById.has(e.id));
+    const unackedTargeted = targeted.filter(e => !ackedById.has(e.id));
+
+    // Acknowledgments from outside the current targeting (e.g. message
+    // was retargeted after some people had already acked). Surface
+    // separately so the numbers still add up to what's stored on the
+    // server.
+    const targetedIds = new Set(targeted.map(e => e.id));
+    const ackedOutsideTargeting = acks.filter(a => !targetedIds.has(a.employeeId));
+
+    const fmtAckTime = (iso) => {
+        const t = new Date(iso);
+        const ageMs = Date.now() - t.getTime();
+        if (ageMs < 60_000) return 'just now';
+        if (ageMs < 3600_000) return `${Math.floor(ageMs / 60_000)}m ago`;
+        if (ageMs < 86_400_000) return `${Math.floor(ageMs / 3600_000)}h ago`;
+        if (ageMs < 7 * 86_400_000) return `${Math.floor(ageMs / 86_400_000)}d ago`;
+        return t.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    };
+    const absAckTime = (iso) =>
+        new Date(iso).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+    const ackedRow = (emp) => {
+        const a = ackedById.get(emp.id);
+        return `<div class="msg-ack-row">
+            <div class="avatar avatar-tiny" data-color="${colorOf(emp.id)}">${initials(emp.name)}</div>
+            <div class="msg-ack-info">
+                <div class="msg-ack-name">${escapeHtml(emp.name)}</div>
+                <div class="msg-ack-sub">${escapeHtml(emp.department || '—')}</div>
+            </div>
+            <div class="msg-ack-time mono" title="${escapeHtml(absAckTime(a.acknowledgedAt))}">${escapeHtml(fmtAckTime(a.acknowledgedAt))}</div>
+        </div>`;
+    };
+    const unackedRow = (emp) => `<div class="msg-ack-row" data-pending="yes">
+        <div class="avatar avatar-tiny" data-color="${colorOf(emp.id)}">${initials(emp.name)}</div>
+        <div class="msg-ack-info">
+            <div class="msg-ack-name">${escapeHtml(emp.name)}</div>
+            <div class="msg-ack-sub">${escapeHtml(emp.department || '—')}</div>
+        </div>
+        <div class="msg-ack-time mono">—</div>
+    </div>`;
+
+    const formerRow = (a) => `<div class="msg-ack-row" data-former="yes">
+        <div class="avatar avatar-tiny avatar-muted">?</div>
+        <div class="msg-ack-info">
+            <div class="msg-ack-name">${escapeHtml(a.employeeName)}</div>
+            <div class="msg-ack-sub">${a.employeeDeleted ? 'former employee' : (a.employeeDepartment ? escapeHtml(a.employeeDepartment) + ' · no longer targeted' : 'no longer targeted')}</div>
+        </div>
+        <div class="msg-ack-time mono" title="${escapeHtml(absAckTime(a.acknowledgedAt))}">${escapeHtml(fmtAckTime(a.acknowledgedAt))}</div>
+    </div>`;
+
+    const pct = targetedCount > 0 ? Math.round((ackedTargeted.length / targetedCount) * 100) : 0;
+    const liveTag = msg.isLive ? '' : `<span class="msg-acks-draft-note">Draft — no acknowledgments will be recorded until live</span>`;
+
+    return `<div class="msg-acks">
+        <div class="msg-acks-head">
+            <div class="msg-acks-title">Acknowledgments
+                <span class="msg-acks-count">${ackedTargeted.length} of ${targetedCount}</span>
+            </div>
+            <div class="msg-acks-bar"><div class="msg-acks-bar-fill" style="width:${pct}%"></div></div>
+        </div>
+        ${liveTag}
+        <div class="msg-acks-cols">
+            <div class="msg-acks-col">
+                <div class="msg-acks-col-head">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Acknowledged · ${ackedTargeted.length}
+                </div>
+                <div class="msg-acks-list">
+                    ${ackedTargeted.length ? ackedTargeted.map(ackedRow).join('') : '<div class="msg-acks-empty">Nobody has acknowledged yet.</div>'}
+                </div>
+            </div>
+            <div class="msg-acks-col">
+                <div class="msg-acks-col-head">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    Outstanding · ${unackedTargeted.length}
+                </div>
+                <div class="msg-acks-list">
+                    ${unackedTargeted.length ? unackedTargeted.map(unackedRow).join('') : '<div class="msg-acks-empty">Everyone targeted has acknowledged.</div>'}
+                </div>
+            </div>
+        </div>
+        ${ackedOutsideTargeting.length ? `<div class="msg-acks-extra">
+            <div class="msg-acks-col-head muted">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Acknowledgments from outside current targeting · ${ackedOutsideTargeting.length}
+            </div>
+            <div class="msg-acks-extra-note">These employees acknowledged before the message was retargeted, or have since left a targeted department.</div>
+            <div class="msg-acks-list">${ackedOutsideTargeting.map(formerRow).join('')}</div>
+        </div>` : ''}
+    </div>`;
 }
 
 function renderMessagesEditView(container) {
@@ -7278,6 +7595,8 @@ function renderMessagesEditView(container) {
                 </div>
                 <div class="help">Tick "Everyone" to target every employee, or pick specific departments. Untargeted (no boxes) = everyone too.</div>
             </div>
+
+            ${isNew ? '' : renderAcksSection(m)}
 
             <div class="msg-edit-footer">
                 ${!isNew ? `<div class="left">
@@ -7413,6 +7732,16 @@ async function rebroadcastMessage(id) {
         // Refresh the edit view's ack-count subtitle by re-rendering.
         const fresh = msgState.messages.find(m => m.id === id);
         if (fresh) msgState.editing = { ...fresh, departments: [...(fresh.departments || [])] };
+        // Acks were just cleared server-side — reset and refetch so the
+        // panel below the form reflects the new "nobody's acked yet" reality.
+        msgState.editingAcks = [];
+        msgState.editingAcksLoading = true;
+        fetchMessageAcks(id).finally(() => {
+            msgState.editingAcksLoading = false;
+            if (msgState.mode === 'edit' && msgState.editing && msgState.editing.id === id) {
+                renderMessagesDrawer();
+            }
+        });
         renderMessagesDrawer();
         // Tiny inline confirmation; reusing alert keeps this code small.
         const cleared = r && r.clearedAcks != null ? r.clearedAcks : 'all';
