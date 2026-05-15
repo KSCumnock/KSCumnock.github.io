@@ -991,7 +991,9 @@ html.screensaver-active body {
     font-family: var(--font-mono);
 }
 
-/* Build version — tiny, in the corner of the idle screen. Pure diagnostic. */
+/* Build version — tiny, in the corner of the idle screen. Doubles as
+   a manual refresh control: tap to reload, or watch it pulse green
+   when a newer deploy of staff.html is detected in the background. */
 .build-version {
     position: fixed;
     bottom: 12px;
@@ -999,11 +1001,43 @@ html.screensaver-active body {
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
     font-size: 10px;
     color: var(--text-tertiary);
-    opacity: 0.4;
+    opacity: 0.55;
     letter-spacing: 0.04em;
-    pointer-events: none;
     z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: opacity 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
+.build-version:hover, .build-version:active { opacity: 1; }
+.build-version svg { width: 11px; height: 11px; flex-shrink: 0; }
+.build-version[data-state="update"] {
+    opacity: 1;
+    background: var(--green-soft);
+    color: var(--green-fg);
+    border-color: var(--green-border);
+    font-weight: 600;
+    animation: bv-pulse 2.4s ease-in-out infinite;
+}
+@keyframes bv-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45); }
+    60%      { box-shadow: 0 0 0 7px rgba(22, 163, 74, 0); }
+}
+.build-version[data-state="refreshing"] {
+    opacity: 1;
+    color: var(--text-secondary);
+}
+.build-version[data-state="refreshing"] svg {
+    animation: bv-spin 0.9s linear infinite;
+}
+@keyframes bv-spin { to { transform: rotate(360deg); } }
 
 .recording-spinner {
     width: 72px;
@@ -1200,10 +1234,13 @@ html.screensaver-active body {
         </div>
     </div>
 
-    <!-- Build indicator — populated by JS from BUILD_VERSION constant.
-         Lets you confirm at a glance which deploy this kiosk is running.
-         Useful for diagnosing "is this the new version?" without DevTools. -->
-    <div class="build-version" id="buildVersion"></div>
+    <!-- Build indicator + manual refresh control. Background polling
+         compares this kiosk's BUILD_VERSION against the server's
+         staff.html; if a newer deploy is detected, the pill turns
+         green and tapping it forces a cache-busted reload. Also auto-
+         reloads after 5 minutes of screensaver if an update is pending,
+         so kiosks self-update overnight without manual intervention. -->
+    <button class="build-version" id="buildVersion" type="button"></button>
 </main>
 
 <!-- ──────────────────────────────────────────────────── -->
@@ -1397,7 +1434,7 @@ const EARLY_CLOCKOUT_BUMPER_MIN = 3;
 // Build version — bumped on each deploy. The boot routine compares this to
 // the version embedded in the (no-cache) HTML and reloads if mismatched, so
 // kiosks don't get stuck on stale code after a deploy.
-const BUILD_VERSION = '2026-05-15-kiosk-messages';
+const BUILD_VERSION = '2026-05-15-auto-update';
 
 // ════════════════════════════════════════════════════════════════════════
 // STATE
@@ -2077,6 +2114,9 @@ function showScreensaver() {
     // Switch html/body bg to dark so any iOS-exposed area (home indicator
     // strip on iPad Pro) doesn't show as a white band.
     document.documentElement.classList.add('screensaver-active');
+    // If an update is pending, queue a quiet auto-reload — by the time
+    // the next user walks up, the kiosk has the new build.
+    queueScreensaverAutoReload();
 }
 
 function hideScreensaver() {
@@ -2084,6 +2124,8 @@ function hideScreensaver() {
     ss.classList.remove('show');
     ss.setAttribute('aria-hidden', 'true');
     document.documentElement.classList.remove('screensaver-active');
+    // User came back — cancel any pending auto-reload.
+    cancelScreensaverAutoReload();
 }
 
 // Any user activity calls this — taps, keys, etc. Resets the idle timer.
@@ -2253,12 +2295,125 @@ function bindEvents() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+// UPDATE DETECTION & MANUAL REFRESH
+// ════════════════════════════════════════════════════════════════════════
+// iOS PWA caching is aggressive — once staff.html is added to the Home
+// Screen, the OS keeps serving the cached HTML indefinitely. The Sean-
+// previously-known workaround was "delete the home-screen icon, refetch,
+// re-add". This block automates that:
+//   1. Periodically fetch staff.html ourselves (cache-busted), pull out
+//      the BUILD_VERSION constant, and compare against ours.
+//   2. If different, flip the corner pill to green "Update available".
+//   3. Manual: tap the pill to force-reload now.
+//   4. Auto: when the screensaver has been showing for 5 minutes AND an
+//      update is pending, reload in the background.
+//
+// Force-reload uses a unique query string (`?v=Date.now()`), which makes
+// iOS see it as a new URL and bypasses any HTML cache, even in standalone
+// "Add to Home Screen" mode.
+const UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000;   // poll every 10 minutes
+const UPDATE_CHECK_FIRST_DELAY_MS = 30 * 1000;     // first check 30s after boot
+const SCREENSAVER_AUTO_RELOAD_MS = 5 * 60 * 1000;  // 5 min screensaver → reload
+let _updateAvailable = false;
+let _screensaverReloadTimer = null;
+
+async function checkForKioskUpdate() {
+    try {
+        const url = location.pathname + '?cb=' + Date.now();
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) return;
+        const html = await r.text();
+        const m = html.match(/const BUILD_VERSION\s*=\s*['"]([^'"]+)['"]/);
+        if (!m) return;
+        const remote = m[1];
+        if (remote && remote !== BUILD_VERSION && !_updateAvailable) {
+            _updateAvailable = true;
+            console.log(`Kiosk update available: ${BUILD_VERSION} → ${remote}`);
+            renderBuildVersion();
+            // If the screensaver is currently active, start the auto-
+            // reload countdown right away rather than waiting for the
+            // next screensaver cycle.
+            if (document.getElementById('screensaver').classList.contains('show')) {
+                queueScreensaverAutoReload();
+            }
+        }
+    } catch (e) {
+        // Network blip — try again next interval.
+    }
+}
+
+function renderBuildVersion() {
+    const bv = document.getElementById('buildVersion');
+    if (!bv) return;
+    if (_updateAvailable) {
+        bv.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg> Update available — tap to refresh`;
+        bv.dataset.state = 'update';
+        bv.title = 'A newer version of the kiosk is available. Tap to refresh.';
+    } else {
+        // Default: shows the build tag + a circular-arrow refresh icon.
+        bv.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg> build ${BUILD_VERSION}`;
+        bv.dataset.state = '';
+        bv.title = 'Tap to refresh the kiosk app.';
+    }
+}
+
+function forceKioskReload() {
+    const bv = document.getElementById('buildVersion');
+    if (bv) {
+        bv.dataset.state = 'refreshing';
+        bv.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg> Refreshing…`;
+    }
+    // Defer slightly so the user sees the spinning state. Cache-bust by
+    // appending a unique query — this is what defeats iOS PWA caching.
+    setTimeout(() => {
+        location.replace(location.pathname + '?v=' + Date.now());
+    }, 200);
+}
+
+function onBuildVersionTap() {
+    // Block accidental refresh mid-PIN-entry.
+    if (state.pin && state.pin.length > 0) return;
+    // Block while the action screen is up — refresh would log them out
+    // mid-clock.
+    if (!$('actionScreen').classList.contains('hidden')) return;
+    if (_updateAvailable) {
+        forceKioskReload();
+        return;
+    }
+    // Plain refresh: tiny confirm so a stray pocket-tap doesn't blank
+    // the kiosk during a transaction.
+    if (confirm('Refresh the kiosk app?')) forceKioskReload();
+}
+
+function queueScreensaverAutoReload() {
+    if (!_updateAvailable) return;
+    if (_screensaverReloadTimer) return;
+    _screensaverReloadTimer = setTimeout(() => {
+        // Only fire if we're still idle — guard against the screensaver
+        // having been dismissed in the meantime by a late tap.
+        const ssVisible = document.getElementById('screensaver').classList.contains('show');
+        const actionVisible = !$('actionScreen').classList.contains('hidden');
+        if (ssVisible && !actionVisible) {
+            console.log('Screensaver idle + update pending — auto-reloading.');
+            forceKioskReload();
+        }
+    }, SCREENSAVER_AUTO_RELOAD_MS);
+}
+
+function cancelScreensaverAutoReload() {
+    if (_screensaverReloadTimer) {
+        clearTimeout(_screensaverReloadTimer);
+        _screensaverReloadTimer = null;
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════════════════════════════
 async function init() {
     console.log('TimeKeeper staff PWA — build', BUILD_VERSION);
-    const bv = document.getElementById('buildVersion');
-    if (bv) bv.textContent = 'build ' + BUILD_VERSION;
+    renderBuildVersion();
+    document.getElementById('buildVersion').addEventListener('click', onBuildVersionTap);
     bindEvents();
     tickClock();
     setInterval(tickClock, 1000);
@@ -2267,6 +2422,10 @@ async function init() {
     startPeriodicRefresh();
     // Start the idle countdown once everything is up
     noteActivity();
+    // Kick off background update polling. First check 30s in (so boot
+    // can settle), then every 10 minutes.
+    setTimeout(checkForKioskUpdate, UPDATE_CHECK_FIRST_DELAY_MS);
+    setInterval(checkForKioskUpdate, UPDATE_CHECK_INTERVAL_MS);
 }
 
 document.addEventListener('DOMContentLoaded', init);
