@@ -8480,10 +8480,20 @@ function _openDayDetailImpl(empId, dateStr) {
     } else if (!entries.length && !stats.isWeekend && dateStr < localDateStr()) {
         segsHtml = `<div class="seg seg-absent-day" style="left:0;width:100%"></div>`;
     } else {
+        // 24h positioning — the modal axis labels 00→24, so segments
+        // need to be placed on a full-day scale (NOT the workday-scoped
+        // segPosition helper used by the inline strips, which clamps to
+        // WORKDAY_START_HOUR–WORKDAY_END_HOUR and would shift every
+        // segment leftward relative to the labelled axis).
+        const dayMidnight = startOfDay(dateStr);                  // 00:00 local
+        const seg24hPct = (date) => {
+            const ms = Math.max(0, Math.min(86400000, date - dayMidnight));
+            return (ms / 86400000) * 100;
+        };
         for (const s of stats.segments) {
             if (!s.startTime || !s.endTime) continue;     // skip segments missing endpoints
-            const x = segPosition(s.startTime, dateStr);
-            const w = segPosition(s.endTime, dateStr) - x;
+            const x = seg24hPct(s.startTime);
+            const w = seg24hPct(s.endTime) - x;
             if (!isFinite(x) || !isFinite(w) || w <= 0) continue;
             const cls = s.isLive ? 'seg-live' : `seg-${s.type}`;
             segsHtml += `<div class="seg ${cls}" style="left:${x}%;width:${w}%"></div>`;
