@@ -541,10 +541,11 @@ main {
 /* Section header */
 .section-head {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     gap: 12px;
     padding: 0 4px;
+    flex-wrap: wrap;
 }
 .section-head h2 {
     font-size: 13px;
@@ -558,7 +559,83 @@ main {
     color: var(--text-tertiary);
     text-transform: uppercase;
     letter-spacing: 0.06em;
+    margin-right: auto;        /* pushes the week nav to the right of the section head */
 }
+
+/* Week navigator above the employee list. Compact pill row with prev/
+   next buttons either side of the current week label, plus a "this
+   week" jump-back button. Disabled state for the next button when
+   we're already at offset 0 (no scrubbing into the future). */
+.week-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 3px;
+}
+.week-nav-btn {
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    border: none;
+    background: transparent;
+    border-radius: 999px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background 0.1s ease, color 0.1s ease;
+}
+.week-nav-btn:hover { background: var(--bg-muted); color: var(--text); }
+.week-nav-btn:disabled { color: var(--text-quaternary); cursor: not-allowed; background: transparent; }
+.week-nav-btn svg { width: 13px; height: 13px; }
+.week-nav-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.02em;
+    padding: 0 10px;
+    min-width: 140px;
+    text-align: center;
+}
+.week-nav-today {
+    margin-left: 4px;
+    padding: 5px 11px;
+    border: none;
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    transition: background 0.1s ease, color 0.1s ease;
+}
+.week-nav-today:hover { background: var(--border); color: var(--text); }
+.week-nav-today.is-current { opacity: 0.5; cursor: default; pointer-events: none; }
+
+/* Future days in the inline timeline are dimmed — they exist in the
+   Mon-Sun window even if today is mid-week, but they shouldn't draw
+   the eye since nothing's happened there yet. */
+.day-strip.future .day-strip-bar { opacity: 0.32; }
+.day-strip.future .day-strip-label { color: var(--text-quaternary); }
+
+/* Day-strips are now tappable to open the day-detail modal. Give them
+   a hover affordance + focus ring without disrupting the visual rhythm. */
+.day-strip {
+    cursor: pointer;
+    transition: transform 0.08s ease, background 0.12s ease;
+    border-radius: 4px;
+    padding: 2px 1px;
+}
+.day-strip:hover .day-strip-bar { box-shadow: 0 0 0 2px var(--border); }
+.day-strip:active { transform: scale(0.97); }
+.day-strip.future:hover .day-strip-bar { box-shadow: none; }
+.day-strip.future { cursor: default; }
 
 /* ────────────────────────────────────────────────────────── */
 /* EMPLOYEE TABLE                                              */
@@ -1821,8 +1898,17 @@ kbd {
     color: #16a34a;
 }
 .loc-badge[data-loc="offsite"] {
-    background: #fff7ed;
-    color: #ea580c;
+    color: var(--amber-fg);
+    background: var(--amber-soft);
+    border: 1px solid var(--amber-border);
+    cursor: pointer;
+    transition: background 0.12s ease, transform 0.04s ease;
+}
+.loc-badge[data-loc="offsite"]:hover { background: #fde68a; }
+.loc-badge[data-loc="offsite"]:active { transform: scale(0.96); }
+.loc-badge[data-loc="offsite"]:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
 }
 
 /* ────────────────────────────────────────────────────────── */
@@ -3226,6 +3312,149 @@ kbd {
 }
 .offsite-modal-links a:hover { background: var(--bg-muted); }
 
+/* ════════════════════════════════════════════════════════════════ */
+/* DAY-DETAIL MODAL — segmented 24h timeline + per-clocking rows    */
+/* with inline map links for offsite events.                         */
+/* ════════════════════════════════════════════════════════════════ */
+.day-detail-card {
+    max-width: 640px !important;
+}
+.day-detail-timeline {
+    margin: 4px 20px 8px;
+    padding: 16px 12px 8px;
+    background: var(--bg-muted);
+    border-radius: var(--radius-lg);
+    position: relative;
+    height: 78px;
+}
+.day-detail-timeline-track {
+    position: relative;
+    height: 28px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+}
+.day-detail-timeline-track .seg {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+}
+.day-detail-timeline-track .seg-tick {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--border);
+}
+.day-detail-timeline-track .seg-now {
+    position: absolute;
+    top: -2px;
+    bottom: -2px;
+    width: 2px;
+    background: var(--green);
+    box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.25);
+    z-index: 2;
+}
+.day-detail-timeline-axis {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-tertiary);
+    padding: 0 2px;
+}
+.day-detail-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 0 20px 12px;
+}
+.day-detail-stat {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+}
+.day-detail-stat .lbl {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+}
+.day-detail-stat .val {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.01em;
+}
+.day-detail-stat .val.muted { color: var(--text-tertiary); }
+.day-detail-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.day-detail-row {
+    display: grid;
+    grid-template-columns: 84px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+.day-detail-row .time {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+.day-detail-row .body {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+.day-detail-row .body .event-tag { flex-shrink: 0; }
+.day-detail-row .body .reason {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    line-height: 1.3;
+}
+.day-detail-row .map-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--blue-border, #93c5fd);
+    background: var(--blue-soft);
+    color: var(--blue-fg);
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.12s ease;
+    flex-shrink: 0;
+}
+.day-detail-row .map-btn:hover { background: #bfdbfe; }
+.day-detail-row .map-btn svg { width: 11px; height: 11px; }
+.day-detail-empty {
+    text-align: center;
+    padding: 24px 16px;
+    color: var(--text-tertiary);
+    font-size: 13px;
+    font-style: italic;
+}
+
 /* Job edit inline modal — reuses .modal but tighter form */
 .job-edit-fields {
     display: grid;
@@ -3553,6 +3782,21 @@ kbd {
     <div class="section-head">
         <h2>Employees</h2>
         <div class="meta" id="employeeCount">—</div>
+        <!-- Inline-timeline week navigator. Independent of the global
+             date filter — shifts only which Mon-Sun window the day
+             strips in each row are showing. "This week" jumps back to
+             offset 0. Disabled at the right edge so admins can't scrub
+             into the future for no reason. -->
+        <div class="week-nav" id="weekNav" role="group" aria-label="Timeline week">
+            <button class="week-nav-btn" id="weekNavPrev" type="button" aria-label="Previous week">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <div class="week-nav-label" id="weekNavLabel">—</div>
+            <button class="week-nav-btn" id="weekNavNext" type="button" aria-label="Next week">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button class="week-nav-today" id="weekNavToday" type="button" title="Jump to this week">This week</button>
+        </div>
     </div>
 
     <section class="employee-list">
@@ -3601,6 +3845,36 @@ kbd {
 <aside class="drawer" id="messagesDrawer" aria-hidden="true">
     <div id="messagesDrawerContent"></div>
 </aside>
+
+<!-- ─── Day Detail Modal ────────────────────────────────────────────
+     Opens when an admin taps a day in any of the inline timeline
+     strips. Shows that single day in detail: a wider segmented
+     timeline, the day's summary stats, and an itemised list of every
+     clocking with its time and offsite badge. Offsite clockings get
+     a direct "View on map" button so historical locations are one
+     tap away — without having to dig into the per-employee drawer. -->
+<div class="offsite-modal-overlay" id="dayDetailOverlay" aria-hidden="true">
+    <div class="offsite-modal-card day-detail-card" role="dialog" aria-modal="true" aria-labelledby="dayDetailTitle">
+        <div class="offsite-modal-head">
+            <div>
+                <div class="offsite-modal-title" id="dayDetailTitle">Day detail</div>
+                <div class="offsite-modal-sub" id="dayDetailSub">—</div>
+            </div>
+            <button class="btn btn-icon" id="dayDetailClose" type="button" aria-label="Close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="day-detail-timeline" id="dayDetailTimeline">
+            <!-- 24h ruler + segments populated by openDayDetail -->
+        </div>
+        <div class="day-detail-stats" id="dayDetailStats">
+            <!-- KPI strip: in, out, worked, break -->
+        </div>
+        <div class="offsite-modal-body" id="dayDetailBody">
+            <!-- Per-clocking rows + map links -->
+        </div>
+    </div>
+</div>
 
 <!-- ─── Offsite Map Modal ───────────────────────────────────────────
      Shown when an admin taps the offsite badge next to an employee's
@@ -4102,6 +4376,12 @@ const state = {
     selectedEmployeeId: null,
     lastUpdated: null,
     refreshTimer: null,
+    // Independent week-window for the inline timeline strips in the main
+    // employee list. 0 = current week (Mon-Sun containing today), -1 =
+    // previous week, +1 = next week (allowed but unusual). Doesn't
+    // affect the global date filter, period stats, or CSV export — it
+    // only controls which 7 days the row strips display.
+    weekOffset: 0,
 };
 
 // ════════════════════════════════════════════════════════════════════════
@@ -4175,6 +4455,45 @@ const daysBetween = (startStr, endStr) => {
     }
     return out;
 };
+
+// Returns Mon-Sun for the week N weeks offset from the current week.
+// 0 = current week (containing today), -1 = previous, +1 = next, etc.
+// "Week starts on Monday" per Sean's request — getDay returns 0=Sun..6=Sat
+// so we shift by ((day + 6) % 7) to find Monday of the same week.
+function weekRangeFromOffset(offset = 0) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dow = today.getDay();           // 0 (Sun) … 6 (Sat)
+    const daysSinceMonday = (dow + 6) % 7; // 0 if Mon, 6 if Sun
+    const monday = new Date(today);
+    monday.setDate(monday.getDate() - daysSinceMonday + (offset * 7));
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        days.push(localDateStr(d));
+    }
+    return {
+        startStr: days[0],
+        endStr: days[6],
+        days,
+        monday: new Date(monday),
+        sunday: new Date(monday.getTime() + 6 * 86400000),
+    };
+}
+
+// Pretty label for a week range — "Mon 13 May – Sun 19 May", or with
+// the year if it spans a year boundary or differs from current.
+function fmtWeekRangeLabel(range) {
+    const fmt = (d, includeYear) => d.toLocaleDateString('en-GB', {
+        weekday: 'short', day: 'numeric', month: 'short',
+        year: includeYear ? 'numeric' : undefined,
+    });
+    const sameYear = range.monday.getFullYear() === range.sunday.getFullYear();
+    const currentYear = new Date().getFullYear();
+    const includeYear = !sameYear || range.monday.getFullYear() !== currentYear;
+    return `${fmt(range.monday, includeYear && sameYear)} – ${fmt(range.sunday, includeYear)}`;
+}
 
 // ════════════════════════════════════════════════════════════════════════
 // DATA FETCH
@@ -4610,6 +4929,28 @@ function renderKpis(employeeStats) {
     }
 }
 
+// Updates the week navigator label + button state to match state.weekOffset.
+// Called from renderRows so it stays in sync with every dashboard refresh.
+function renderWeekNav() {
+    const label = document.getElementById('weekNavLabel');
+    const prev = document.getElementById('weekNavPrev');
+    const next = document.getElementById('weekNavNext');
+    const today = document.getElementById('weekNavToday');
+    if (!label) return;
+    const range = weekRangeFromOffset(state.weekOffset || 0);
+    if (state.weekOffset === 0) {
+        label.textContent = `This week · ${fmtWeekRangeLabel(range)}`;
+    } else if (state.weekOffset === -1) {
+        label.textContent = `Last week · ${fmtWeekRangeLabel(range)}`;
+    } else if (state.weekOffset < -1) {
+        label.textContent = `${Math.abs(state.weekOffset)} weeks ago · ${fmtWeekRangeLabel(range)}`;
+    } else {
+        label.textContent = fmtWeekRangeLabel(range);
+    }
+    if (next) next.disabled = (state.weekOffset >= 0);
+    if (today) today.classList.toggle('is-current', state.weekOffset === 0);
+}
+
 // "Who's off today" — compact banner above the employee list. Groups
 // people by leave type (holiday / sick / bereavement / unaccounted
 // absent) and emits clickable name chips that open the employee drawer.
@@ -4685,18 +5026,18 @@ function renderTodayLeaveBanner(employeeStats) {
 
 // Builds the small 7-day timeline strip (today + 6 days back) for a row
 function renderInlineTimeline(empDays, todayStr, tkEmpForInlineTimeline) {
-    // Days = last 7 days inclusive of today, oldest → newest
-    const days = [];
-    const cur = startOfDay(todayStr);
-    cur.setDate(cur.getDate() - 6);
-    for (let i = 0; i < 7; i++) {
-        days.push(localDateStr(cur));
-        cur.setDate(cur.getDate() + 1);
-    }
+    // Days = the Mon-Sun week determined by state.weekOffset, oldest →
+    // newest. Independent of the global date filter so admins can scrub
+    // back week-by-week using the navigator above the list while the
+    // dashboard's other date-aware components (period stats, CSV
+    // export, etc.) stay on their own range.
+    const { days } = weekRangeFromOffset(state.weekOffset || 0);
+    const empId = tkEmpForInlineTimeline ? tkEmpForInlineTimeline.id : '';
 
     return `<div class="day-strips">${days.map(dateStr => {
         const entries = empDays.get(dateStr) || [];
         const isToday = dateStr === todayStr;
+        const isFuture = dateStr > todayStr;
         const stats = computeDayStats(entries, dateStr, isToday);
         const lbl = dayLabel(dateStr);
 
@@ -4733,8 +5074,10 @@ function renderInlineTimeline(empDays, todayStr, tkEmpForInlineTimeline) {
             : `In ${fmtTimeOfDay(stats.clockIn)} · ${fmtDurationCompact(stats.workedMs)} worked${stats.clockOut ? ' · Out ' + fmtTimeOfDay(stats.clockOut) : ' · still in'}`;
 
         return `
-            <div class="day-strip ${isToday ? 'today' : ''}"
-                 data-tip="${fullDateLabel(dateStr)}|${tooltipData}">
+            <div class="day-strip ${isToday ? 'today' : ''} ${isFuture ? 'future' : ''}"
+                 data-tip="${fullDateLabel(dateStr)}|${tooltipData}"
+                 data-day-empid="${empId}"
+                 data-day-date="${dateStr}">
                 <div class="day-strip-bar">${segmentsHtml}</div>
                 <div class="day-strip-label">
                     ${lbl.wk}
@@ -4882,6 +5225,7 @@ function renderRows() {
 
     renderKpis(employeeStats); // KPIs reflect the WHOLE workforce, not filtered
     renderTodayLeaveBanner(employeeStats); // ditto: banner is whole-workforce, ignores filters
+    renderWeekNav();           // update the week-window label/buttons
 
     const rowsEl = document.getElementById('employeeRows');
     if (visible.length === 0) {
@@ -4919,6 +5263,16 @@ function renderRows() {
         strip.addEventListener('mouseenter', showTip);
         strip.addEventListener('mouseleave', hideTip);
         strip.addEventListener('mousemove', moveTip);
+        // Tap-to-expand: opens the day-detail modal for that employee
+        // on that date. Future days are non-interactive (skip the click).
+        if (!strip.classList.contains('future')) {
+            strip.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const empId = strip.dataset.dayEmpid;
+                const dateStr = strip.dataset.dayDate;
+                if (empId && dateStr) openDayDetail(empId, dateStr);
+            });
+        }
     });
 }
 
@@ -5091,7 +5445,6 @@ function renderDrawer() {
     // badge; offsite badges carry a tooltip with the reason + note the
     // driver entered in the mobile app.
     const isRecovery = (emp.department || '').toLowerCase() === 'recovery';
-    const OFFSITE_REASON_LABELS = { callout: 'Callout', other: 'Other' };
 
     const activityHtml = recentEvents.map(ev => {
         const t = new Date(ev.timestamp);
@@ -5112,6 +5465,11 @@ function renderDrawer() {
                 const note = ev.offsiteNote ? escapeHtml(ev.offsiteNote) : '';
                 locBadge = `<span class="loc-badge" data-loc="offsite"
                         data-tip-kind="offsite"
+                        data-offsite-entry-id="${ev.id}"
+                        data-offsite-emp-id="${empId}"
+                        role="button"
+                        tabindex="0"
+                        title="Tap to view on map"
                         data-tip-reason="${escapeHtml(reasonLabel)}"
                         data-tip-note="${note}"
                         data-tip-time="${t.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}">
@@ -5323,6 +5681,21 @@ function renderDrawer() {
         badge.addEventListener('mouseenter', showTip);
         badge.addEventListener('mouseleave', hideTip);
         badge.addEventListener('mousemove', moveTip);
+        // Click (or keyboard Enter/Space) opens the offsite map modal
+        // for THIS historical clocking event. Lets the admin scrub back
+        // through any Clock In's location, not just today's active one.
+        const openMap = (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            hideTip();
+            const evId = badge.dataset.offsiteEntryId;
+            const empId = badge.dataset.offsiteEmpId;
+            if (evId && empId) openOffsiteMapForEvent(empId, evId);
+        };
+        badge.addEventListener('click', openMap);
+        badge.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') openMap(e);
+        });
     });
 }
 
@@ -6885,6 +7258,19 @@ async function init() {
     document.getElementById('backupPill').addEventListener('click', runBackupNow);
     // Live-messages pill: hidden by default; opens the messages drawer when shown.
     document.getElementById('messagesLivePill').addEventListener('click', openMessagesDrawer);
+    // Week navigator above the employee list — shifts state.weekOffset
+    // by ±1 and re-renders. Future-side button is disabled past offset 0
+    // via renderWeekNav so we don't have to guard against it here.
+    const weekPrev = document.getElementById('weekNavPrev');
+    const weekNext = document.getElementById('weekNavNext');
+    const weekToday = document.getElementById('weekNavToday');
+    if (weekPrev) weekPrev.addEventListener('click', () => { state.weekOffset = (state.weekOffset || 0) - 1; renderRows(); });
+    if (weekNext) weekNext.addEventListener('click', () => {
+        if ((state.weekOffset || 0) >= 0) return;
+        state.weekOffset = (state.weekOffset || 0) + 1;
+        renderRows();
+    });
+    if (weekToday) weekToday.addEventListener('click', () => { state.weekOffset = 0; renderRows(); });
 
     // Wire the recovery-timesheets email modal one-time events (clicks
     // inside the drawer itself are wired per-render in renderTimesheetsList).
@@ -7868,7 +8254,11 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
     return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-const OFFSITE_REASON_LABELS_MODAL = { callout: 'Callout', other: 'Other' };
+// Canonical reason → label mapping for offsite Clock Ins (entered by the
+// driver in the mobile app). Module-scoped so both the activity log
+// renderer and the day-detail modal can share it. If new reason codes
+// get added on the mobile side, extend this map.
+const OFFSITE_REASON_LABELS = { callout: 'Callout', other: 'Other' };
 
 async function openOffsiteMapForEvent(empId, eventId) {
     const emp = state.employees.find(e => String(e.id) === String(empId));
@@ -7887,7 +8277,7 @@ async function openOffsiteMapForEvent(empId, eventId) {
     });
 
     // Render body content now so it's there even while the map loads.
-    const reasonLbl = OFFSITE_REASON_LABELS_MODAL[ev.offsiteReason] || (ev.offsiteReason ? ev.offsiteReason : '—');
+    const reasonLbl = OFFSITE_REASON_LABELS[ev.offsiteReason] || (ev.offsiteReason ? ev.offsiteReason : '—');
     const note = ev.offsiteNote ? escapeHtml(ev.offsiteNote) : '<span class="muted">No note provided</span>';
     const cached = geocodeFromCache(ev.latitude, ev.longitude);
     const fullCached = (loadGeocodeCache()[geocodeKey(ev.latitude, ev.longitude)] || {}).full;
@@ -8006,6 +8396,215 @@ function closeOffsiteMap() {
 document.getElementById('offsiteMapClose').addEventListener('click', closeOffsiteMap);
 document.getElementById('offsiteMapOverlay').addEventListener('click', (e) => {
     if (e.target.id === 'offsiteMapOverlay') closeOffsiteMap();
+});
+
+// ════════════════════════════════════════════════════════════════════════
+// DAY DETAIL MODAL
+// ════════════════════════════════════════════════════════════════════════
+// Opens when an admin taps a day in any inline-timeline strip. The
+// modal shows a single-day view: a 24h segmented timeline at the top,
+// summary stats, and a chronological list of every clocking with type,
+// time, and an inline "View on map" button for any offsite Clock In.
+// This is the new home for historical offsite-map access — admins no
+// longer need to drill into the per-employee drawer to find them.
+function openDayDetail(empId, dateStr) {
+    // Wrap the whole builder so any unexpected data shape surfaces as
+    // a visible diagnostic instead of failing silently (you'd see the
+    // CSS :active shrink but nothing else, which is exactly the bug
+    // Codie's Friday hit). The catch renders a minimal error modal so
+    // we can see what went wrong without opening DevTools.
+    try {
+        return _openDayDetailImpl(empId, dateStr);
+    } catch (err) {
+        console.error('openDayDetail crashed:', err, { empId, dateStr });
+        const overlay = document.getElementById('dayDetailOverlay');
+        const titleEl = document.getElementById('dayDetailTitle');
+        const subEl = document.getElementById('dayDetailSub');
+        const timelineEl = document.getElementById('dayDetailTimeline');
+        const statsEl = document.getElementById('dayDetailStats');
+        const bodyEl = document.getElementById('dayDetailBody');
+        if (titleEl) titleEl.textContent = 'Couldn\'t build day detail';
+        if (subEl) subEl.textContent = `${empId} · ${dateStr}`;
+        if (timelineEl) timelineEl.innerHTML = '';
+        if (statsEl) statsEl.innerHTML = '';
+        if (bodyEl) bodyEl.innerHTML = `<div class="day-detail-empty">
+            <div style="color:var(--red-fg);font-weight:600;margin-bottom:8px">${escapeHtml(err && err.message || String(err))}</div>
+            <div style="font-family:var(--font-mono);font-size:11px;text-align:left;white-space:pre-wrap;background:var(--bg-muted);padding:10px;border-radius:6px;color:var(--text-secondary);max-height:240px;overflow:auto">${escapeHtml((err && err.stack) || '(no stack)')}</div>
+        </div>`;
+        if (overlay) {
+            overlay.classList.add('open');
+            overlay.setAttribute('aria-hidden', 'false');
+        }
+    }
+}
+
+function _openDayDetailImpl(empId, dateStr) {
+    const emp = state.employees.find(e => String(e.id) === String(empId));
+    if (!emp) return;
+    // Build today's entries for this employee, sorted ascending.
+    // Defensively skip any entry with no parseable timestamp — those
+    // would otherwise make `new Date()` return Invalid Date and poison
+    // downstream maths (especially Codie's offending Friday entry).
+    const entries = state.clockings
+        .filter(c => {
+            if (String(c.employeeId) !== String(empId)) return false;
+            if (c.deleted) return false;
+            if (!c.timestamp) return false;
+            const t = new Date(c.timestamp);
+            if (isNaN(t.getTime())) return false;
+            return localDateStr(t) === dateStr;
+        })
+        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    const isToday = dateStr === localDateStr();
+    const stats = computeDayStats(entries, dateStr, isToday);
+    // Leave check (in case the day had no clockings and they had approved leave)
+    const leaveOnDay = !entries.length ? leaveForEmpOnDate(emp, dateStr) : null;
+
+    document.getElementById('dayDetailTitle').textContent = `${emp.name} · ${fullDateLabel(dateStr)}`;
+    const subBits = [emp.department || '—'];
+    if (stats.isWeekend) subBits.push('Weekend');
+    if (leaveOnDay) subBits.push(describeLeave(leaveOnDay).label);
+    document.getElementById('dayDetailSub').textContent = subBits.join(' · ');
+
+    // 24h timeline track — same segPosition util as the inline strips,
+    // but stretched into a full-width single-day visualisation with hour
+    // ticks every 4h. "Now" indicator only shows on today.
+    const timelineEl = document.getElementById('dayDetailTimeline');
+    let segsHtml = '';
+    if (stats.isSick) {
+        segsHtml = `<div class="seg seg-sick" style="left:0;width:100%"></div>`;
+    } else if (leaveOnDay) {
+        const desc = describeLeave(leaveOnDay);
+        segsHtml = `<div class="seg seg-${desc.bucket}" style="left:0;width:100%"></div>`;
+    } else if (!entries.length && !stats.isWeekend && dateStr < localDateStr()) {
+        segsHtml = `<div class="seg seg-absent-day" style="left:0;width:100%"></div>`;
+    } else {
+        for (const s of stats.segments) {
+            if (!s.startTime || !s.endTime) continue;     // skip segments missing endpoints
+            const x = segPosition(s.startTime, dateStr);
+            const w = segPosition(s.endTime, dateStr) - x;
+            if (!isFinite(x) || !isFinite(w) || w <= 0) continue;
+            const cls = s.isLive ? 'seg-live' : `seg-${s.type}`;
+            segsHtml += `<div class="seg ${cls}" style="left:${x}%;width:${w}%"></div>`;
+        }
+    }
+    // Hour ticks at 04, 08, 12, 16, 20 for a sense of where the day is.
+    let ticksHtml = '';
+    for (const h of [4, 8, 12, 16, 20]) {
+        ticksHtml += `<div class="seg-tick" style="left:${(h / 24) * 100}%"></div>`;
+    }
+    let nowHtml = '';
+    if (isToday) {
+        const now = new Date();
+        const pct = ((now.getHours() * 60 + now.getMinutes()) / 1440) * 100;
+        nowHtml = `<div class="seg-now" style="left:${pct}%"></div>`;
+    }
+    timelineEl.innerHTML = `
+        <div class="day-detail-timeline-track">
+            ${ticksHtml}
+            ${segsHtml}
+            ${nowHtml}
+        </div>
+        <div class="day-detail-timeline-axis">
+            <span>00</span><span>04</span><span>08</span><span>12</span><span>16</span><span>20</span><span>24</span>
+        </div>
+    `;
+
+    // Summary stats.
+    const fmt = (ms) => fmtDurationCompact(ms);
+    const statsEl = document.getElementById('dayDetailStats');
+    statsEl.innerHTML = `
+        <div class="day-detail-stat">
+            <div class="lbl">Clocked in</div>
+            <div class="val ${stats.clockIn ? '' : 'muted'}">${stats.clockIn ? fmtTimeOfDay(stats.clockIn) : '—'}</div>
+        </div>
+        <div class="day-detail-stat">
+            <div class="lbl">Clocked out</div>
+            <div class="val ${stats.clockOut ? '' : 'muted'}">${stats.clockOut ? fmtTimeOfDay(stats.clockOut) : (stats.clockIn && isToday ? 'still in' : '—')}</div>
+        </div>
+        <div class="day-detail-stat">
+            <div class="lbl">Worked</div>
+            <div class="val ${stats.workedMs > 0 ? '' : 'muted'}">${stats.workedMs > 0 ? fmt(stats.workedMs) : '—'}</div>
+        </div>
+        <div class="day-detail-stat">
+            <div class="lbl">Break</div>
+            <div class="val ${stats.breakMs > 0 ? '' : 'muted'}">${stats.breakMs > 0 ? fmt(stats.breakMs) : '—'}</div>
+        </div>
+    `;
+
+    // Per-clocking rows, chronological. Each Clock In with offsite_reason
+    // gets a "View on map" pill that re-uses the existing map modal.
+    // Coerce every interpolated value through String() / escapeHtml so
+    // a weird entry shape (unexpected null, undefined) can't crash the
+    // template literal.
+    const bodyEl = document.getElementById('dayDetailBody');
+    if (entries.length === 0) {
+        let emptyMsg;
+        if (leaveOnDay) emptyMsg = `${describeLeave(leaveOnDay).label}${leaveOnDay.approvedBy ? ' · authorised by ' + escapeHtml(String(leaveOnDay.approvedBy)) : ''}`;
+        else if (stats.isWeekend) emptyMsg = 'Weekend — no clockings expected';
+        else if (dateStr > localDateStr()) emptyMsg = 'Future day';
+        else emptyMsg = 'No clockings recorded for this day';
+        bodyEl.innerHTML = `<div class="day-detail-empty">${emptyMsg}</div>`;
+    } else {
+        const rows = entries.map(ev => {
+            const t = new Date(ev.timestamp);
+            const reasonLabel = ev.offsiteReason
+                ? String(OFFSITE_REASON_LABELS[ev.offsiteReason] || ev.offsiteReason)
+                : null;
+            // Map button only for events with coords (Clock Ins from the
+            // mobile app currently — but we don't enforce type, so any
+            // future event that gets lat/lng is supported).
+            const hasCoords = ev.latitude != null && ev.longitude != null
+                && isFinite(Number(ev.latitude)) && isFinite(Number(ev.longitude));
+            const mapBtn = hasCoords
+                ? `<button class="map-btn" data-day-event-id="${escapeHtml(String(ev.id))}" data-day-emp-id="${escapeHtml(String(empId))}" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a8 8 0 00-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 00-8-8z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                    View on map
+                </button>` : '';
+            const reasonHtml = reasonLabel
+                ? `<span class="reason">${escapeHtml(reasonLabel)}${ev.offsiteNote ? ' · ' + escapeHtml(String(ev.offsiteNote)) : ''}</span>`
+                : (ev.earlyReason ? `<span class="reason">Early reason: ${escapeHtml(String(ev.earlyReason))}</span>` : '');
+            return `<div class="day-detail-row">
+                <div class="time">${fmtTimeOfDay(t)}</div>
+                <div class="body">
+                    <span class="event-tag" data-type="${escapeHtml(String(ev.type || ''))}">${escapeHtml(String(ev.type || '—'))}</span>
+                    ${reasonHtml}
+                </div>
+                ${mapBtn}
+            </div>`;
+        }).join('');
+        bodyEl.innerHTML = `<div class="day-detail-rows">${rows}</div>`;
+        // Wire the map buttons. We close THIS modal first, then open the
+        // offsite map so they don't stack (both share z-index 1000).
+        bodyEl.querySelectorAll('.map-btn').forEach(b => {
+            b.addEventListener('click', () => {
+                const evId = b.dataset.dayEventId;
+                const eId = b.dataset.dayEmpId;
+                closeDayDetail();
+                setTimeout(() => openOffsiteMapForEvent(eId, evId), 220);
+            });
+        });
+    }
+
+    const overlay = document.getElementById('dayDetailOverlay');
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+}
+
+function closeDayDetail() {
+    const overlay = document.getElementById('dayDetailOverlay');
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+}
+document.getElementById('dayDetailClose').addEventListener('click', closeDayDetail);
+document.getElementById('dayDetailOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'dayDetailOverlay') closeDayDetail();
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('dayDetailOverlay').classList.contains('open')) {
+        closeDayDetail();
+    }
 });
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && document.getElementById('offsiteMapOverlay').classList.contains('open')) {
