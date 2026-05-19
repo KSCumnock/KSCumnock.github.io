@@ -648,14 +648,19 @@ html.screensaver-active body {
 }
 .alert-ok:active { opacity: 0.85; }
 
-/* Muted action button — subtle visual hint that it's not the current
-   primary action, but still tappable so the alert can explain why. */
+/* Muted action button — visually communicates "not available right now"
+   without disabling the tap (so the alert can explain why). Grayscale
+   + lower opacity together make this read as inactive far more clearly
+   than opacity alone. */
 .action-btn.muted {
-    opacity: 0.42;
+    opacity: 0.28;
+    filter: grayscale(60%);
+    cursor: not-allowed;
 }
 .action-btn.muted:hover {
-    background: var(--bg-input);
-    border-color: var(--border);
+    background: inherit;
+    border-color: inherit;
+    transform: none;
 }
 
 /* ────────────────────────────────────────────────────────── */
@@ -1186,6 +1191,7 @@ html.screensaver-active body {
     text-transform: uppercase;
     letter-spacing: 0.14em;
     text-align: center;
+    transition: font-size 0.25s ease, letter-spacing 0.25s ease, font-weight 0.25s ease;
 }
 .recording-sub {
     font-size: 12.5px;
@@ -1193,7 +1199,51 @@ html.screensaver-active body {
     font-family: var(--font-mono);
     text-align: center;
     margin-top: -10px;
+    transition: font-size 0.2s ease, color 0.2s ease;
 }
+
+/* ── SUCCESS STATE ── overlaid on the same recording overlay */
+.recording-success-icon {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    transform: scale(0.5);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.22s ease;
+    display: none; /* hidden until success */
+    flex-shrink: 0;
+}
+.recording-success-icon svg { width: 42px; height: 42px; }
+
+.recording-overlay.success .recording-success-icon {
+    display: grid;
+    transform: scale(1);
+    opacity: 1;
+}
+.recording-overlay.success .recording-spinner {
+    display: none;
+}
+.recording-overlay.success .recording-label {
+    font-size: 28px;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: -0.02em;
+}
+.recording-overlay.success .recording-sub {
+    font-size: 15px;
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+    margin-top: 0;
+}
+
+/* Colour variants for the success icon */
+.recording-success-icon.green  { background: var(--green);  color: #fff; }
+.recording-success-icon.red    { background: var(--red);    color: #fff; }
+.recording-success-icon.amber  { background: var(--amber);  color: #fff; }
+.recording-success-icon.orange { background: var(--orange); color: #fff; }
+.recording-success-icon.purple { background: var(--purple); color: #fff; }
 
 /* ────────────────────────────────────────────────────────── */
 /* LOADING / OFFLINE OVERLAYS                                  */
@@ -1428,6 +1478,10 @@ html.screensaver-active body {
 <!-- ──────────────────────────────────────────────────── -->
 <div class="recording-overlay" id="recordingOverlay" aria-hidden="true">
     <div class="recording-content">
+        <!-- Success icon — hidden until Worker responds OK, then springs in -->
+        <div class="recording-success-icon" id="recordingSuccessIcon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
         <div class="recording-spinner">
             <svg viewBox="0 0 50 50" class="spinner-svg">
                 <circle class="spinner-track" cx="25" cy="25" r="20" fill="none" stroke-width="4"/>
@@ -1435,7 +1489,7 @@ html.screensaver-active body {
             </svg>
         </div>
         <div class="recording-label mono" id="recordingLabel">Recording…</div>
-        <div class="recording-sub">Saving to time records</div>
+        <div class="recording-sub" id="recordingSub">Saving to time records</div>
     </div>
 </div>
 
@@ -1983,16 +2037,66 @@ const RECORDING_LABELS = {
     'Sick Day':    'Recording sick day…',
 };
 
+// How the success overlay looks after a successful recording.
+// label:  headline shown in place of the spinner label
+// colour: drives the icon background (CSS class on .recording-success-icon)
+const SUCCESS_CONFIG = {
+    'Clock In':    { label: 'Clocked In',       colour: 'green'  },
+    'Clock Out':   { label: 'Clocked Out',       colour: 'red'    },
+    'Break Start': { label: 'Tea Break Started', colour: 'amber'  },
+    'Break End':   { label: 'Tea Break Ended',   colour: 'amber'  },
+    'Lunch Start': { label: 'Lunch Started',     colour: 'orange' },
+    'Lunch End':   { label: 'Back from Lunch',   colour: 'orange' },
+    'Sick Day':    { label: 'Sick Day Recorded', colour: 'purple' },
+};
+
 function showRecordingOverlay(label) {
     const overlay = document.getElementById('recordingOverlay');
     document.getElementById('recordingLabel').textContent = label || 'Recording…';
+    document.getElementById('recordingLabel').classList.add('mono');
+    document.getElementById('recordingSub').textContent = 'Saving to time records';
+    // Reset any leftover success state from a previous action
+    overlay.classList.remove('success');
     overlay.classList.add('show');
     overlay.setAttribute('aria-hidden', 'false');
 }
 function hideRecordingOverlay() {
     const overlay = document.getElementById('recordingOverlay');
-    overlay.classList.remove('show');
+    overlay.classList.remove('show', 'success');
     overlay.setAttribute('aria-hidden', 'true');
+}
+
+// Transitions the recording overlay from "spinner" to a large success state,
+// holds it for SUCCESS_HOLD_MS, then dismisses and returns to idle.
+// This is far more visible on a kiosk than a small bottom toast.
+const SUCCESS_HOLD_MS = 1800;
+
+function showSuccessOverlay(type, timestamp) {
+    const cfg = SUCCESS_CONFIG[type] || { label: 'Recorded', colour: 'green' };
+
+    // Update the icon colour class
+    const icon = document.getElementById('recordingSuccessIcon');
+    icon.className = `recording-success-icon ${cfg.colour}`;
+
+    // Swap label to success text (remove mono/uppercase via CSS)
+    const labelEl = document.getElementById('recordingLabel');
+    labelEl.textContent = cfg.label;
+    labelEl.classList.remove('mono');
+
+    // Show the time as the sub-label
+    const subEl = document.getElementById('recordingSub');
+    subEl.textContent = timestamp ? fmtTimeShort(new Date(timestamp)) : '';
+
+    // Flip to success state (CSS handles spinner→icon swap)
+    const overlay = document.getElementById('recordingOverlay');
+    overlay.classList.add('success');
+
+    // After hold period, fade overlay out and return to idle
+    setTimeout(() => {
+        overlay.classList.remove('show', 'success');
+        overlay.setAttribute('aria-hidden', 'true');
+        exitActionScreen();
+    }, SUCCESS_HOLD_MS);
 }
 
 // Shown when a tech taps a button that isn't allowed in the current state
@@ -2286,14 +2390,14 @@ async function submitClocking(type, opts = {}) {
         // reflect immediately, without waiting for the next fetch.
         state.entries.push(data.entry);
 
-        hideRecordingOverlay();
-        showToast(`${type} recorded at ${fmtTimeShort(new Date(data.entry.timestamp))}`, 'success');
+        // Update the action screen status pill behind the overlay so it's
+        // correct when the success state clears.
+        renderActionScreen();
 
-        // Briefly refresh the action screen so the user sees the new status,
-        // then return to idle.
-        setTimeout(() => renderActionScreen(), ACTION_FEEDBACK_DELAY_MS);
-        clearTimeout(actionReturnTimer);
-        actionReturnTimer = setTimeout(exitActionScreen, ACTION_RETURN_DELAY_MS);
+        // Transition the recording overlay to its success state — large ✓,
+        // action name, and timestamp. It auto-dismisses after SUCCESS_HOLD_MS
+        // and calls exitActionScreen(). No separate toast needed for success.
+        showSuccessOverlay(type, data.entry.timestamp);
 
     } catch (err) {
         console.error('Clocking failed:', err);
