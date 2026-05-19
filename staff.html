@@ -1938,6 +1938,7 @@ function attemptPinMatch() {
     const employee = state.employees.find(e => e.pin === state.pin);
     if (!employee) {
         $('idleScreen').classList.add('error');
+        playErrorSound();
         setTimeout(() => {
             $('idleScreen').classList.remove('error');
             clearPin();
@@ -2091,6 +2092,9 @@ function showSuccessOverlay(type, timestamp) {
     const overlay = document.getElementById('recordingOverlay');
     overlay.classList.add('success');
 
+    // Audio confirmation — plays as the ✓ animates in
+    playSuccessSound();
+
     // After hold period, fade overlay out and return to idle
     setTimeout(() => {
         overlay.classList.remove('show', 'success');
@@ -2106,6 +2110,7 @@ function showDisallowedAlert(message) {
     document.getElementById('alertMessage').textContent = message || 'That action isn\'t available right now.';
     overlay.classList.add('show');
     overlay.setAttribute('aria-hidden', 'false');
+    playErrorSound();
     // Reset auto-return-to-idle timer so the message has time to be read.
     // Without this, the alert could appear and the kiosk could simultaneously
     // jump back to idle, dismissing the alert before it's been read.
@@ -2408,6 +2413,79 @@ async function submitClocking(type, opts = {}) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+// AUDIO FEEDBACK
+// ════════════════════════════════════════════════════════════════════════
+// Web Audio API — no external files, no loading, works offline.
+//
+// iOS Safari rule: AudioContext must be created (or resumed) within a
+// user-gesture handler. We prime it on first pointerdown so it's already
+// running by the time async Worker responses come back. Without this,
+// sounds would be silently dropped on the first action after page load.
+//
+// All synthesis is done with OscillatorNode + GainNode, so sounds play
+// instantly with no decode delay. Volume is governed by the iPad's system
+// volume — keep AUDIO_VOLUME between 0.15–0.35 to suit an open workshop.
+
+const AUDIO_VOLUME = 0.25;   // master gain (0–1)
+let _audioCtx = null;
+
+function getAudioCtx() {
+    if (!_audioCtx) {
+        try {
+            _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.warn('Web Audio API not available:', e);
+            return null;
+        }
+    }
+    // iOS suspends the context when the page loses focus; resume on demand.
+    if (_audioCtx.state === 'suspended') {
+        _audioCtx.resume().catch(() => {});
+    }
+    return _audioCtx;
+}
+
+// Two ascending sine-wave chimes — C5 (523 Hz) followed by E5 (659 Hz).
+// Short attack, natural exponential decay. Pleasant and clearly positive.
+function playSuccessSound() {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    [[523.25, 0], [659.25, 0.19]].forEach(([freq, delay]) => {
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const t = ctx.currentTime + delay;
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(AUDIO_VOLUME, t + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.44);
+        osc.start(t);
+        osc.stop(t + 0.45);
+    });
+}
+
+// Short descending sine — 280 Hz → 180 Hz over ~250 ms.
+// Quick and unambiguous: communicates "nope" without being jarring.
+function playErrorSound() {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    const t = ctx.currentTime;
+    osc.frequency.setValueAtTime(280, t);
+    osc.frequency.exponentialRampToValueAtTime(180, t + 0.22);
+    gain.gain.setValueAtTime(AUDIO_VOLUME, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+    osc.start(t);
+    osc.stop(t + 0.30);
+}
+
+// ════════════════════════════════════════════════════════════════════════
 // TOAST
 // ════════════════════════════════════════════════════════════════════════
 let toastTimer = null;
@@ -2416,6 +2494,7 @@ function showToast(message, type = 'success') {
     $('toastText').textContent = message;
     toast.classList.toggle('error', type === 'error');
     toast.classList.add('show');
+    if (type === 'error') playErrorSound();
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
 }
@@ -2636,7 +2715,12 @@ function bindEvents() {
     // Activity tracking — any tap/key anywhere resets the idle timer.
     // We listen at the document level so we don't need to attach to each
     // button individually. Capture phase so it fires before specific handlers.
-    document.addEventListener('pointerdown', noteActivity, { capture: true });
+    // Also primes the AudioContext on first interaction — iOS requires this
+    // so audio is ready by the time an async Worker response comes back.
+    document.addEventListener('pointerdown', (e) => {
+        noteActivity();
+        getAudioCtx();   // prime once; subsequent calls are no-ops
+    }, { capture: true });
     document.addEventListener('keydown',     noteActivity, { capture: true });
 
     // Online/offline
