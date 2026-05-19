@@ -986,12 +986,26 @@ function updateRequestTypeOptions() {
     const requestType = document.getElementById('request-type').value;
     const deductToggleContainer = document.getElementById('deduct-toggle-container');
     const deductCheckbox = document.getElementById('deduct-from-holiday');
+    const reasonTextarea = document.getElementById('reason');
+    const reasonRequired = document.getElementById('reason-required-hint');
+    const reasonOptional = document.getElementById('reason-optional-hint');
 
     if (requestType === 'sick' || requestType === 'bereavement') {
         deductToggleContainer.style.display = 'block';
     } else {
         deductToggleContainer.style.display = 'none';
         deductCheckbox.checked = false;
+    }
+
+    // Reason is mandatory for sick leave
+    if (requestType === 'sick') {
+        reasonTextarea.placeholder = 'Please describe the reason for sick leave\u2026';
+        if (reasonRequired) reasonRequired.style.display = 'inline';
+        if (reasonOptional) reasonOptional.style.display = 'none';
+    } else {
+        reasonTextarea.placeholder = 'Family vacation, medical appointment, etc.';
+        if (reasonRequired) reasonRequired.style.display = 'none';
+        if (reasonOptional) reasonOptional.style.display = 'inline';
     }
 
     // Add this line to force recalculate after changing request type:
@@ -1453,6 +1467,13 @@ async function submitHolidayRequest(event) {
     
     const requestType = document.getElementById('request-type').value;
     const reason = document.getElementById('reason').value;
+
+    // Sick leave requires a reason
+    if (requestType === 'sick' && !reason.trim()) {
+        toast.warning('Please enter a reason before recording sick leave.', { title: 'Reason required' });
+        document.getElementById('reason').focus();
+        return;
+    }
     const deductFromHoliday = document.getElementById('deduct-from-holiday').checked;
     const shouldDeductDays = requestType === 'holiday' || deductFromHoliday;
     
