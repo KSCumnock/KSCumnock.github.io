@@ -3987,16 +3987,11 @@ const WORKER_URL = 'https://timekeeper-admin.ske-d03.workers.dev';
 const AUTH_TOKEN_KEY = 'ks-tk-admin-token';
 const AUTH_EXPIRES_KEY = 'ks-tk-admin-expires';
 
-// Holiday Manager — separate system, lets us check leave status for employees.
-// We map each TimeKeeper employee to a Holiday Manager employee by integer ID
-// (stored in the `holidayManagerId` field). HM uses a year-based file structure
-// (`employees2026.json`, `employees2027.json`), so we always look up the current
-// year. The IDs are stable across years.
-const HOLIDAY_MANAGER = {
-    workerUrl: 'https://ks-holiday-manager.ske-d03.workers.dev/api/github',
-    owner: 'KSCumnock',
-    repo: 'Holidays',
-};
+// Holiday Manager — now backed by TimeKeeper's own D1 database.
+// Previously this called a separate ks-holiday-manager worker; that
+// worker is being retired. All HM data lives in `holiday_*` tables in
+// the timekeeper D1 and is exposed via admin endpoints on this same
+// worker, authenticated via the existing admin session.
 let _hmEmployeesCache = null;   // [{ id, name, totalAllowance, usedDays, ... }]
 let _hmEmployeesFetchedAt = 0;
 async function fetchHolidayManagerEmployees(force = false) {
@@ -4005,20 +4000,9 @@ async function fetchHolidayManagerEmployees(force = false) {
     if (!force && _hmEmployeesCache && (Date.now() - _hmEmployeesFetchedAt) < FIVE_MIN) {
         return _hmEmployeesCache;
     }
-    const year = new Date().getFullYear();
-    const resp = await fetch(HOLIDAY_MANAGER.workerUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            action: 'get',
-            owner: HOLIDAY_MANAGER.owner,
-            repo: HOLIDAY_MANAGER.repo,
-            path: `employees${year}.json`,
-        }),
-    });
-    if (!resp.ok) throw new Error(`Holiday Manager fetch failed (${resp.status})`);
-    const data = await resp.json();
-    const list = Array.isArray(data.content) ? data.content : [];
+    // Use the admin session — same auth as every other privileged call
+    const data = await session.api('GET', '/admin/holiday/employees');
+    const list = Array.isArray(data.employees) ? data.employees : [];
     _hmEmployeesCache = list.slice().sort((a, b) => a.name.localeCompare(b.name));
     _hmEmployeesFetchedAt = Date.now();
     return _hmEmployeesCache;
@@ -4080,23 +4064,10 @@ function rebuildLeaveIndex() {
     _leaveState.byHmEmpId = idx;
 }
 
-async function fetchOneRequestsYear(year) {
-    const resp = await fetch(HOLIDAY_MANAGER.workerUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            action: 'get',
-            owner: HOLIDAY_MANAGER.owner,
-            repo: HOLIDAY_MANAGER.repo,
-            path: `holiday-requests${year}.json`,
-        }),
-    });
-    if (resp.status === 404) return [];     // file may not exist yet for a fresh year
-    if (!resp.ok) throw new Error(`HM requests ${year} fetch failed (${resp.status})`);
-    const data = await resp.json();
-    return Array.isArray(data.content) ? data.content : [];
-}
-
+// Single D1 fetch — replaces the two-year file merge dance. D1 has all
+// years in one table; the endpoint returns a 60-day backward window plus
+// all future approved+pending requests, which covers every dashboard
+// surface (today's pills, upcoming day-strip, attendance %).
 async function fetchHolidayRequests(force = false) {
     if (_leaveState.loading) return _leaveState.loading;
     if (!force && _leaveState.fetchedAt && (Date.now() - _leaveState.fetchedAt) < LEAVE_CACHE_TTL_MS) {
@@ -4104,29 +4075,8 @@ async function fetchHolidayRequests(force = false) {
     }
     _leaveState.loading = (async () => {
         try {
-            const thisYear = new Date().getFullYear();
-            // Always pull this year + next year. In January also pull last
-            // year (covers leave that started 28 Dec and runs to 5 Jan,
-            // filed under the previous year).
-            const month = new Date().getMonth();
-            const years = [thisYear, thisYear + 1];
-            if (month === 0) years.unshift(thisYear - 1);
-            const results = await Promise.all(years.map(y => fetchOneRequestsYear(y).catch(e => {
-                console.warn(`HM requests ${y} failed:`, e.message);
-                return [];
-            })));
-            // Merge + dedupe by id (across files an id should be unique
-            // per year but we guard anyway).
-            const seen = new Set();
-            const merged = [];
-            for (const list of results) {
-                for (const r of list) {
-                    const key = `${r.id}:${r.startDate}`;
-                    if (seen.has(key)) continue;
-                    seen.add(key);
-                    merged.push(r);
-                }
-            }
+            const data = await session.api('GET', '/admin/holiday/requests');
+            const merged = Array.isArray(data.requests) ? data.requests : [];
             _leaveState.requests = merged;
             _leaveState.fetchedAt = Date.now();
             _leaveState.lastError = null;
@@ -6939,14 +6889,10 @@ function openClockingForm(empId, entry = null) {
     });
 }
 
-// Posts a sick-leave request to the Holiday Manager so it appears
-// alongside admin-entered records. Matches the schema HM uses for
-// auto-approved sick days (see HM script.js — block booking with a
-// single selected date, status pre-set to 'approved', authoriser
-// stamped). Concurrency: HM stores requests as a single JSON file via
-// the GitHub Contents API; we fetch the latest with its SHA, append,
-// and write back. On a 409 (someone else updated the file in between)
-// we retry once with a fresh fetch.
+// Posts a sick-leave request to Holiday Manager so it appears alongside
+// admin-entered records. Atomic on the server: server does dedup + insert
+// in one D1 transaction, no SHA dance, no race conditions, no retries.
+// Returns { skipped: true } if a sick request already covers that date.
 async function recordSickDayInHM(tkEmp, sickDayIso, authoriser) {
     const hmId = Number(tkEmp.holidayManagerId);
     if (!hmId) throw new Error('Employee is not linked to Holiday Manager');
@@ -6956,91 +6902,14 @@ async function recordSickDayInHM(tkEmp, sickDayIso, authoriser) {
     const d = new Date(sickDayIso);
     const yyyy = d.getFullYear();
     const dateStr = `${yyyy}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    const fileName = `holiday-requests${yyyy}.json`;
 
-    const fetchHm = async () => {
-        const resp = await fetch(HOLIDAY_MANAGER.workerUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 'get',
-                owner: HOLIDAY_MANAGER.owner,
-                repo: HOLIDAY_MANAGER.repo,
-                path: fileName,
-            }),
-        });
-        if (resp.status === 404) return { content: [], sha: null };
-        if (!resp.ok) throw new Error(`HM read failed (${resp.status})`);
-        const data = await resp.json();
-        return { content: Array.isArray(data.content) ? data.content : [], sha: data.sha || null };
-    };
-
-    const writeHm = async (content, sha) => {
-        const resp = await fetch(HOLIDAY_MANAGER.workerUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 'update',
-                owner: HOLIDAY_MANAGER.owner,
-                repo: HOLIDAY_MANAGER.repo,
-                path: fileName,
-                content,
-                sha,
-                message: `Sick day cross-written from TimeKeeper for ${tkEmp.name} on ${dateStr}`,
-                branch: 'main',
-            }),
-        });
-        return resp;
-    };
-
-    // Build the new request — schema mirrors HM's own sick-leave creation
-    // (block booking with a single date, status pre-set to approved).
-    const buildRequest = (existingMaxId) => ({
-        id: existingMaxId + 1,
-        employeeId: hmId,
+    // Single atomic call — server handles dedup and ID allocation.
+    return await session.api('POST', '/admin/holiday/sick-day', {
+        holidayManagerId: hmId,
         employeeName: tkEmp.name,
-        startDate: dateStr,
-        endDate: dateStr,
-        days: 1,
-        isHalfDay: false,
-        halfDayPeriod: null,
-        reason: 'Recorded via TimeKeeper',
-        status: 'approved',
-        submittedDate: new Date().toISOString().split('T')[0],
-        requestType: 'sick',
-        deductFromHoliday: false,
-        isBlockBooking: true,
-        selectedDates: [dateStr],
-        approvedBy: authoriser,
-        approvedDate: new Date().toISOString().split('T')[0],
+        date: dateStr,
+        authoriser: authoriser,
     });
-
-    const tryOnce = async () => {
-        const { content, sha } = await fetchHm();
-        // De-duplicate: don't double-record if a sick request for this
-        // employee already covers this date.
-        const already = content.some(r => Number(r.employeeId) === hmId && r.requestType === 'sick' && (
-            (r.isBlockBooking && Array.isArray(r.selectedDates) && r.selectedDates.includes(dateStr)) ||
-            (r.startDate && r.endDate && r.startDate <= dateStr && r.endDate >= dateStr)
-        ));
-        if (already) return { skipped: true };
-        const maxId = content.reduce((m, r) => Math.max(m, Number(r.id) || 0), 0);
-        const updated = content.concat([buildRequest(maxId)]);
-        const resp = await writeHm(updated, sha);
-        return { resp };
-    };
-
-    let result = await tryOnce();
-    if (result.skipped) return;
-    if (result.resp.ok) return;
-    // 409 = SHA mismatch (another write happened). Retry once.
-    if (result.resp.status === 409 || result.resp.status === 422) {
-        result = await tryOnce();
-        if (result.skipped) return;
-        if (result.resp.ok) return;
-    }
-    const errText = await result.resp.text().catch(() => '');
-    throw new Error(`HM write failed (${result.resp.status}) ${errText.slice(0, 120)}`);
 }
 
 function confirmDeleteClocking(entry) {
