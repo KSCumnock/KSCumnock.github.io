@@ -155,12 +155,16 @@ function filterEmployeeCards() {
     populateEmployeeCards();
 }
 
-// Configuration - GitHub Integration via Cloudflare Worker
+// Configuration - Holiday Manager API (D1-backed Cloudflare Worker)
+// `workerUrl` and `repo`/`owner` are vestigial GitHub-era names; the worker
+// now reads/writes from D1 directly and only uses GitHub for nightly backups.
+// Kept here to avoid touching every call site — they're harmless metadata.
 const GITHUB_CONFIG = {
     owner: 'KSCumnock',
     repo: 'Holidays',
     branch: 'main',
-    workerUrl: 'https://ks-holiday-manager.ske-d03.workers.dev/api/github'
+    workerUrl: 'https://ks-holiday-manager-d1.ske-d03.workers.dev/api/github',
+    apiSecret: 'fd808032d339338560328af355b5cd42a7f04c88ff114213612f0f503e653102'
 };
 
 // Email Configuration
@@ -338,7 +342,8 @@ async function getFileFromGitHub(filename) {
         const response = await fetch(GITHUB_CONFIG.workerUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${GITHUB_CONFIG.apiSecret}`
             },
             body: JSON.stringify({
                 action: 'get',
@@ -383,7 +388,8 @@ async function saveFileToGitHub(filename, content, sha, commitMessage) {
         const response = await fetch(GITHUB_CONFIG.workerUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${GITHUB_CONFIG.apiSecret}`
             },
             body: JSON.stringify({
                 action: 'update',
