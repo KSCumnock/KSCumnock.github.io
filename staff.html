@@ -1621,6 +1621,12 @@ const IDLE_TIMEOUT_MS = 20 * 1000;          // 20s of no input → screensaver
 // pops the early clock-out reason picker. Spec: 3-minute bumper.
 const EARLY_CLOCKOUT_BUMPER_MIN = 3;
 
+// K&S Saturday hours are 08:00–13:00 site-wide, regardless of the
+// employee's weekday finish time on file. The early-clockout picker
+// uses this constant on Saturdays so a normal 13:00 Saturday clock-out
+// isn't flagged against the (much later) weekday finish.
+const SATURDAY_FINISH_TIME_MIN = 13 * 60;
+
 // Build version — bumped on each deploy. The boot routine compares this to
 // the version embedded in the (no-cache) HTML and reloads if mismatched, so
 // kiosks don't get stuck on stale code after a deploy.
@@ -1885,6 +1891,11 @@ const EARLY_CLOCKOUT_REASONS = [
 // the UTC hours/minutes here to match.
 function getScheduledFinishMinute(emp) {
     if (!emp || !emp.finishTime) return null;
+    // K&S Saturday hours are 08:00–13:00 site-wide, so override the
+    // employee's weekday finish on Saturdays. Without this, a normal
+    // 13:00 Saturday clock-out is treated as ~3 hours early against
+    // the weekday 16:00 finish on file, firing the picker every time.
+    if (new Date().getDay() === 6) return SATURDAY_FINISH_TIME_MIN;
     const d = new Date(emp.finishTime);
     if (isNaN(d.getTime())) return null;
     return d.getUTCHours() * 60 + d.getUTCMinutes();
