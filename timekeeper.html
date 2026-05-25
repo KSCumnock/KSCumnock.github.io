@@ -4001,7 +4001,7 @@ async function fetchHolidayManagerEmployees(force = false) {
         return _hmEmployeesCache;
     }
     // Use the admin session — same auth as every other privileged call
-    const data = await session.api('GET', '/admin/holiday/employees');
+    const data = await auth.api('GET', '/admin/holiday/employees');
     const list = Array.isArray(data.employees) ? data.employees : [];
     _hmEmployeesCache = list.slice().sort((a, b) => a.name.localeCompare(b.name));
     _hmEmployeesFetchedAt = Date.now();
@@ -4075,7 +4075,7 @@ async function fetchHolidayRequests(force = false) {
     }
     _leaveState.loading = (async () => {
         try {
-            const data = await session.api('GET', '/admin/holiday/requests');
+            const data = await auth.api('GET', '/admin/holiday/requests');
             const merged = Array.isArray(data.requests) ? data.requests : [];
             _leaveState.requests = merged;
             _leaveState.fetchedAt = Date.now();
@@ -6904,7 +6904,7 @@ async function recordSickDayInHM(tkEmp, sickDayIso, authoriser) {
     const dateStr = `${yyyy}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
     // Single atomic call — server handles dedup and ID allocation.
-    return await session.api('POST', '/admin/holiday/sick-day', {
+    return await auth.api('POST', '/admin/holiday/sick-day', {
         holidayManagerId: hmId,
         employeeName: tkEmp.name,
         date: dateStr,
