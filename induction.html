@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kerr &amp; Smith — Induction &amp; Employment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0d1117;
+    --ink-soft:#3a4150;
+    --muted:#6b7280;
+    --line:#d8dde5;
+    --line-soft:#eef0f4;
+    --paper:#ffffff;
+    --bg:#f4f1ea;
+    --accent:#0a3d62;
+    --accent-soft:#e7eef5;
+    --gold:#a87f2c;
+    --danger:#b3261e;
+    --ok:#1e7d4c;
+    --radius:6px;
+    --shadow:0 1px 2px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.06);
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Inter Tight', system-ui, sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    font-size:15px;
+    line-height:1.5;
+  }
+
+  /* ===== APP CHROME (screen only) ===== */
+  .app-header{
+    background:var(--ink);
+    color:#fff;
+    padding:20px 28px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:24px;
+    position:sticky;
+    top:0;
+    z-index:50;
+    box-shadow:0 1px 0 rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.12);
+  }
+  .brand{display:flex;align-items:baseline;gap:14px}
+  .brand-mark{
+    font-family:'Fraunces',serif;
+    font-style:italic;
+    font-weight:600;
+    font-size:26px;
+    letter-spacing:-.02em;
+  }
+  .brand-mark .amp{color:var(--gold);font-weight:500}
+  .brand-tag{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.18em;
+    color:#9aa3af;
+    border-left:1px solid #2a313b;
+    padding-left:14px;
+  }
+  .header-actions{display:flex;gap:10px;align-items:center}
+  .btn{
+    font-family:inherit;
+    font-size:14px;
+    font-weight:500;
+    padding:10px 18px;
+    border-radius:var(--radius);
+    border:1px solid transparent;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    transition:all .15s ease;
+    white-space:nowrap;
+  }
+  .btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .btn-primary{background:var(--gold);color:#fff}
+  .btn-primary:hover{background:#8e6a23}
+  .btn-ghost{background:transparent;color:#cbd1d9;border-color:#2a313b}
+  .btn-ghost:hover{background:#1c2128;color:#fff}
+  .btn-secondary{background:#fff;color:var(--ink);border-color:var(--line)}
+  .btn-secondary:hover{background:#f8fafc;border-color:#b9c1cb}
+
+  /* ===== MAIN WRAPPER ===== */
+  .shell{
+    max-width:1120px;
+    margin:0 auto;
+    padding:28px 24px 80px;
+  }
+  .intro{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:20px 24px;
+    margin-bottom:24px;
+    display:flex;
+    align-items:flex-start;
+    gap:16px;
+    box-shadow:var(--shadow);
+  }
+  .intro-icon{
+    flex:none;
+    width:36px;height:36px;
+    border-radius:50%;
+    background:var(--accent-soft);
+    color:var(--accent);
+    display:grid;place-items:center;
+    font-weight:600;
+  }
+  .intro h1{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:22px;
+    margin:0 0 4px;
+    letter-spacing:-.01em;
+  }
+  .intro p{margin:0;color:var(--muted);font-size:14px}
+
+  /* ===== FORM CARDS ===== */
+  .card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:24px 28px 28px;
+    margin-bottom:20px;
+    box-shadow:var(--shadow);
+  }
+  .card-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:18px;
+    padding-bottom:14px;
+    border-bottom:1px solid var(--line-soft);
+  }
+  .card-head h2{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:18px;
+    margin:0;
+    letter-spacing:-.01em;
+  }
+  .card-head .step{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.1em;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(12,1fr);
+    gap:16px 18px;
+  }
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field.col-12{grid-column:span 12}
+  .field.col-10{grid-column:span 10}
+  .field.col-9{grid-column:span 9}
+  .field.col-8{grid-column:span 8}
+  .field.col-7{grid-column:span 7}
+  .field.col-6{grid-column:span 6}
+  .field.col-5{grid-column:span 5}
+  .field.col-4{grid-column:span 4}
+  .field.col-3{grid-column:span 3}
+  .field.col-2{grid-column:span 2}
+  @media (max-width:720px){
+    .field[class*="col-"]{grid-column:span 12}
+  }
+  label{
+    font-size:12px;
+    font-weight:500;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:.06em;
+  }
+  label .req{color:var(--danger);margin-left:2px}
+  input[type=text],input[type=email],input[type=tel],input[type=date],input[type=number],select,textarea{
+    font-family:inherit;
+    font-size:15px;
+    color:var(--ink);
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:5px;
+    padding:9px 12px;
+    transition:border .15s, box-shadow .15s;
+    width:100%;
+  }
+  input:focus,select:focus,textarea:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(10,61,98,.12);
+  }
+  textarea{resize:vertical;min-height:64px}
+
+  .radio-group, .yesno{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .radio-group label, .yesno label{
+    flex:1;
+    min-width:90px;
+    text-transform:none;
+    letter-spacing:0;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:5px;
+    padding:8px 12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    cursor:pointer;
+    font-size:14px;
+    color:var(--ink);
+    font-weight:400;
+    transition:all .15s;
+  }
+  .radio-group label:hover, .yesno label:hover{border-color:var(--accent);background:#fafbfc}
+  .radio-group input, .yesno input{accent-color:var(--accent);margin:0}
+  .radio-group input:checked + span, .yesno input:checked + span{font-weight:500}
+  .radio-group label:has(input:checked), .yesno label:has(input:checked){
+    border-color:var(--accent);
+    background:var(--accent-soft);
+  }
+
+  /* ===== CHECKLIST GROUPS ===== */
+  .checklist{display:flex;flex-direction:column;gap:2px;margin-top:4px}
+  .checklist-row{
+    display:grid;
+    grid-template-columns:1fr auto auto;
+    gap:14px;
+    align-items:center;
+    padding:9px 12px;
+    border-radius:5px;
+    transition:background .12s;
+  }
+  .checklist-row:hover{background:#f8fafc}
+  .checklist-row .task{font-size:14px;color:var(--ink-soft)}
+  .checklist-row .duration{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    color:var(--muted);
+    background:#f1f3f5;
+    padding:2px 8px;
+    border-radius:3px;
+    white-space:nowrap;
+  }
+  .checklist-row .code{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--accent);
+    background:var(--accent-soft);
+    padding:2px 7px;
+    border-radius:3px;
+    font-weight:500;
+  }
+  .checklist-row input[type=checkbox]{
+    accent-color:var(--accent);
+    width:18px;height:18px;
+    cursor:pointer;
+  }
+  .checklist-row label{
+    text-transform:none;
+    letter-spacing:0;
+    color:inherit;
+    font-weight:400;
+    cursor:pointer;
+    margin:0;
+    font-size:14px;
+  }
+  .col-split{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:32px;
+  }
+  @media (max-width:760px){
+    .col-split{grid-template-columns:1fr}
+  }
+  .col-split h3{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:15px;
+    margin:0 0 10px;
+    padding-bottom:6px;
+    border-bottom:1px solid var(--line-soft);
+    color:var(--ink);
+  }
+  .legend{
+    display:flex;flex-wrap:wrap;gap:6px;
+    font-size:11px;color:var(--muted);
+    margin-bottom:10px;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .legend span{
+    background:#f1f3f5;
+    padding:2px 7px;
+    border-radius:3px;
+  }
+
+  /* ===== ACTION BAR ===== */
+  .actionbar{
+    position:sticky;
+    bottom:16px;
+    margin-top:32px;
+    background:var(--ink);
+    color:#fff;
+    border-radius:8px;
+    padding:14px 20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    box-shadow:0 12px 32px rgba(0,0,0,.18);
+    z-index:40;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .actionbar-status{
+    font-size:13px;
+    color:#cbd1d9;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .status-dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--ok);
+    box-shadow:0 0 0 3px rgba(30,125,76,.25);
+  }
+  .actionbar-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+  /* ===== PRINTED DOCUMENTS ===== */
+  .print-only{display:none}
+
+  /* Document container */
+  .doc{
+    background:#fff;
+    color:#111;
+    font-family:'Times New Roman', Georgia, serif;
+    font-size:9.5pt;
+    line-height:1.3;
+  }
+  .doc .doc-header{
+    display:flex;
+    justify-content:flex-end;
+    margin-bottom:4mm;
+  }
+  .doc .logo-block{
+    text-align:right;
+    font-family:'Fraunces', 'Times New Roman', serif;
+  }
+  .doc .logo-block .ks{
+    font-style:italic;
+    font-size:18pt;
+    font-weight:500;
+    letter-spacing:-.01em;
+    line-height:1;
+    color:#0a3d62;
+  }
+  .doc .logo-block .ks .amp{color:#a87f2c}
+  .doc .logo-block .tag{
+    font-size:7pt;
+    font-style:italic;
+    color:#555;
+    border-top:1px solid #0a3d62;
+    padding-top:1px;
+    margin-top:2px;
+    letter-spacing:.05em;
+  }
+  .doc h1{
+    text-align:center;
+    font-size:15pt;
+    font-weight:bold;
+    text-decoration:underline;
+    margin:2mm 0 4mm;
+    font-family:'Times New Roman', serif;
+    letter-spacing:.02em;
+  }
+  .doc h2{
+    font-size:10pt;
+    font-weight:bold;
+    text-decoration:underline;
+    margin:2.5mm 0 1mm;
+    font-family:'Times New Roman', serif;
+  }
+  .doc p{margin:0 0 1.8mm}
+  .doc .field-line{
+    display:flex;
+    gap:18px;
+    margin-bottom:2mm;
+    flex-wrap:wrap;
+  }
+  .doc .field-line .f{
+    flex:1;
+    min-width:160px;
+    display:flex;
+    align-items:baseline;
+    gap:6px;
+  }
+  .doc .field-line .f .lbl{font-weight:bold;white-space:nowrap}
+  .doc .field-line .f .val{
+    flex:1;
+    border-bottom:1px solid #000;
+    padding:0 4px 1px;
+    min-height:11pt;
+    font-family:'Courier New', monospace;
+    font-size:9pt;
+  }
+  .doc table{
+    width:100%;
+    border-collapse:collapse;
+    margin:1mm 0 2mm;
+  }
+  .doc .notice-table td{
+    padding:1.2mm 4mm 1.2mm 0;
+    vertical-align:top;
+    font-size:9pt;
+  }
+  .doc .notice-table .col-1{font-weight:bold;width:33%}
+  .doc .notice-table thead td{
+    font-weight:bold;
+    text-decoration:underline;
+    border-bottom:none;
+  }
+  .doc .sig-block{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14mm;
+    margin-top:6mm;
+  }
+  .doc .sig-line{
+    border-bottom:1px solid #000;
+    height:12pt;
+    padding:0 4px;
+    font-family:'Courier New', monospace;
+    font-size:9pt;
+    min-width:0;
+  }
+  .doc .sig-label{
+    font-size:8.5pt;
+    margin-top:1px;
+    font-weight:bold;
+  }
+  .doc .sig-pair{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:8mm;
+  }
+
+  /* Induction doc specific */
+  .ind-locations{
+    display:flex;
+    justify-content:space-around;
+    margin-bottom:3mm;
+    font-family:'Times New Roman',serif;
+    font-size:11pt;
+    font-weight:bold;
+  }
+  .ind-locations .loc{
+    padding:1mm 5mm;
+    position:relative;
+  }
+  .ind-locations .loc.active{
+    color:#0a3d62;
+    border:2px solid #0a3d62;
+    border-radius:3px;
+    background:#f0f6fb;
+  }
+  .ind-locations .loc.inactive{color:#999;text-decoration:line-through}
+
+  .ind-section-title{
+    background:#0a3d62;
+    color:#fff;
+    font-weight:bold;
+    padding:1mm 3mm;
+    margin:2.5mm 0 0;
+    text-transform:uppercase;
+    font-size:9pt;
+    letter-spacing:.05em;
+  }
+  .ind-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:9pt;
+  }
+  .ind-table th, .ind-table td{
+    border:1px solid #999;
+    padding:1mm 1.5mm;
+    text-align:left;
+    vertical-align:middle;
+  }
+  .ind-table th{
+    background:#eef2f6;
+    font-weight:bold;
+    font-size:8.5pt;
+  }
+  .ind-table .col-tick{width:9mm;text-align:center;font-family:'Courier New',monospace;font-weight:bold}
+  .ind-table .col-code{width:12mm;text-align:center;font-family:'Courier New',monospace;font-size:8pt;color:#0a3d62;font-weight:bold}
+  .ind-table .col-dur{width:16mm;text-align:center;font-family:'Courier New',monospace;font-size:8.5pt}
+  .ind-table .tick-mark{color:#1e7d4c;font-size:12pt;line-height:1}
+
+  .ind-split{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-top:0}
+  .ind-foot-note{
+    font-size:8.5pt;
+    font-style:italic;
+    color:#555;
+    margin:2mm 0;
+  }
+  .ind-legend{
+    font-size:8pt;
+    color:#555;
+    margin-top:1mm;
+    font-family:'Courier New',monospace;
+  }
+
+  /* ===== OFFER LETTER ===== */
+  .letter-meta{
+    text-align:right;
+    margin-bottom:8mm;
+    font-family:'Courier New', monospace;
+    font-size:9.5pt;
+  }
+  .letter-address{
+    margin-bottom:6mm;
+    font-family:'Courier New', monospace;
+    font-size:9.5pt;
+    line-height:1.4;
+  }
+  .letter-address .name{font-weight:bold;font-family:'Times New Roman',serif;font-size:10pt}
+  .letter-salutation{
+    margin:0 0 3mm;
+    font-size:10pt;
+  }
+  .letter-body p{
+    margin:0 0 3mm;
+    font-size:10pt;
+    text-align:justify;
+  }
+  .letter-terms{
+    width:100%;
+    border-collapse:collapse;
+    margin:4mm 0;
+  }
+  .letter-terms td{
+    padding:1.2mm 0;
+    vertical-align:baseline;
+    font-size:9.5pt;
+  }
+  .letter-terms td.term-label{
+    font-weight:bold;
+    width:42mm;
+    white-space:nowrap;
+    padding-right:6mm;
+  }
+  .letter-terms td.term-value{
+    font-family:'Courier New', monospace;
+    border-bottom:1px solid #aaa;
+    padding:1.5mm 4px 1.2mm;
+    min-height:12pt;
+  }
+  .letter-sig{margin-top:10mm}
+  .letter-sig .yours{margin:0 0 12mm}
+  .letter-sig .sig-line-letter{
+    width:70mm;
+    border-bottom:1px solid #000;
+    height:14pt;
+    margin-bottom:1mm;
+  }
+  .letter-sig .sig-name{
+    font-weight:bold;
+    font-size:10pt;
+    font-family:'Courier New',monospace;
+  }
+  .letter-sig .sig-title{
+    font-size:9pt;
+    color:#444;
+    font-style:italic;
+  }
+  .letter-acceptance{
+    margin-top:8mm;
+    padding-top:5mm;
+    border-top:1.5px dashed #888;
+  }
+  .letter-acceptance .head{
+    font-weight:bold;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    font-size:9pt;
+    margin:0 0 3mm;
+    color:#0a3d62;
+  }
+  .letter-acceptance p{margin:0 0 4mm;font-size:9.5pt}
+  .letter-accept-row{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:10mm;
+    margin-top:5mm;
+  }
+  .letter-accept-row .accept-line{
+    border-bottom:1px solid #000;
+    min-height:14pt;
+    font-family:'Courier New',monospace;
+    font-size:9pt;
+    padding:0 4px 1px;
+  }
+  .letter-accept-row .accept-label{
+    font-size:8.5pt;
+    font-weight:bold;
+    margin-top:1px;
+  }
+
+  .doc-footer{
+    position:fixed;
+    bottom:8mm;
+    left:15mm;
+    right:15mm;
+    border-top:1px solid #ccc;
+    padding-top:2mm;
+    font-size:8pt;
+    color:#666;
+    display:flex;
+    justify-content:space-between;
+  }
+
+  /* ===== PRINT ===== */
+  @page{size:A4;margin:14mm}
+  @media print{
+    body{background:#fff}
+    .no-print{display:none !important}
+    .print-only{display:block !important}
+    /* Each .page becomes its own print page */
+    .page{
+      break-after:page;
+      page-break-after:always;
+    }
+    /* Don't break after the very last page of the very last doc */
+    .doc:last-child .page:last-child{
+      break-after:auto;
+      page-break-after:auto;
+    }
+    .doc-footer{display:flex}
+    /* Keep blocks together — don't orphan signatures, half-tables, or accept clauses */
+    .keep-together,
+    .sig-block,
+    .ind-split,
+    .ind-table,
+    .notice-table{
+      break-inside:avoid;
+      page-break-inside:avoid;
+    }
+    .ind-section-title{
+      break-after:avoid;
+      page-break-after:avoid;
+    }
+    h2{
+      break-after:avoid;
+      page-break-after:avoid;
+    }
+  }
+
+  /* Preview (toggle) — render each .page as a separate A4 sheet */
+  body.preview-on .no-print{display:none}
+  body.preview-on .print-only{display:block;background:#fff;padding:32px 16px}
+  body.preview-on .doc{
+    background:transparent;
+    border:none;
+    box-shadow:none;
+    padding:0;
+    margin:0;
+  }
+  body.preview-on .page{
+    width:210mm;
+    min-height:297mm;
+    padding:14mm;
+    margin:0 auto 24px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    box-shadow:0 1px 2px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.06);
+    box-sizing:border-box;
+    background:#fff;
+  }
+  .exit-preview{
+    position:fixed;
+    top:16px;right:16px;
+    z-index:100;
+    background:var(--gold);
+    color:#fff;
+    border:none;
+    padding:10px 16px;
+    border-radius:6px;
+    font-family:inherit;
+    font-size:14px;
+    cursor:pointer;
+    display:none;
+    box-shadow:0 4px 16px rgba(0,0,0,.3);
+  }
+  body.preview-on .exit-preview{display:block}
+</style>
+</head>
+<body>
+
+<header class="app-header no-print">
+  <div class="brand">
+    <span class="brand-mark"><em>Kerr</em><span class="amp">&amp;</span><em>Smith</em></span>
+    <span class="brand-tag">HR · Onboarding Forms</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost" type="button" onclick="resetForm()">Clear</button>
+    <button class="btn btn-ghost" type="button" onclick="togglePreview()">Preview</button>
+    <button class="btn btn-primary" type="button" onclick="printBoth()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+      Print Documents
+    </button>
+  </div>
+</header>
+
+<button class="exit-preview" onclick="togglePreview()">← Back to form</button>
+
+<main class="shell no-print">
+
+  <div class="intro">
+    <div class="intro-icon">i</div>
+    <div>
+      <h1>New starter pack</h1>
+      <p>Complete the fields below. When you tap <strong>Print Documents</strong>, you'll get the <strong>Offer of Employment letter</strong>, the <strong>Induction Checklist</strong>, and the <strong>Terms &amp; Conditions of Employment</strong> — all pre-filled and ready for signature.</p>
+    </div>
+  </div>
+
+  <!-- ============== PERSONAL ============== -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Personal Details</h2>
+      <span class="step">01 / 07</span>
+    </div>
+    <div class="grid">
+      <div class="field col-3">
+        <label>Branch <span class="req">*</span></label>
+        <div class="radio-group">
+          <label><input type="radio" name="location" value="Cumnock" checked><span>Cumnock</span></label>
+        </div>
+      </div>
+      <div class="field col-6">
+        <label>Full Name <span class="req">*</span></label>
+        <input type="text" data-bind="name" placeholder="e.g. John Smith">
+      </div>
+      <div class="field col-3">
+        <label>Start Date <span class="req">*</span></label>
+        <input type="date" data-bind="startDate">
+      </div>
+
+      <div class="field col-8">
+        <label>Address</label>
+        <textarea data-bind="address" rows="2" placeholder="Street, town, postcode"></textarea>
+      </div>
+      <div class="field col-4">
+        <label>Date of Birth</label>
+        <input type="date" data-bind="dob">
+      </div>
+
+      <div class="field col-3">
+        <label>Tel No.</label>
+        <input type="tel" data-bind="telNo">
+      </div>
+      <div class="field col-3">
+        <label>Mobile No.</label>
+        <input type="tel" data-bind="mobileNo">
+      </div>
+      <div class="field col-3">
+        <label>Emergency Contact</label>
+        <input type="text" data-bind="emergencyContact">
+      </div>
+      <div class="field col-3">
+        <label>Emergency Tel No.</label>
+        <input type="tel" data-bind="emergencyTel">
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== BANK / TAX ============== -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Bank &amp; Tax</h2>
+      <span class="step">02 / 07</span>
+    </div>
+    <div class="grid">
+      <div class="field col-6">
+        <label>Bank Name</label>
+        <input type="text" data-bind="bankName">
+      </div>
+      <div class="field col-6">
+        <label>N.I. Number <span class="req">*</span></label>
+        <input type="text" data-bind="niNumber" placeholder="QQ 12 34 56 C" maxlength="13">
+      </div>
+      <div class="field col-4">
+        <label>Account No.</label>
+        <input type="text" data-bind="accountNo" inputmode="numeric">
+      </div>
+      <div class="field col-4">
+        <label>Sort Code</label>
+        <input type="text" data-bind="sortCode" placeholder="00-00-00" maxlength="8">
+      </div>
+      <div class="field col-4">
+        <label>Works Number</label>
+        <input type="text" data-bind="worksNumber">
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== ROLE ============== -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Role &amp; Documents</h2>
+      <span class="step">03 / 07</span>
+    </div>
+    <div class="grid">
+      <div class="field col-4">
+        <label>Job Title / Position</label>
+        <input type="text" data-bind="jobTitle" placeholder="e.g. Technician, Service Advisor">
+      </div>
+      <div class="field col-4">
+        <label>Department</label>
+        <input type="text" data-bind="department" placeholder="e.g. Service, Sales, Parts">
+      </div>
+      <div class="field col-4">
+        <label>Responsible To</label>
+        <input type="text" data-bind="responsibleTo" placeholder="Line manager">
+      </div>
+      <div class="field col-4">
+        <label>Driving Licence Type</label>
+        <input type="text" data-bind="licenseType" placeholder="e.g. Full UK">
+      </div>
+      <div class="field col-4">
+        <label>P45 Received?</label>
+        <div class="yesno">
+          <label><input type="radio" name="p45" value="Yes"><span>Yes</span></label>
+          <label><input type="radio" name="p45" value="No"><span>No</span></label>
+          <label><input type="radio" name="p45" value="N/A"><span>N/A</span></label>
+        </div>
+      </div>
+      <div class="field col-4">
+        <label>Photo on File?</label>
+        <div class="yesno">
+          <label><input type="radio" name="photo" value="Yes"><span>Yes</span></label>
+          <label><input type="radio" name="photo" value="No"><span>No</span></label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== EMPLOYMENT TERMS (offer letter) ============== -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Employment Terms</h2>
+      <span class="step">04 / 07 · Offer letter</span>
+    </div>
+    <p style="color:var(--muted);margin:0 0 16px;font-size:14px">These details populate the <strong>Offer of Employment</strong> letter sent to the new employee.</p>
+    <div class="grid">
+      <div class="field col-3">
+        <label>Start Time</label>
+        <input type="time" data-bind="startTime" value="08:00">
+      </div>
+      <div class="field col-3">
+        <label>Finish Time</label>
+        <input type="time" data-bind="finishTime" value="17:00">
+      </div>
+      <div class="field col-3">
+        <label>Tea Break</label>
+        <input type="text" data-bind="teaBreak" placeholder="10:00 – 10:10">
+      </div>
+      <div class="field col-3">
+        <label>Lunch Break</label>
+        <input type="text" data-bind="lunchBreak" placeholder="13:00 – 13:30">
+      </div>
+
+      <div class="field col-4">
+        <label>Trial Period</label>
+        <input type="text" data-bind="trialPeriod" placeholder="e.g. 3 months, or None">
+      </div>
+      <div class="field col-3">
+        <label>Salary</label>
+        <input type="text" data-bind="salaryAmount" placeholder="£0,000 or £14.50" inputmode="decimal">
+      </div>
+      <div class="field col-2">
+        <label>Basis</label>
+        <div class="yesno">
+          <label><input type="radio" name="salaryBasis" value="Annual" checked><span>p.a.</span></label>
+          <label><input type="radio" name="salaryBasis" value="Hourly"><span>p.h.</span></label>
+        </div>
+      </div>
+      <div class="field col-3">
+        <label>Pay Frequency</label>
+        <div class="yesno">
+          <label><input type="radio" name="payFrequency" value="Monthly" checked><span>Monthly</span></label>
+          <label><input type="radio" name="payFrequency" value="Weekly"><span>Weekly</span></label>
+        </div>
+      </div>
+
+      <div class="field col-6">
+        <label>Overtime Rate</label>
+        <input type="text" data-bind="overtimeRate" placeholder="e.g. Time and a half">
+      </div>
+      <div class="field col-6">
+        <label>Commission / Bonus</label>
+        <input type="text" data-bind="bonus" placeholder="e.g. 5% of sales, or None">
+      </div>
+
+      <div class="field col-3">
+        <label>Company Car</label>
+        <div class="yesno">
+          <label><input type="radio" name="companyCar" value="Yes"><span>Yes</span></label>
+          <label><input type="radio" name="companyCar" value="No" checked><span>No</span></label>
+        </div>
+      </div>
+      <div class="field col-9">
+        <label>Company Car Conditions <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">(if applicable)</span></label>
+        <input type="text" data-bind="companyCarConditions" placeholder="e.g. Personal use permitted, fuel card included">
+      </div>
+
+      <div class="field col-3">
+        <label>Mobile Phone</label>
+        <div class="yesno">
+          <label><input type="radio" name="mobileSupplied" value="Yes"><span>Yes</span></label>
+          <label><input type="radio" name="mobileSupplied" value="No" checked><span>No</span></label>
+        </div>
+      </div>
+      <div class="field col-9">
+        <label>Mobile Phone Details <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">(if applicable)</span></label>
+        <input type="text" data-bind="mobileDetails" placeholder="e.g. iPhone, business calls only">
+      </div>
+
+      <div class="field col-6">
+        <label>Dress Code</label>
+        <input type="text" data-bind="dressCode" placeholder="e.g. Smart casual; uniform where provided">
+      </div>
+      <div class="field col-6">
+        <label>Uniform Items Supplied</label>
+        <input type="text" data-bind="uniform" placeholder="e.g. 2 polo shirts, 1 fleece, safety boots">
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== INDUCTION TASKS ============== -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Induction Procedure</h2>
+      <span class="step">05 / 07 · 2 hours total</span>
+    </div>
+    <div class="checklist">
+      <div class="checklist-row">
+        <label><input type="checkbox" data-bind="ind_tour"> Tour of premises (toilets, fire points, first aid, key staff intros)</label>
+        <span class="duration">20 mins</span>
+        <span></span>
+      </div>
+      <div class="checklist-row">
+        <label><input type="checkbox" data-bind="ind_fire"> Explain fire drill and first aid drill</label>
+        <span></span><span></span>
+      </div>
+      <div class="checklist-row">
+        <label><input type="checkbox" data-bind="ind_pen"> Give employee pen and paper for notes</label>
+        <span class="duration">45 mins</span>
+        <span></span>
+      </div>
+      <div class="checklist-row">
+        <label><input type="checkbox" data-bind="ind_form"> Complete Induction Form</label>
+        <span></span><span></span>
+      </div>
+      <div class="checklist-row">
+        <label><input type="checkbox" data-bind="ind_stretch"> Stretch break</label>
+        <span class="duration">10 mins</span>
+        <span></span>
+      </div>
+      <div class="checklist-row">
+        <label><input type="checkbox" data-bind="ind_handbook"> Issue Company Handbook &amp; video/CD (leave to digest)</label>
+        <span class="duration">30 mins</span>
+        <span></span>
+      </div>
+      <div class="checklist-row">
+        <label><input type="checkbox" data-bind="ind_qa"> Questions / Answers</label>
+        <span class="duration">15 mins</span>
+        <span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== JOB / H&S ============== -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Job, Organisation &amp; Safety</h2>
+      <span class="step">06 / 07</span>
+    </div>
+    <div class="legend">
+      <span>A — must complete</span><span>B — see handbook</span><span>C — H&amp;S item</span><span>D — pension/discount</span><span>E — training</span>
+    </div>
+    <div class="col-split">
+      <div>
+        <h3>The Job and the Organisation</h3>
+        <div class="checklist">
+          <div class="checklist-row"><label><input type="checkbox" data-bind="job_history"> Brief history of the Company</label><span class="code">AE</span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="job_structure"> Company structure, services and mission</label><span class="code">A</span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="job_vauxhall"> Vauxhall/Ivedo culture, Vauxhall Difference, ISO9002</label><span class="code">A</span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="job_safety"> Read Safety &amp; Quality Policy Statement</label><span class="code">AC</span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="job_mystery"> Explain Mystery Shoppers</label><span></span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="job_brochure"> Issue Company brochure / Vauxhall Difference literature</label><span></span><span></span></div>
+        </div>
+      </div>
+      <div>
+        <h3>Health &amp; Safety</h3>
+        <div class="checklist">
+          <div class="checklist-row"><label><input type="checkbox" data-bind="hs_ppe"> Safety clothing, P.P.E., COSHH</label><span class="code">C</span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="hs_accidents"> Accident reporting, safe working practices</label><span class="code">C</span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="hs_vehicles"> Company vehicles and speed limits</label><span class="code">C</span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="hs_comms"> Communication, notice boards, publications</label><span class="code">C</span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="hs_systems"> Systems of work and phone techniques</label><span></span><span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-split" style="margin-top:20px">
+      <div>
+        <h3>Employee Terms</h3>
+        <div class="checklist">
+          <div class="checklist-row"><label><input type="checkbox" data-bind="emp_jobdesc"> Issue Job Description / explain position &amp; duties</label><span></span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="emp_training"> Discuss training policy and annual appraisal</label><span class="code">E</span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="emp_clocking"> Clocking on, time keeping and hours of work</label><span class="code">A</span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="emp_pay"> Basic rate, overtime, when and how paid</label><span class="code">A</span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="emp_discount"> Discount scheme and pension</label><span class="code">D</span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="emp_holidays"> Holidays, sick leave and bereavement</label><span class="code">A</span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="emp_notice"> Notice required, disciplinary &amp; grievance procedures</label><span class="code">B</span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="emp_smoking"> Smoking Policy and dress code</label><span class="code">C</span><span></span></div>
+        </div>
+      </div>
+      <div>
+        <h3>Required Actions</h3>
+        <div class="checklist">
+          <div class="checklist-row"><label><input type="checkbox" data-bind="act_handbook"> Sign Company Handbook</label><span class="code">Z</span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="act_induction"> Sign induction form &amp; send to Cumnock</label><span></span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="act_terms"> Sign Employee Terms &amp; Conditions of Employment</label><span></span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="act_copyterms"> Copy of Terms &amp; Conditions issued to employee</label><span></span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="act_copylicense"> Copy Terms &amp; Driving Licence to Cumnock</label><span></span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="act_p45"> P45 sent to Cumnock</label><span></span><span></span></div>
+          <div class="checklist-row"><label><input type="checkbox" data-bind="act_assessment"> Assessment drive completed</label><span></span><span></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== SIGNATURES ============== -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Signatures &amp; Dates</h2>
+      <span class="step">07 / 07</span>
+    </div>
+    <p style="color:var(--muted);margin:0 0 16px;font-size:14px">Typed names and dates pre-fill across all three documents. Wet signatures are added by hand after printing.</p>
+    <div class="grid">
+      <div class="field col-4">
+        <label>Letter Date <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">(offer letter)</span></label>
+        <input type="date" data-bind="letterDate">
+      </div>
+      <div class="field col-4">
+        <label>K&amp;S Signatory — Name</label>
+        <input type="text" data-bind="ksRepName" placeholder="e.g. Sean Kelly">
+      </div>
+      <div class="field col-4">
+        <label>K&amp;S Signatory — Title</label>
+        <input type="text" data-bind="ksRepTitle" placeholder="e.g. General Manager">
+      </div>
+      <div class="field col-6">
+        <label>Inductor — Print Name</label>
+        <input type="text" data-bind="inductorName" placeholder="Inductor for Kerr &amp; Smith">
+      </div>
+      <div class="field col-6">
+        <label>Inductor — Date</label>
+        <input type="date" data-bind="inductorDate">
+      </div>
+      <div class="field col-6">
+        <label>Employee — Print Name</label>
+        <input type="text" data-bind="employeeName" placeholder="Defaults to Full Name above">
+      </div>
+      <div class="field col-6">
+        <label>Employee — Date</label>
+        <input type="date" data-bind="employeeDate">
+      </div>
+      <div class="field col-6">
+        <label>K&amp;S Rep — T&amp;Cs Signature Date</label>
+        <input type="date" data-bind="ksRepDate">
+      </div>
+    </div>
+  </section>
+
+  <div class="actionbar">
+    <div class="actionbar-status">
+      <span class="status-dot"></span>
+      <span id="statusText">Draft saved locally</span>
+    </div>
+    <div class="actionbar-actions">
+      <button class="btn btn-secondary" type="button" onclick="togglePreview()">Preview</button>
+      <button class="btn btn-primary" type="button" onclick="printBoth()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        Print Documents
+      </button>
+    </div>
+  </div>
+
+</main>
+
+<!-- ================================================================ -->
+<!-- ============== DOCUMENT 0: OFFER OF EMPLOYMENT ================ -->
+<!-- ================================================================ -->
+<section class="print-only doc" id="doc-offer">
+  <div class="page">
+    <div class="doc-header">
+      <div class="logo-block">
+        <div class="ks"><em>Kerr</em><span class="amp">&amp;</span><em>Smith</em></div>
+        <div class="tag">DRIVING THE DIFFERENCE</div>
+      </div>
+    </div>
+
+    <div class="letter-meta">
+      <span data-print="letterDate"></span>
+    </div>
+
+    <div class="letter-address">
+      <div class="name" data-print="employeeName"></div>
+      <div data-print="address"></div>
+    </div>
+
+    <p class="letter-salutation">Dear <span data-print="employeeFirstName"></span>,</p>
+
+    <div class="letter-body">
+      <p>Further to your recent interview, we are pleased to offer you the position of <strong data-print="jobTitle"></strong> with Kerr &amp; Smith. The terms of your employment are set out below.</p>
+
+      <table class="letter-terms">
+        <tr><td class="term-label">Position</td><td class="term-value" data-print="jobTitle"></td></tr>
+        <tr><td class="term-label">Department</td><td class="term-value" data-print="department"></td></tr>
+        <tr><td class="term-label">Start Date</td><td class="term-value" data-print="startDate"></td></tr>
+        <tr><td class="term-label">Working Hours</td><td class="term-value" data-print="workingHours"></td></tr>
+        <tr><td class="term-label">Tea Break</td><td class="term-value" data-print="teaBreak"></td></tr>
+        <tr><td class="term-label">Lunch Break</td><td class="term-value" data-print="lunchBreak"></td></tr>
+        <tr><td class="term-label">Trial Period</td><td class="term-value" data-print="trialPeriod"></td></tr>
+        <tr><td class="term-label">Salary</td><td class="term-value" data-print="salaryFormatted"></td></tr>
+        <tr><td class="term-label">Overtime</td><td class="term-value" data-print="overtimeRate"></td></tr>
+        <tr><td class="term-label">Commission / Bonus</td><td class="term-value" data-print="bonus"></td></tr>
+        <tr><td class="term-label">Company Car</td><td class="term-value" data-print="companyCarFormatted"></td></tr>
+        <tr><td class="term-label">Mobile Phone</td><td class="term-value" data-print="mobileFormatted"></td></tr>
+        <tr><td class="term-label">Dress Code</td><td class="term-value" data-print="dressCode"></td></tr>
+        <tr><td class="term-label">Uniform</td><td class="term-value" data-print="uniform"></td></tr>
+      </table>
+
+      <p>These terms should be read alongside the enclosed <em>Terms &amp; Conditions of Employment</em> and the Company Handbook, which will be issued to you on your start date.</p>
+
+      <p>Please find enclosed two copies of this letter. Kindly sign and return one copy in the stamped addressed envelope provided to confirm your acceptance of these terms.</p>
+
+      <p>We look forward to welcoming you to the team.</p>
+    </div>
+
+    <div class="letter-sig">
+      <p class="yours">Yours sincerely,</p>
+      <div class="sig-line-letter"></div>
+      <div class="sig-name" data-print="ksRepName"></div>
+      <div class="sig-title" data-print="ksRepTitle"></div>
+      <div class="sig-title">For Kerr &amp; Smith</div>
+    </div>
+
+    <div class="letter-acceptance keep-together">
+      <div class="head">Acceptance of Offer</div>
+      <p>I, <strong data-print="employeeName"></strong>, accept the offer of employment with Kerr &amp; Smith on the terms set out above.</p>
+      <div class="letter-accept-row">
+        <div>
+          <div class="accept-line"></div>
+          <div class="accept-label">Signed — Employee</div>
+        </div>
+        <div>
+          <div class="accept-line"></div>
+          <div class="accept-label">Date</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================================ -->
+<!-- ============== DOCUMENT 1: INDUCTION CHECKLIST ================ -->
+<!-- ================================================================ -->
+<section class="print-only doc" id="doc-induction">
+  <div class="page">
+  <div class="doc-header">
+    <div class="logo-block">
+      <div class="ks"><em>Kerr</em><span class="amp">&amp;</span><em>Smith</em></div>
+      <div class="tag">DRIVING THE DIFFERENCE</div>
+    </div>
+  </div>
+
+  <h1>INDUCTION CHECKLIST</h1>
+
+  <div class="ind-locations">
+    <span class="loc active">Cumnock</span>
+  </div>
+
+  <div class="field-line">
+    <div class="f"><span class="lbl">Name:</span><span class="val" data-print="name"></span></div>
+    <div class="f"><span class="lbl">Start Date:</span><span class="val" data-print="startDate"></span></div>
+  </div>
+  <div class="field-line">
+    <div class="f" style="flex:1;min-width:100%"><span class="lbl">Address:</span><span class="val" data-print="address"></span></div>
+  </div>
+  <div class="field-line">
+    <div class="f"><span class="lbl">Tel No.:</span><span class="val" data-print="telNo"></span></div>
+    <div class="f"><span class="lbl">Mobile No.:</span><span class="val" data-print="mobileNo"></span></div>
+  </div>
+  <div class="field-line">
+    <div class="f"><span class="lbl">Emergency Contact:</span><span class="val" data-print="emergencyContact"></span></div>
+    <div class="f"><span class="lbl">Emergency Tel.:</span><span class="val" data-print="emergencyTel"></span></div>
+  </div>
+  <div class="field-line">
+    <div class="f"><span class="lbl">Bank Name:</span><span class="val" data-print="bankName"></span></div>
+    <div class="f"><span class="lbl">N.I. Number:</span><span class="val" data-print="niNumber"></span></div>
+  </div>
+  <div class="field-line">
+    <div class="f"><span class="lbl">Account No.:</span><span class="val" data-print="accountNo"></span></div>
+    <div class="f"><span class="lbl">Sort Code:</span><span class="val" data-print="sortCode"></span></div>
+  </div>
+  <div class="field-line">
+    <div class="f"><span class="lbl">Department:</span><span class="val" data-print="department"></span></div>
+    <div class="f"><span class="lbl">Driving Licence:</span><span class="val" data-print="licenseType"></span></div>
+  </div>
+  <div class="field-line">
+    <div class="f" style="flex:2"><span class="lbl">Responsible To:</span><span class="val" data-print="responsibleTo"></span></div>
+    <div class="f" style="flex:0.6"><span class="lbl">P45:</span><span class="val" data-print="p45"></span></div>
+    <div class="f" style="flex:0.6"><span class="lbl">Photo:</span><span class="val" data-print="photo"></span></div>
+    <div class="f" style="flex:0.9"><span class="lbl">D.O.B:</span><span class="val" data-print="dob"></span></div>
+  </div>
+
+  <div class="ind-section-title">Induction Procedure — Total Time 2 Hours</div>
+  <table class="ind-table">
+    <thead><tr><th>Task</th><th class="col-dur">Duration</th><th class="col-tick">Tick</th></tr></thead>
+    <tbody>
+      <tr><td>Tour of premises (toilets, fire points, first aid, intros to key staff)</td><td class="col-dur">20 mins</td><td class="col-tick" data-tick="ind_tour"></td></tr>
+      <tr><td>Explain fire drill and first aid drill</td><td class="col-dur">—</td><td class="col-tick" data-tick="ind_fire"></td></tr>
+      <tr><td>Give employee pen and paper for notes</td><td class="col-dur">45 mins</td><td class="col-tick" data-tick="ind_pen"></td></tr>
+      <tr><td>Complete Induction Form</td><td class="col-dur">—</td><td class="col-tick" data-tick="ind_form"></td></tr>
+      <tr><td>Stretch break</td><td class="col-dur">10 mins</td><td class="col-tick" data-tick="ind_stretch"></td></tr>
+      <tr><td>Issue Company Handbook and video/CD (leave to digest)</td><td class="col-dur">30 mins</td><td class="col-tick" data-tick="ind_handbook"></td></tr>
+      <tr><td>Questions / Answers</td><td class="col-dur">15 mins</td><td class="col-tick" data-tick="ind_qa"></td></tr>
+    </tbody>
+  </table>
+  <div class="ind-foot-note">Remember: go to Employee Terms &amp; Conditions of Employment (below).</div>
+
+  <div class="ind-split">
+    <div>
+      <div class="ind-section-title">The Job and the Organisation</div>
+      <table class="ind-table">
+        <tbody>
+          <tr><td>Brief history of the Company</td><td class="col-code">AE</td><td class="col-tick" data-tick="job_history"></td></tr>
+          <tr><td>Company structure, services and mission</td><td class="col-code">A</td><td class="col-tick" data-tick="job_structure"></td></tr>
+          <tr><td>Vauxhall/Ivedo culture, Vauxhall Difference, ISO9002</td><td class="col-code">A</td><td class="col-tick" data-tick="job_vauxhall"></td></tr>
+          <tr><td>Read Safety &amp; Quality Policy Statement</td><td class="col-code">AC</td><td class="col-tick" data-tick="job_safety"></td></tr>
+          <tr><td>Explain Mystery Shoppers</td><td class="col-code">—</td><td class="col-tick" data-tick="job_mystery"></td></tr>
+          <tr><td>Issue Company brochure / Vauxhall Difference literature</td><td class="col-code">—</td><td class="col-tick" data-tick="job_brochure"></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="ind-section-title">Health &amp; Safety</div>
+      <table class="ind-table">
+        <tbody>
+          <tr><td>Safety clothing, P.P.E., COSHH</td><td class="col-code">C</td><td class="col-tick" data-tick="hs_ppe"></td></tr>
+          <tr><td>Accident reporting, safe working practices</td><td class="col-code">C</td><td class="col-tick" data-tick="hs_accidents"></td></tr>
+          <tr><td>Company vehicles and speed limits</td><td class="col-code">C</td><td class="col-tick" data-tick="hs_vehicles"></td></tr>
+          <tr><td>Communication, notice boards, publications</td><td class="col-code">C</td><td class="col-tick" data-tick="hs_comms"></td></tr>
+          <tr><td>Systems of work and phone techniques</td><td class="col-code">—</td><td class="col-tick" data-tick="hs_systems"></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  </div><!-- /page 1 -->
+
+  <div class="page">
+  <div class="doc-header">
+    <div class="logo-block">
+      <div class="ks"><em>Kerr</em><span class="amp">&amp;</span><em>Smith</em></div>
+      <div class="tag">DRIVING THE DIFFERENCE</div>
+    </div>
+  </div>
+
+  <div class="ind-section-title">Employee Terms</div>
+  <div class="ind-legend">(A) sections MUST be completed</div>
+  <div class="ind-split">
+    <table class="ind-table">
+      <tbody>
+        <tr><td>Issue Job Description / explain position &amp; duties</td><td class="col-code">—</td><td class="col-tick" data-tick="emp_jobdesc"></td></tr>
+        <tr><td>Discuss training policy and annual appraisal</td><td class="col-code">E</td><td class="col-tick" data-tick="emp_training"></td></tr>
+        <tr><td>Clocking on, time keeping and hours of work</td><td class="col-code">A</td><td class="col-tick" data-tick="emp_clocking"></td></tr>
+        <tr><td>Basic rate, overtime, when and how paid</td><td class="col-code">A</td><td class="col-tick" data-tick="emp_pay"></td></tr>
+        <tr><td>Discount scheme and pension</td><td class="col-code">D</td><td class="col-tick" data-tick="emp_discount"></td></tr>
+        <tr><td>Holidays, sick leave and bereavement</td><td class="col-code">A</td><td class="col-tick" data-tick="emp_holidays"></td></tr>
+        <tr><td>Notice required, disciplinary &amp; grievance</td><td class="col-code">B</td><td class="col-tick" data-tick="emp_notice"></td></tr>
+        <tr><td>Smoking Policy and dress code</td><td class="col-code">C</td><td class="col-tick" data-tick="emp_smoking"></td></tr>
+      </tbody>
+    </table>
+    <table class="ind-table">
+      <tbody>
+        <tr><td>Sign Company Handbook</td><td class="col-code">Z</td><td class="col-tick" data-tick="act_handbook"></td></tr>
+        <tr><td>Sign induction form &amp; send to Cumnock</td><td class="col-code">—</td><td class="col-tick" data-tick="act_induction"></td></tr>
+        <tr><td>Sign Employee Terms &amp; Conditions</td><td class="col-code">—</td><td class="col-tick" data-tick="act_terms"></td></tr>
+        <tr><td>Copy Terms &amp; Conditions to employee</td><td class="col-code">—</td><td class="col-tick" data-tick="act_copyterms"></td></tr>
+        <tr><td>Copy Terms &amp; Driving Licence to Cumnock</td><td class="col-code">—</td><td class="col-tick" data-tick="act_copylicense"></td></tr>
+        <tr><td>P45 sent to Cumnock</td><td class="col-code">—</td><td class="col-tick" data-tick="act_p45"></td></tr>
+        <tr><td>Assessment drive completed</td><td class="col-code">—</td><td class="col-tick" data-tick="act_assessment"></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sig-block">
+    <div>
+      <div class="sig-line"></div>
+      <div class="sig-label">Signed — Inductor for Kerr &amp; Smith</div>
+      <div style="margin-top:5mm">
+        <div class="sig-line" data-print="inductorName"></div>
+        <div class="sig-label">Print Name</div>
+      </div>
+      <div style="margin-top:5mm">
+        <div class="sig-line" data-print="inductorDate"></div>
+        <div class="sig-label">Date</div>
+      </div>
+    </div>
+    <div>
+      <div class="sig-line"></div>
+      <div class="sig-label">Signed — Employee</div>
+      <div style="margin-top:5mm">
+        <div class="sig-line" data-print="employeeName"></div>
+        <div class="sig-label">Print Name</div>
+      </div>
+      <div style="margin-top:5mm">
+        <div class="sig-line" data-print="employeeDate"></div>
+        <div class="sig-label">Date</div>
+      </div>
+    </div>
+  </div>
+  </div><!-- /page 2 -->
+</section>
+<section class="print-only doc" id="doc-terms">
+  <div class="page">
+  <div class="doc-header">
+    <div class="logo-block">
+      <div class="ks"><em>Kerr</em><span class="amp">&amp;</span><em>Smith</em></div>
+      <div class="tag">DRIVING THE DIFFERENCE</div>
+    </div>
+  </div>
+
+  <h1>TERMS &amp; CONDITIONS OF EMPLOYMENT</h1>
+
+  <div class="field-line">
+    <div class="f"><span class="lbl">Name:</span><span class="val" data-print="name"></span></div>
+    <div class="f"><span class="lbl">Start Date:</span><span class="val" data-print="startDate"></span></div>
+  </div>
+  <div class="field-line">
+    <div class="f"><span class="lbl">N.I. Number:</span><span class="val" data-print="niNumber"></span></div>
+    <div class="f"><span class="lbl">Works Number:</span><span class="val" data-print="worksNumber"></span></div>
+  </div>
+
+  <h2>JOB TITLE</h2>
+  <p>While you may be employed initially as a certain Trades Person or Semi-Skilled Person you may be called upon to perform other reasonable tasks to accommodate the needs of the Company.</p>
+
+  <h2>PAY</h2>
+  <p>Wages will be paid (weekly/monthly), one (week/month) in arrears unless agreed otherwise with the Company. Your (pay/salary) will be paid at the rate agreed individually and reviewed annually in line with Company policy.</p>
+
+  <h2>HOURS OF WORK</h2>
+  <p>Your normal working hours will be as agreed and displayed on your department rota sheet.</p>
+
+  <h2>OVERTIME</h2>
+  <p>The nature of the Company's operation is such that the co-operation of all Employees in working overtime is essential. You may therefore be required to work overtime to satisfy our Customers requirements. Management will endeavour to give reasonable notice when overtime is required. All overtime outside normal working hours will be paid at an agreed enhanced rate.</p>
+
+  <h2>TEA / LUNCH BREAKS</h2>
+  <p>Included in all working hours is a 10 minute morning tea break and a lunch at suitably agreed times as per rota sheet.</p>
+
+  <h2>HOLIDAY ENTITLEMENT</h2>
+  <p>Employee holidays are earned on a pro-rata basis per month worked. 1/12 of your holiday entitlement is earned per month employed; holidays are calculated on the basis of 2.5 days including statutory days, i.e. total 30 days per year. Holidays run from January to December (e.g. an employee starting in October would be entitled to 3/12 of 30 days, i.e. 7.5 days). In the event of employment termination, holidays taken in excess of entitlement shall be rebated in the final wage reconciliation. Holiday application procedures are described in full in section A3 of the Company booklet.</p>
+
+  <h2>HOLIDAY PAY</h2>
+  <p>Will be calculated using your average <u>basic</u> pay including guaranteed overtime.</p>
+
+  <h2>SICK PAY ENTITLEMENT</h2>
+  <p>Will be in line with current legislation unless stated otherwise.</p>
+
+  <h2>TERMINATION OF EMPLOYMENT</h2>
+  <p>Notice of termination of employment must be given in writing. Unless otherwise stated, the following notice periods apply (except in the case of dismissal for gross misconduct):</p>
+  <table class="notice-table">
+    <thead>
+      <tr><td class="col-1">Period of service</td><td>Notice from Company</td><td>Notice from Employee</td></tr>
+    </thead>
+    <tbody>
+      <tr><td class="col-1">Up to one month</td><td>Nil</td><td>Nil</td></tr>
+      <tr><td class="col-1">One month but less than 2 years</td><td>One week</td><td>One week</td></tr>
+      <tr><td class="col-1">More than 2 years</td><td>One week for each complete year of service up to a maximum of 12 weeks</td><td>4 weeks</td></tr>
+    </tbody>
+  </table>
+
+  <h2>DISCIPLINARY PROCEDURE</h2>
+  <p>The Disciplinary Procedure is described in full in Section D of the Company Handbook.</p>
+
+  <h2>APPEAL</h2>
+  <p>Any appeal must be in writing and submitted to the Managing Director no more than 2 working days after the initial warning. There is no appeal procedure above Director level.</p>
+
+  <h2>CONFIDENTIALITY</h2>
+  <p>Employees are bound not to disclose any Company information both in employment and after termination.</p>
+
+  <h2>PRIVILEGES</h2>
+  <p>All Company concessions (i.e. paying for vehicles/tools etc.) shall be settled in full before leaving the employment of the Company unless agreed otherwise between both parties.</p>
+  </div><!-- /page 1 -->
+
+  <div class="page">
+  <div class="doc-header">
+    <div class="logo-block">
+      <div class="ks"><em>Kerr</em><span class="amp">&amp;</span><em>Smith</em></div>
+      <div class="tag">DRIVING THE DIFFERENCE</div>
+    </div>
+  </div>
+
+  <h2>PENSION</h2>
+  <p>The Company operates a management contributory Pension Scheme. Details of this and of our Stakeholder pension arrangements are available on request.</p>
+
+  <h2>DEDUCTIONS</h2>
+  <p>The Company reserves the right to deduct any outstanding sums owed by you on termination of employment (including holidays taken in excess of entitlement) from any monies owing to you at the time.</p>
+
+  <h2>COLLECTIVE AGREEMENTS</h2>
+  <p>Your terms and conditions of employment are not governed by a Collective Agreement.</p>
+
+  <h2>CHANGES TO TERMS &amp; CONDITIONS OF EMPLOYMENT</h2>
+  <p>The Company reserves the right to make variations to your terms and conditions of employment on giving not less than four weeks' written notice.</p>
+
+  <h2>COMPANY HANDBOOK</h2>
+  <p>The Company Handbook gives details of the terms of employment applying to all employees, including terms for sick pay, discipline and grievance and other important issues. Please read this carefully and ask your Manager if any part is not clear.</p>
+
+  <p>This statement should be read with any letter offering employment, the Company Handbook and any other contractual documents.</p>
+
+  <div class="keep-together">
+  <p style="margin-top:5mm"><em>I accept the terms and conditions laid out above and confirm that a copy of the Company Handbook was made available to me for reference.</em></p>
+
+  <div style="margin-top:10mm">
+    <div class="sig-pair">
+      <div>
+        <div class="sig-line"></div>
+        <div class="sig-label">Signed</div>
+      </div>
+      <div>
+        <div class="sig-line" data-print="employeeDate"></div>
+        <div class="sig-label">Date</div>
+      </div>
+    </div>
+    <div style="font-weight:bold;font-size:10pt;margin-top:1mm">EMPLOYEE</div>
+  </div>
+
+  <p style="margin-top:8mm;font-style:italic;font-size:10.5pt">We, Kerr &amp; Smith, agree to abide by the above offer under the Company terms and conditions.</p>
+
+  <div style="margin-top:6mm">
+    <div class="sig-pair">
+      <div>
+        <div class="sig-line"></div>
+        <div class="sig-label">Signed</div>
+      </div>
+      <div>
+        <div class="sig-line" data-print="ksRepDate"></div>
+        <div class="sig-label">Date</div>
+      </div>
+    </div>
+    <div style="font-weight:bold;font-size:10pt;margin-top:1mm">FOR KERR &amp; SMITH</div>
+  </div>
+  </div>
+  </div><!-- /page 2 -->
+</section>
+
+<script>
+const STORAGE_KEY = 'ks-induction-draft-v1';
+const state = {};
+const statusEl = document.getElementById('statusText');
+let saveTimer;
+
+function fmtDate(iso){
+  if(!iso) return '';
+  const [y,m,d] = iso.split('-');
+  if(!y || !m || !d) return iso;
+  return `${d}/${m}/${y}`;
+}
+
+function loadDraft(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    Object.keys(data).forEach(k => { state[k] = data[k]; });
+    // populate inputs
+    document.querySelectorAll('[data-bind]').forEach(el => {
+      const k = el.dataset.bind;
+      if(state[k] === undefined) return;
+      if(el.type === 'checkbox') el.checked = !!state[k];
+      else el.value = state[k];
+    });
+    // radios
+    ['location','p45','photo','payFrequency','salaryBasis','companyCar','mobileSupplied'].forEach(name => {
+      if(state[name]){
+        const r = document.querySelector(`input[name="${name}"][value="${state[name]}"]`);
+        if(r) r.checked = true;
+      }
+    });
+    // re-apply formatters in case stored draft predated them
+    const ni = document.querySelector('[data-bind="niNumber"]');
+    if(ni) ni.value = formatNI(ni.value);
+    const sc = document.querySelector('[data-bind="sortCode"]');
+    if(sc) sc.value = formatSortCode(sc.value);
+  }catch(e){console.warn('Load draft failed', e)}
+}
+
+function saveDraft(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    statusEl.textContent = 'Draft saved · ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  }catch(e){
+    statusEl.textContent = 'Not saved (storage unavailable)';
+  }
+}
+
+function queueSave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveDraft, 400);
+}
+
+function readForm(){
+  document.querySelectorAll('[data-bind]').forEach(el => {
+    const k = el.dataset.bind;
+    state[k] = el.type === 'checkbox' ? el.checked : el.value;
+  });
+  ['location','p45','photo','payFrequency','salaryBasis','companyCar','mobileSupplied'].forEach(name => {
+    const sel = document.querySelector(`input[name="${name}"]:checked`);
+    state[name] = sel ? sel.value : '';
+  });
+  // employee name fallback
+  if(!state.employeeName && state.name) state.employeeName = state.name;
+}
+
+function computeDerived(){
+  // First name for salutation
+  const full = (state.name || '').trim();
+  state.employeeFirstName = full.split(/\s+/)[0] || '';
+
+  // Working hours range
+  const s = state.startTime || '';
+  const f = state.finishTime || '';
+  state.workingHours = (s && f) ? `${s} – ${f}` : (s || f || '');
+
+  // Salary line — handles annual or hourly basis
+  const raw = String(state.salaryAmount || '').replace(/[^\d.]/g, '');
+  if(raw){
+    const num = Number(raw);
+    const basis = state.salaryBasis || 'Annual';
+    const freq = (state.payFrequency || 'Monthly').toLowerCase();
+    let amount;
+    if(isNaN(num)){
+      amount = '£' + raw;
+    } else if(basis === 'Hourly'){
+      // Show hourly with 2 decimal places
+      amount = '£' + num.toFixed(2);
+    } else {
+      // Annual — comma-grouped, no decimals
+      amount = '£' + Math.round(num).toLocaleString('en-GB');
+    }
+    const unit = basis === 'Hourly' ? 'per hour' : 'per annum';
+    state.salaryFormatted = `${amount} ${unit}, paid ${freq} in arrears`;
+  } else {
+    state.salaryFormatted = '';
+  }
+
+  // Company car
+  const car = state.companyCar || '';
+  if(car === 'Yes'){
+    state.companyCarFormatted = state.companyCarConditions
+      ? `Yes — ${state.companyCarConditions}`
+      : 'Yes';
+  } else if(car === 'No'){
+    state.companyCarFormatted = 'No';
+  } else {
+    state.companyCarFormatted = '';
+  }
+
+  // Mobile phone
+  const mob = state.mobileSupplied || '';
+  if(mob === 'Yes'){
+    state.mobileFormatted = state.mobileDetails
+      ? `Yes — ${state.mobileDetails}`
+      : 'Yes';
+  } else if(mob === 'No'){
+    state.mobileFormatted = 'No';
+  } else {
+    state.mobileFormatted = '';
+  }
+}
+
+function renderDocs(){
+  readForm();
+  computeDerived();
+  // Fill text fields
+  document.querySelectorAll('[data-print]').forEach(el => {
+    const k = el.dataset.print;
+    let v = state[k] || '';
+    if(/date$/i.test(k) || k === 'dob' || k === 'startDate' || k === 'letterDate'){
+      v = fmtDate(v);
+    }
+    el.textContent = v;
+  });
+  // Tick marks
+  document.querySelectorAll('[data-tick]').forEach(el => {
+    const k = el.dataset.tick;
+    el.innerHTML = state[k] ? '<span class="tick-mark">✓</span>' : '';
+  });
+}
+
+function printBoth(){
+  renderDocs();
+  // small delay to let render complete
+  setTimeout(() => window.print(), 50);
+}
+
+function togglePreview(){
+  renderDocs();
+  document.body.classList.toggle('preview-on');
+  window.scrollTo(0,0);
+}
+
+function resetForm(){
+  if(!confirm('Clear all fields and start a fresh form?')) return;
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  document.querySelectorAll('[data-bind]').forEach(el => {
+    if(el.type === 'checkbox') el.checked = false;
+    else if(el.type === 'time') el.value = el.defaultValue || '';
+    else el.value = '';
+  });
+  document.querySelectorAll('input[type=radio]').forEach(r => r.checked = false);
+  // restore radio defaults
+  [
+    ['location','Cumnock'],
+    ['payFrequency','Monthly'],
+    ['salaryBasis','Annual'],
+    ['companyCar','No'],
+    ['mobileSupplied','No']
+  ].forEach(([name,val]) => {
+    const r = document.querySelector(`input[name="${name}"][value="${val}"]`);
+    if(r) r.checked = true;
+  });
+  Object.keys(state).forEach(k => delete state[k]);
+  statusEl.textContent = 'Form cleared';
+}
+
+// ===== Formatters =====
+function formatNI(val){
+  // Strip non-alphanumeric, uppercase, max 9 chars (AA NN NN NN A)
+  const clean = (val || '').replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 9);
+  const groups = [
+    clean.slice(0, 2),
+    clean.slice(2, 4),
+    clean.slice(4, 6),
+    clean.slice(6, 8),
+    clean.slice(8, 9)
+  ].filter(g => g.length > 0);
+  return groups.join(' ');
+}
+
+function formatSortCode(val){
+  const clean = (val || '').replace(/\D/g, '').slice(0, 6);
+  const groups = [
+    clean.slice(0, 2),
+    clean.slice(2, 4),
+    clean.slice(4, 6)
+  ].filter(g => g.length > 0);
+  return groups.join('-');
+}
+
+// Wire formatters first so the stored state is already formatted
+const niInput = document.querySelector('[data-bind="niNumber"]');
+if(niInput){
+  niInput.style.textTransform = 'none'; // formatter handles casing
+  niInput.addEventListener('input', (e) => { e.target.value = formatNI(e.target.value); });
+}
+const sortInput = document.querySelector('[data-bind="sortCode"]');
+if(sortInput){
+  sortInput.addEventListener('input', (e) => { e.target.value = formatSortCode(e.target.value); });
+}
+
+// Wire up inputs
+document.querySelectorAll('input, textarea, select').forEach(el => {
+  el.addEventListener('input', () => { readForm(); queueSave(); });
+  el.addEventListener('change', () => { readForm(); queueSave(); });
+});
+
+// Init
+loadDraft();
+readForm();
+renderDocs();
+
+// Re-render before printing in case browser print shortcut is used
+window.addEventListener('beforeprint', renderDocs);
+</script>
+</body>
+</html>
