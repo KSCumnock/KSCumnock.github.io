@@ -1183,9 +1183,9 @@ function renderCredentials() {
                         ${row.map(({ prov, cred }) => `
                             <td>
                                 ${cred
-                                    ? `<button class="matrix-cell has" data-cred="${cred.id}" data-act="reveal" title="Last used ${cred.last_used_at ? fmtDateTime(cred.last_used_at) : 'never'}">
+                                    ? `<button class="matrix-cell has" data-cred="${cred.id}" data-act="reveal" title="${cred.login_email ? escapeHtml(cred.login_email) + ' · ' : ''}Last used ${cred.last_used_at ? fmtDateTime(cred.last_used_at) : 'never'}">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                                        ${cred.login_email ? escapeHtml(cred.login_email) : 'Stored'}
+                                        Stored
                                        </button>`
                                     : `<button class="matrix-cell missing" data-emp="${emp.id}" data-prov="${prov.id}" data-act="add">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
