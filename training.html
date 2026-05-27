@@ -553,9 +553,9 @@ main {
 .matrix-cell svg { width: 12px; height: 12px; }
 
 /* ────────────────────────────────────────────────────────── */
-/* PIN GATE — covers everything until admin auths             */
+/* PIN SCREEN — matches TimeKeeper / Holiday Manager           */
 /* ────────────────────────────────────────────────────────── */
-.pin-gate {
+.pin-screen {
     position: fixed;
     inset: 0;
     background: var(--bg-base);
@@ -563,67 +563,114 @@ main {
     display: grid;
     place-items: center;
     padding: 24px;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
 }
-.pin-gate-card {
+.pin-screen.hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+
+.pin-card {
     background: var(--bg-elevated);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
+    padding: 32px 28px 28px;
     box-shadow: var(--shadow-lg);
-    padding: 36px 32px 28px;
-    max-width: 380px;
-    width: 100%;
+    width: min(360px, calc(100vw - 32px));
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 20px;
 }
-.pin-gate-mark {
-    width: 48px; height: 48px;
-    background: var(--text); color: #fff;
-    border-radius: 12px;
-    display: grid; place-items: center;
-    font-weight: 700; font-size: 16px;
-    letter-spacing: -0.02em;
-    margin-bottom: 4px;
+.pin-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
 }
-.pin-gate-title { font-size: 18px; font-weight: 600; margin: 0; }
-.pin-gate-sub { font-size: 13px; color: var(--text-tertiary); margin: 0; text-align: center; }
-.pin-input {
-    width: 100%;
-    margin-top: 16px;
-    padding: 14px 16px;
+.pin-brand .brand-mark { width: 40px; height: 40px; font-size: 14px; border-radius: 9px; }
+.pin-brand .pin-title {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+.pin-brand .pin-sub {
     font-family: var(--font-mono);
-    font-size: 22px;
-    letter-spacing: 0.3em;
+    font-size: 10.5px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.pin-dots {
+    display: flex;
+    gap: 14px;
+    margin: 4px 0 6px;
+    height: 14px;
+    align-items: center;
+}
+.pin-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-strong);
+    background: transparent;
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+}
+.pin-dot.filled { background: var(--text); border-color: var(--text); transform: scale(1.05); }
+.pin-screen.error .pin-dot { border-color: var(--red); }
+.pin-screen.error .pin-dot.filled { background: var(--red); }
+.pin-screen.error .pin-card { animation: pinShake 0.4s; }
+@keyframes pinShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+}
+
+.pin-error-text {
+    height: 16px;
+    font-size: 12px;
+    color: var(--red);
+    font-family: var(--font-mono);
     text-align: center;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+}
+.pin-screen.error .pin-error-text { opacity: 1; }
+.pin-error-text.checking { color: var(--text-tertiary); opacity: 1; }
+
+.pin-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+}
+.pin-key {
+    background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    background: var(--bg-input);
+    height: 56px;
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 500;
     color: var(--text);
-    outline: none;
-    transition: border-color 0.12s ease, box-shadow 0.12s ease;
-}
-.pin-input:focus { border-color: var(--text); box-shadow: 0 0 0 3px rgba(9,9,11,0.06); }
-.pin-submit {
-    width: 100%; margin-top: 10px;
-    padding: 13px;
-    border: none; border-radius: var(--radius);
-    background: var(--text); color: #fff;
-    font-family: var(--font-ui); font-size: 14px; font-weight: 600;
     cursor: pointer;
-    transition: background 0.12s ease, transform 0.04s ease;
+    transition: background 0.08s ease, transform 0.04s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    display: grid;
+    place-items: center;
 }
-.pin-submit:hover { background: #000; }
-.pin-submit:active { transform: scale(0.98); }
-.pin-submit:disabled { opacity: 0.5; cursor: default; }
-.pin-error {
-    font-size: 12px; color: var(--red-fg);
-    background: var(--red-soft);
-    padding: 8px 12px; border-radius: 8px;
-    margin-top: 6px; min-height: 0;
-    width: 100%; text-align: center;
+.pin-key:hover { background: var(--bg-muted); }
+.pin-key:active { transform: scale(0.96); background: var(--border); }
+.pin-key.utility {
+    font-size: 14px;
+    font-family: var(--font-ui);
+    font-weight: 500;
+    color: var(--text-secondary);
 }
-.pin-error:empty { display: none; }
+.pin-key.utility svg { width: 18px; height: 18px; }
+.pin-key.invisible { visibility: hidden; pointer-events: none; }
+
 .app-shell.locked { display: none; }
 .signout-btn {
     background: transparent; border: none;
@@ -636,14 +683,36 @@ main {
 </head>
 <body>
 
-<div class="pin-gate" id="pinGate" style="display:none;">
-    <div class="pin-gate-card">
-        <div class="pin-gate-mark">K&amp;S</div>
-        <div class="pin-gate-title">Training admin</div>
-        <div class="pin-gate-sub">Enter your admin PIN to continue</div>
-        <input type="password" inputmode="numeric" autocomplete="off" maxlength="20" class="pin-input" id="pinInput" />
-        <button class="pin-submit" id="pinSubmit">Unlock</button>
-        <div class="pin-error" id="pinError"></div>
+<div class="pin-screen hidden" id="pinScreen">
+    <div class="pin-card">
+        <div class="pin-brand">
+            <div class="brand-mark">K&amp;S</div>
+            <div class="pin-title">Training</div>
+            <div class="pin-sub">Enter passcode</div>
+        </div>
+        <div class="pin-dots" id="pinDots">
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+        </div>
+        <div class="pin-error-text" id="pinErrorText"></div>
+        <div class="pin-keypad" id="pinKeypad">
+            <button class="pin-key" data-digit="1">1</button>
+            <button class="pin-key" data-digit="2">2</button>
+            <button class="pin-key" data-digit="3">3</button>
+            <button class="pin-key" data-digit="4">4</button>
+            <button class="pin-key" data-digit="5">5</button>
+            <button class="pin-key" data-digit="6">6</button>
+            <button class="pin-key" data-digit="7">7</button>
+            <button class="pin-key" data-digit="8">8</button>
+            <button class="pin-key" data-digit="9">9</button>
+            <button class="pin-key invisible"></button>
+            <button class="pin-key" data-digit="0">0</button>
+            <button class="pin-key utility" data-action="backspace" aria-label="Backspace">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+            </button>
+        </div>
     </div>
 </div>
 
@@ -807,7 +876,7 @@ async function api(path, opts = {}) {
     if (res.status === 401) {
         adminPin = '';
         localStorage.removeItem(AUTH_KEY);
-        showPinGate('Wrong PIN. Try again.');
+        showPinScreen();
         const e = new Error('Unauthorized'); e.status = 401; throw e;
     }
     if (!res.ok) {
@@ -1007,14 +1076,16 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 /* ────────────────────────────────────────────────────────── */
 $('#newBookingBtn').addEventListener('click', () => openNewBooking());
 
-function openNewBooking() {
+function openNewBooking(prefill = null) {
     const empOpts = state.employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('');
-    const provOpts = state.providers.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+    const provOpts = state.providers.map(p => `<option value="${p.id}" ${prefill && p.id === prefill.provider_id ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
     const today = new Date().toISOString().slice(0, 10);
+    const startVal = prefill?.start_date || today;
+    const endVal   = prefill?.end_date   || today;
 
     openModal(`
         <div class="modal-header">
-            <div class="modal-title">New booking</div>
+            <div class="modal-title">${prefill ? 'Clone booking' : 'New booking'}</div>
             <button class="modal-close" onclick="closeModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
         <div class="modal-body">
@@ -1022,24 +1093,24 @@ function openNewBooking() {
                 <div><label>Employee</label><select id="nb-employee"><option value="">Choose…</option>${empOpts}</select></div>
                 <div><label>Provider</label><select id="nb-provider"><option value="">Choose…</option>${provOpts}</select></div>
             </div>
-            <div class="form-row"><label>Course name</label><input type="text" id="nb-course" placeholder="e.g. Vauxhall EV diagnostics — Level 3" /></div>
+            <div class="form-row"><label>Course name</label><input type="text" id="nb-course" placeholder="e.g. Vauxhall EV diagnostics — Level 3" value="${escapeHtml(prefill?.course_name || '')}" /></div>
             <div class="form-row">
                 <label>Type</label>
                 <div class="radio-group">
-                    <label><input type="radio" name="nb-type" value="classroom" checked><span>Classroom</span></label>
-                    <label><input type="radio" name="nb-type" value="online"><span>Online</span></label>
+                    <label><input type="radio" name="nb-type" value="classroom" ${(!prefill || prefill.course_type === 'classroom') ? 'checked' : ''}><span>Classroom</span></label>
+                    <label><input type="radio" name="nb-type" value="online" ${prefill?.course_type === 'online' ? 'checked' : ''}><span>Online</span></label>
                 </div>
             </div>
             <div class="form-row split">
-                <div><label>Start date</label><input type="date" id="nb-start" value="${today}" /></div>
-                <div><label>End date</label><input type="date" id="nb-end" value="${today}" /></div>
+                <div><label>Start date</label><input type="date" id="nb-start" value="${startVal}" /></div>
+                <div><label>End date</label><input type="date" id="nb-end" value="${endVal}" /></div>
             </div>
-            <div class="form-row"><label>Location</label><input type="text" id="nb-location" placeholder="e.g. Vauxhall Academy, Luton" /></div>
+            <div class="form-row"><label>Location</label><input type="text" id="nb-location" placeholder="e.g. Vauxhall Academy, Luton" value="${escapeHtml(prefill?.location || '')}" /></div>
             <div class="form-row split">
-                <div class="check-row" style="height:42px;align-self:end;"><input type="checkbox" id="nb-accom" /><label for="nb-accom">Needs overnight stay</label></div>
-                <div><label>Nights</label><input type="number" id="nb-nights" value="0" min="0" max="10" /></div>
+                <div class="check-row" style="height:42px;align-self:end;"><input type="checkbox" id="nb-accom" ${prefill?.accommodation_required ? 'checked' : ''} /><label for="nb-accom">Needs overnight stay</label></div>
+                <div><label>Nights</label><input type="number" id="nb-nights" value="${prefill?.accommodation_nights || 0}" min="0" max="10" /></div>
             </div>
-            <div class="form-row"><label>Notes</label><textarea id="nb-notes" placeholder="Cost estimate, prerequisites, anything to remember…"></textarea></div>
+            <div class="form-row"><label>Notes</label><textarea id="nb-notes" placeholder="Cost estimate, prerequisites, anything to remember…">${escapeHtml(prefill?.notes || '')}</textarea></div>
             <div id="nb-cred-warning" style="display:none;"></div>
             <div id="nb-conflict-warning" style="display:none;"></div>
             <div class="check-row" style="margin-top:8px;"><input type="checkbox" id="nb-push" checked /><label for="nb-push">Push kiosk confirmation immediately</label></div>
@@ -1141,6 +1212,131 @@ function openNewBooking() {
 /* ────────────────────────────────────────────────────────── */
 /* BOOKING DETAIL                                             */
 /* ────────────────────────────────────────────────────────── */
+function openEditBooking(booking) {
+    const employee = state.employees.find(e => String(e.id) === String(booking.employee_id));
+    const provider = state.providers.find(p => p.id === booking.provider_id);
+
+    openModal(`
+        <div class="modal-header">
+            <div class="modal-title">Edit booking</div>
+            <button class="modal-close" onclick="closeModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+        <div class="modal-body">
+            <div class="cred-warning" style="background:var(--bg-muted);color:var(--text-secondary);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Employee &amp; provider can't be changed. To move this booking to someone else, cancel and use <strong>Clone</strong> instead.
+            </div>
+            <div class="form-row split">
+                <div><label>Employee</label><input type="text" value="${escapeHtml(employee?.name || '?')}" disabled style="opacity:0.6;" /></div>
+                <div><label>Provider</label><input type="text" value="${escapeHtml(provider?.name || '?')}" disabled style="opacity:0.6;" /></div>
+            </div>
+            <div class="form-row"><label>Course name</label><input type="text" id="eb-course" value="${escapeHtml(booking.course_name || '')}" /></div>
+            <div class="form-row">
+                <label>Type</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="eb-type" value="classroom" ${booking.course_type === 'classroom' ? 'checked' : ''}><span>Classroom</span></label>
+                    <label><input type="radio" name="eb-type" value="online" ${booking.course_type === 'online' ? 'checked' : ''}><span>Online</span></label>
+                </div>
+            </div>
+            <div class="form-row split">
+                <div><label>Start date</label><input type="date" id="eb-start" value="${booking.start_date}" /></div>
+                <div><label>End date</label><input type="date" id="eb-end" value="${booking.end_date}" /></div>
+            </div>
+            <div class="form-row"><label>Location</label><input type="text" id="eb-location" value="${escapeHtml(booking.location || '')}" /></div>
+            <div class="form-row split">
+                <div class="check-row" style="height:42px;align-self:end;"><input type="checkbox" id="eb-accom" ${booking.accommodation_required ? 'checked' : ''} /><label for="eb-accom">Needs overnight stay</label></div>
+                <div><label>Nights</label><input type="number" id="eb-nights" value="${booking.accommodation_nights || 0}" min="0" max="10" /></div>
+            </div>
+            <div class="form-row"><label>Notes</label><textarea id="eb-notes">${escapeHtml(booking.notes || '')}</textarea></div>
+            <div id="eb-conflict-warning" style="display:none;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn ghost" onclick="closeModal()">Cancel</button>
+            <div class="spacer"></div>
+            <button class="btn primary" id="eb-submit">Save changes</button>
+        </div>
+    `);
+
+    $('#eb-accom').addEventListener('change', e => {
+        if (e.target.checked && $('#eb-nights').value === '0') $('#eb-nights').value = '1';
+        if (!e.target.checked) $('#eb-nights').value = '0';
+    });
+
+    const checkEditConflicts = async () => {
+        const start = $('#eb-start').value;
+        const end = $('#eb-end').value;
+        const warn = $('#eb-conflict-warning');
+        if (!start || !end) { warn.style.display = 'none'; return; }
+        if (start === booking.start_date && end === booking.end_date) {
+            warn.style.display = 'none';
+            return;
+        }
+        try {
+            const r = await api('/api/training/bookings/check-conflicts', {
+                method: 'POST',
+                body: JSON.stringify({
+                    employee_id: booking.employee_id,
+                    start_date: start,
+                    end_date: end,
+                    exclude_booking_id: booking.id
+                })
+            });
+            const conflicts = (r.conflicts || []).filter(c => !c.is_training);
+            if (conflicts.length) {
+                const lines = conflicts.map(c => {
+                    const range = c.start_date === c.end_date ? fmtDateShort(c.start_date)
+                        : `${fmtDateShort(c.start_date)} → ${fmtDateShort(c.end_date)}`;
+                    const type = c.request_type === 'sick' ? 'Sick leave'
+                        : c.request_type === 'bereavement' ? 'Bereavement' : 'Holiday';
+                    return `<li>${type} · ${range}${c.reason ? ` — ${escapeHtml(c.reason)}` : ''}</li>`;
+                }).join('');
+                warn.innerHTML = `<div class="cred-warning" style="background:var(--red-soft);color:var(--red-fg);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <div><strong>Leave conflict</strong> for the new dates:<ul style="margin:4px 0 0;padding-left:20px;">${lines}</ul></div>
+                </div>`;
+                warn.style.display = 'block';
+            } else {
+                warn.style.display = 'none';
+            }
+        } catch { warn.style.display = 'none'; }
+    };
+    $('#eb-start').addEventListener('change', checkEditConflicts);
+    $('#eb-end').addEventListener('change', checkEditConflicts);
+
+    $('#eb-submit').addEventListener('click', async () => {
+        const payload = {
+            course_name: $('#eb-course').value.trim(),
+            course_type: $$('input[name="eb-type"]').find(r => r.checked).value,
+            start_date: $('#eb-start').value,
+            end_date: $('#eb-end').value,
+            location: $('#eb-location').value.trim() || null,
+            accommodation_required: $('#eb-accom').checked,
+            accommodation_nights: parseInt($('#eb-nights').value, 10) || 0,
+            notes: $('#eb-notes').value.trim() || null
+        };
+        if (!payload.course_name) { toast('Course name required', 'error'); return; }
+        const datesChanged = payload.start_date !== booking.start_date || payload.end_date !== booking.end_date;
+        const isLive = ['kiosk_pending', 'kiosk_confirmed'].includes(booking.status);
+        if (datesChanged && isLive) {
+            if (!confirm('Dates have changed. The kiosk confirmation will need to be re-sent. Continue?')) return;
+        }
+        try {
+            await api(`/api/training/bookings/${booking.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify(payload)
+            });
+            if (datesChanged && isLive) {
+                await api(`/api/training/bookings/${booking.id}/repush`, { method: 'POST' });
+                toast('Saved — kiosk re-pushed for new dates', 'success');
+            } else {
+                toast('Saved', 'success');
+            }
+            closeModal();
+            loadAll();
+        } catch (err) { toast(err.message, 'error'); }
+    });
+}
+
 async function openBookingDetail(id) {
     try {
         const { booking, prompts } = await api(`/api/training/bookings/${id}`);
@@ -1163,6 +1359,10 @@ async function openBookingDetail(id) {
             : `<div class="empty" style="padding:16px;"><div class="empty-sub">No kiosk activity yet</div></div>`;
 
         const actions = [];
+        if (!['cancelled', 'completed'].includes(booking.status)) {
+            actions.push(`<button class="btn" data-act="edit">Edit</button>`);
+        }
+        actions.push(`<button class="btn" data-act="clone">Clone for another employee</button>`);
         if (['planned'].includes(booking.status)) {
             actions.push(`<button class="btn" data-act="push">Push to kiosk now</button>`);
         }
@@ -1217,7 +1417,15 @@ async function openBookingDetail(id) {
             if (!btn) return;
             const act = btn.dataset.act;
             try {
-                if (act === 'push') {
+                if (act === 'clone') {
+                    closeModal();
+                    openNewBooking(booking);
+                    return;
+                } else if (act === 'edit') {
+                    closeModal();
+                    openEditBooking(booking);
+                    return;
+                } else if (act === 'push') {
                     await api(`/api/training/bookings/${id}/repush`, { method: 'POST' });
                     toast('Kiosk prompt sent', 'success');
                 } else if (act === 'mark-booked') {
@@ -1509,59 +1717,122 @@ $$('.tab').forEach(t => t.addEventListener('click', () => {
     $('#view-' + t.dataset.view).classList.add('active');
 }));
 
-function showPinGate(errorMsg = '') {
-    $('#appShell').classList.add('locked');
-    $('#pinGate').style.display = 'grid';
-    $('#pinError').textContent = errorMsg || '';
-    const inp = $('#pinInput');
-    inp.value = '';
-    setTimeout(() => inp.focus(), 50);
+const pinState = { value: '', maxLength: 4, busy: false };
+
+function renderPinDots() {
+    const dots = $('#pinDots').querySelectorAll('.pin-dot');
+    dots.forEach((d, i) => d.classList.toggle('filled', i < pinState.value.length));
 }
 
-function hidePinGate() {
-    $('#pinGate').style.display = 'none';
+function showPinScreen() {
+    $('#appShell').classList.add('locked');
+    $('#pinScreen').classList.remove('hidden');
+    pinState.value = '';
+    pinState.busy = false;
+    renderPinDots();
+}
+function hidePinScreen() {
+    $('#pinScreen').classList.add('hidden');
     $('#appShell').classList.remove('locked');
 }
+function showPinError(msg) {
+    const screen = $('#pinScreen');
+    const errText = $('#pinErrorText');
+    errText.classList.remove('checking');
+    errText.textContent = msg || 'Incorrect PIN';
+    screen.classList.add('error');
+    setTimeout(() => {
+        screen.classList.remove('error');
+        pinState.value = '';
+        renderPinDots();
+        errText.textContent = '';
+    }, 1100);
+}
 
-async function tryUnlock(pin) {
-    adminPin = pin;
+async function attemptPinSignIn() {
+    if (pinState.busy) return;
+    pinState.busy = true;
+    const errText = $('#pinErrorText');
+    errText.classList.add('checking');
+    errText.textContent = 'Verifying…';
+    adminPin = pinState.value;
     try {
-        await api('/api/training/stats');
-        localStorage.setItem(AUTH_KEY, pin);
-        hidePinGate();
+        await fetch(CONFIG.WORKER_URL + '/api/training/stats', {
+            headers: { 'X-Admin-PIN': adminPin }
+        }).then(r => {
+            if (r.status === 401) throw new Error('Incorrect PIN');
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        });
+        errText.classList.remove('checking');
+        errText.textContent = '';
+        localStorage.setItem(AUTH_KEY, adminPin);
+        hidePinScreen();
         loadAll();
-        return true;
-    } catch (e) {
-        if (e.status !== 401) {
-            $('#pinError').textContent = e.message;
-        }
-        return false;
+    } catch (err) {
+        adminPin = '';
+        localStorage.removeItem(AUTH_KEY);
+        showPinError(err.message);
+    } finally {
+        pinState.busy = false;
     }
 }
 
-$('#pinSubmit').addEventListener('click', async () => {
-    const pin = $('#pinInput').value.trim();
-    if (!pin) { $('#pinError').textContent = 'Enter a PIN'; return; }
-    $('#pinSubmit').disabled = true;
-    await tryUnlock(pin);
-    $('#pinSubmit').disabled = false;
+$('#pinKeypad').addEventListener('click', (e) => {
+    if (pinState.busy) return;
+    const key = e.target.closest('.pin-key');
+    if (!key || key.classList.contains('invisible')) return;
+    if (key.dataset.digit) {
+        if (pinState.value.length >= pinState.maxLength) return;
+        pinState.value += key.dataset.digit;
+        renderPinDots();
+        if (pinState.value.length === pinState.maxLength) attemptPinSignIn();
+    } else if (key.dataset.action === 'backspace') {
+        pinState.value = pinState.value.slice(0, -1);
+        renderPinDots();
+    }
 });
 
-$('#pinInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') $('#pinSubmit').click();
+document.addEventListener('keydown', (e) => {
+    const screen = $('#pinScreen');
+    if (screen.classList.contains('hidden')) return;
+    if (pinState.busy) return;
+    if (/^[0-9]$/.test(e.key)) {
+        if (pinState.value.length >= pinState.maxLength) return;
+        pinState.value += e.key;
+        renderPinDots();
+        if (pinState.value.length === pinState.maxLength) attemptPinSignIn();
+    } else if (e.key === 'Backspace') {
+        pinState.value = pinState.value.slice(0, -1);
+        renderPinDots();
+    } else if (e.key === 'Escape') {
+        pinState.value = '';
+        renderPinDots();
+    }
 });
 
 $('#signoutBtn').addEventListener('click', () => {
     adminPin = '';
     localStorage.removeItem(AUTH_KEY);
-    showPinGate();
+    showPinScreen();
 });
 
 window.closeModal = closeModal;
 
 (async function boot() {
-    if (adminPin && await tryUnlock(adminPin)) return;
-    showPinGate();
+    if (adminPin) {
+        try {
+            await fetch(CONFIG.WORKER_URL + '/api/training/stats', {
+                headers: { 'X-Admin-PIN': adminPin }
+            }).then(r => { if (!r.ok) throw new Error(); });
+            hidePinScreen();
+            loadAll();
+            return;
+        } catch {
+            adminPin = '';
+            localStorage.removeItem(AUTH_KEY);
+        }
+    }
+    showPinScreen();
 })();
 
 setInterval(() => { if (adminPin) loadAll(); }, 60_000);
