@@ -551,9 +551,103 @@ main {
 .matrix-cell.missing { background: var(--bg-muted); color: var(--text-tertiary); border: 1px dashed var(--border-strong); }
 .matrix-cell:hover { transform: translateY(-1px); }
 .matrix-cell svg { width: 12px; height: 12px; }
+
+/* ────────────────────────────────────────────────────────── */
+/* PIN GATE — covers everything until admin auths             */
+/* ────────────────────────────────────────────────────────── */
+.pin-gate {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-base);
+    z-index: 500;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+}
+.pin-gate-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 36px 32px 28px;
+    max-width: 380px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+.pin-gate-mark {
+    width: 48px; height: 48px;
+    background: var(--text); color: #fff;
+    border-radius: 12px;
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 16px;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+}
+.pin-gate-title { font-size: 18px; font-weight: 600; margin: 0; }
+.pin-gate-sub { font-size: 13px; color: var(--text-tertiary); margin: 0; text-align: center; }
+.pin-input {
+    width: 100%;
+    margin-top: 16px;
+    padding: 14px 16px;
+    font-family: var(--font-mono);
+    font-size: 22px;
+    letter-spacing: 0.3em;
+    text-align: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-input);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.pin-input:focus { border-color: var(--text); box-shadow: 0 0 0 3px rgba(9,9,11,0.06); }
+.pin-submit {
+    width: 100%; margin-top: 10px;
+    padding: 13px;
+    border: none; border-radius: var(--radius);
+    background: var(--text); color: #fff;
+    font-family: var(--font-ui); font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s ease, transform 0.04s ease;
+}
+.pin-submit:hover { background: #000; }
+.pin-submit:active { transform: scale(0.98); }
+.pin-submit:disabled { opacity: 0.5; cursor: default; }
+.pin-error {
+    font-size: 12px; color: var(--red-fg);
+    background: var(--red-soft);
+    padding: 8px 12px; border-radius: 8px;
+    margin-top: 6px; min-height: 0;
+    width: 100%; text-align: center;
+}
+.pin-error:empty { display: none; }
+.app-shell.locked { display: none; }
+.signout-btn {
+    background: transparent; border: none;
+    padding: 6px 10px; border-radius: 7px;
+    color: var(--text-tertiary); cursor: pointer;
+    font-size: 12px; font-family: var(--font-ui);
+}
+.signout-btn:hover { background: var(--bg-muted); color: var(--text); }
 </style>
 </head>
 <body>
+
+<div class="pin-gate" id="pinGate" style="display:none;">
+    <div class="pin-gate-card">
+        <div class="pin-gate-mark">K&amp;S</div>
+        <div class="pin-gate-title">Training admin</div>
+        <div class="pin-gate-sub">Enter your admin PIN to continue</div>
+        <input type="password" inputmode="numeric" autocomplete="off" maxlength="20" class="pin-input" id="pinInput" />
+        <button class="pin-submit" id="pinSubmit">Unlock</button>
+        <div class="pin-error" id="pinError"></div>
+    </div>
+</div>
+
+<div class="app-shell locked" id="appShell">
 
 <header class="topbar">
     <div class="topbar-inner">
@@ -574,6 +668,7 @@ main {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 New booking
             </button>
+            <button class="signout-btn" id="signoutBtn" title="Sign out">Sign out</button>
         </div>
     </div>
 </header>
@@ -643,6 +738,8 @@ main {
 
 </main>
 
+</div>
+
 <div class="modal-overlay" id="modalOverlay">
     <div class="modal" id="modal" role="dialog" aria-modal="true"></div>
 </div>
@@ -695,10 +792,24 @@ function daysAgo(s) {
     return Math.floor(ms / 86400000);
 }
 
+const AUTH_KEY = 'ks_training_admin_pin';
+let adminPin = localStorage.getItem(AUTH_KEY) || '';
+
 async function api(path, opts = {}) {
-    const headers = { 'Content-Type': 'application/json', 'X-Acting-User': CONFIG.ACTING_USER, ...(opts.headers || {}) };
+    const headers = {
+        'Content-Type': 'application/json',
+        'X-Acting-User': CONFIG.ACTING_USER,
+        'X-Admin-PIN': adminPin,
+        ...(opts.headers || {})
+    };
     const res = await fetch(CONFIG.WORKER_URL + path, { ...opts, headers });
     const body = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+        adminPin = '';
+        localStorage.removeItem(AUTH_KEY);
+        showPinGate('Wrong PIN. Try again.');
+        const e = new Error('Unauthorized'); e.status = 401; throw e;
+    }
     if (!res.ok) {
         const e = new Error(body.error || `HTTP ${res.status}`);
         e.status = res.status;
@@ -1398,10 +1509,62 @@ $$('.tab').forEach(t => t.addEventListener('click', () => {
     $('#view-' + t.dataset.view).classList.add('active');
 }));
 
+function showPinGate(errorMsg = '') {
+    $('#appShell').classList.add('locked');
+    $('#pinGate').style.display = 'grid';
+    $('#pinError').textContent = errorMsg || '';
+    const inp = $('#pinInput');
+    inp.value = '';
+    setTimeout(() => inp.focus(), 50);
+}
+
+function hidePinGate() {
+    $('#pinGate').style.display = 'none';
+    $('#appShell').classList.remove('locked');
+}
+
+async function tryUnlock(pin) {
+    adminPin = pin;
+    try {
+        await api('/api/training/stats');
+        localStorage.setItem(AUTH_KEY, pin);
+        hidePinGate();
+        loadAll();
+        return true;
+    } catch (e) {
+        if (e.status !== 401) {
+            $('#pinError').textContent = e.message;
+        }
+        return false;
+    }
+}
+
+$('#pinSubmit').addEventListener('click', async () => {
+    const pin = $('#pinInput').value.trim();
+    if (!pin) { $('#pinError').textContent = 'Enter a PIN'; return; }
+    $('#pinSubmit').disabled = true;
+    await tryUnlock(pin);
+    $('#pinSubmit').disabled = false;
+});
+
+$('#pinInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') $('#pinSubmit').click();
+});
+
+$('#signoutBtn').addEventListener('click', () => {
+    adminPin = '';
+    localStorage.removeItem(AUTH_KEY);
+    showPinGate();
+});
+
 window.closeModal = closeModal;
 
-loadAll();
-setInterval(loadAll, 60_000);
+(async function boot() {
+    if (adminPin && await tryUnlock(adminPin)) return;
+    showPinGate();
+})();
+
+setInterval(() => { if (adminPin) loadAll(); }, 60_000);
 </script>
 </body>
 </html>
