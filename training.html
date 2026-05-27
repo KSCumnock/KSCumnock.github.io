@@ -797,6 +797,8 @@ main {
 
     <section class="view" id="view-providers">
         <div class="filter-bar">
+            <div class="check-row" style="padding:8px 14px;height:36px;"><input type="checkbox" id="show-archived-providers" /><label for="show-archived-providers" style="font-size:13px;">Show archived</label></div>
+            <div class="spacer" style="flex:1;"></div>
             <button class="btn primary" id="addProviderBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Add provider
@@ -900,9 +902,13 @@ function toast(msg, kind = '') {
 /* ────────────────────────────────────────────────────────── */
 async function loadAll() {
     try {
+        const showArchivedProviders = $('#show-archived-providers')?.checked;
+        const provPath = showArchivedProviders
+            ? '/api/training/providers?include_inactive=1'
+            : '/api/training/providers';
         const [b, p, e, c, s] = await Promise.all([
             api('/api/training/bookings'),
-            api('/api/training/providers'),
+            api(provPath),
             api('/api/training/employees'),
             api('/api/training/credentials'),
             api('/api/training/stats')
@@ -1529,6 +1535,7 @@ $('#credentialsMatrix').addEventListener('click', e => {
 
 $('#cred-search').addEventListener('input', renderCredentials);
 $('#addCredBtn').addEventListener('click', () => openAddCredModal());
+$('#show-archived-providers').addEventListener('change', loadAll);
 
 async function openRevealModal(credId, bookingId = null) {
     const cred = state.credentials.find(c => c.id === credId);
@@ -1564,8 +1571,28 @@ async function openRevealModal(credId, bookingId = null) {
         </div>
         <div class="modal-footer">
             <button class="btn ghost" onclick="closeModal()">Close</button>
+            <div class="spacer"></div>
+            <button class="btn" id="cred-replace">Replace</button>
+            <button class="btn danger" id="cred-delete">Delete</button>
         </div>
     `);
+
+    $('#cred-replace').addEventListener('click', () => {
+        if (!cred) return;
+        closeModal();
+        openAddCredModal(cred.employee_id, cred.provider_id, { mode: 'replace' });
+    });
+
+    $('#cred-delete').addEventListener('click', async () => {
+        if (!cred) return;
+        if (!confirm(`Delete credentials for ${cred.employee_name} at ${cred.provider_name}?\n\nThis can't be undone.`)) return;
+        try {
+            await api(`/api/training/credentials/${credId}`, { method: 'DELETE' });
+            toast('Credentials deleted', 'success');
+            closeModal();
+            loadAll();
+        } catch (err) { toast(err.message, 'error'); }
+    });
 
     $('#reveal-btn').addEventListener('click', async () => {
         try {
@@ -1598,23 +1625,27 @@ async function openRevealModal(credId, bookingId = null) {
     });
 }
 
-function openAddCredModal(prefillEmp = null, prefillProv = null) {
-    const empOpts = state.employees.map(e => `<option value="${e.id}" ${e.id === prefillEmp ? 'selected' : ''}>${escapeHtml(e.name)}</option>`).join('');
+function openAddCredModal(prefillEmp = null, prefillProv = null, opts = {}) {
+    const mode = opts.mode || 'add';
+    const isReplace = mode === 'replace';
+    const empOpts = state.employees.map(e => `<option value="${e.id}" ${String(e.id) === String(prefillEmp) ? 'selected' : ''}>${escapeHtml(e.name)}</option>`).join('');
     const provOpts = state.providers.map(p => `<option value="${p.id}" ${p.id === prefillProv ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
 
     openModal(`
         <div class="modal-header">
-            <div class="modal-title">Store portal credentials</div>
+            <div class="modal-title">${isReplace ? 'Replace credentials' : 'Store portal credentials'}</div>
             <button class="modal-close" onclick="closeModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
         <div class="modal-body">
             <div class="cred-warning">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                Encrypted with AES-256-GCM before storage. The plaintext is never written to disk.
+                ${isReplace
+                    ? 'The previous username and password will be overwritten. Encrypted with AES-256-GCM before storage.'
+                    : 'Encrypted with AES-256-GCM before storage. The plaintext is never written to disk.'}
             </div>
             <div class="form-row split">
-                <div><label>Employee</label><select id="ac-employee">${empOpts}</select></div>
-                <div><label>Provider</label><select id="ac-provider">${provOpts}</select></div>
+                <div><label>Employee</label><select id="ac-employee" ${isReplace ? 'disabled style="opacity:0.6;"' : ''}>${empOpts}</select></div>
+                <div><label>Provider</label><select id="ac-provider" ${isReplace ? 'disabled style="opacity:0.6;"' : ''}>${provOpts}</select></div>
             </div>
             <div class="form-row"><label>Username</label><input type="text" id="ac-username" autocomplete="off" /></div>
             <div class="form-row"><label>Password</label><input type="password" id="ac-password" autocomplete="off" /></div>
@@ -1624,14 +1655,14 @@ function openAddCredModal(prefillEmp = null, prefillProv = null) {
         <div class="modal-footer">
             <button class="btn ghost" onclick="closeModal()">Cancel</button>
             <div class="spacer"></div>
-            <button class="btn primary" id="ac-submit">Save credentials</button>
+            <button class="btn primary" id="ac-submit">${isReplace ? 'Save replacement' : 'Save credentials'}</button>
         </div>
     `);
 
     $('#ac-submit').addEventListener('click', async () => {
         const payload = {
-            employee_id: $('#ac-employee').value,
-            provider_id: parseInt($('#ac-provider').value, 10),
+            employee_id: isReplace ? prefillEmp : $('#ac-employee').value,
+            provider_id: isReplace ? prefillProv : parseInt($('#ac-provider').value, 10),
             username: $('#ac-username').value,
             password: $('#ac-password').value,
             login_email: $('#ac-email').value.trim() || null,
@@ -1643,7 +1674,7 @@ function openAddCredModal(prefillEmp = null, prefillProv = null) {
         }
         try {
             await api('/api/training/credentials', { method: 'POST', body: JSON.stringify(payload) });
-            toast('Credentials saved', 'success');
+            toast(isReplace ? 'Credentials replaced' : 'Credentials saved', 'success');
             closeModal();
             loadAll();
         } catch (err) { toast(err.message, 'error'); }
@@ -1659,17 +1690,89 @@ function renderProviders() {
         el.innerHTML = `<div class="empty"><div class="empty-title">No providers yet</div><div class="empty-sub">Add Vauxhall, Stellantis, KGM etc.</div></div>`;
         return;
     }
-    el.innerHTML = state.providers.map(p => `
-        <div class="provider">
+    el.innerHTML = state.providers.map(p => {
+        const archived = p.is_active === 0 || p.is_active === false;
+        const bookingsUsing = state.bookings.filter(b => b.provider_id === p.id && !['cancelled', 'completed'].includes(b.status)).length;
+        return `
+        <div class="provider" style="${archived ? 'opacity:0.55;' : ''}">
             <div style="flex:1;">
-                <div class="provider-name">${escapeHtml(p.name)}</div>
-                <div class="provider-meta">${p.short_name ? `${escapeHtml(p.short_name)} · ` : ''}${p.portal_url ? escapeHtml(p.portal_url) : 'No portal URL'}${p.notes ? ` · ${escapeHtml(p.notes)}` : ''}</div>
+                <div class="provider-name">
+                    ${escapeHtml(p.name)}
+                    ${archived ? `<span class="pill gray" style="margin-left:8px;"><span class="pill-dot"></span>Archived</span>` : ''}
+                </div>
+                <div class="provider-meta">${p.short_name ? `${escapeHtml(p.short_name)} · ` : ''}${p.portal_url ? escapeHtml(p.portal_url) : 'No portal URL'}${p.notes ? ` · ${escapeHtml(p.notes)}` : ''}${bookingsUsing > 0 ? ` · <strong>${bookingsUsing} live booking${bookingsUsing > 1 ? 's' : ''}</strong>` : ''}</div>
             </div>
             <div class="provider-actions">
                 ${p.portal_url ? `<a class="btn sm" href="${escapeHtml(p.portal_url)}" target="_blank" rel="noopener">Open</a>` : ''}
+                <button class="btn sm" data-act="edit-provider" data-id="${p.id}">Edit</button>
+                ${archived
+                    ? `<button class="btn sm" data-act="restore-provider" data-id="${p.id}">Restore</button>`
+                    : `<button class="btn sm danger" data-act="archive-provider" data-id="${p.id}" ${bookingsUsing > 0 ? 'title="Has live bookings"' : ''}>Archive</button>`}
             </div>
+        </div>`;
+    }).join('');
+}
+
+$('#providersList').addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const id = parseInt(btn.dataset.id, 10);
+    const provider = state.providers.find(p => p.id === id);
+    if (!provider) return;
+    const act = btn.dataset.act;
+    try {
+        if (act === 'edit-provider') {
+            openEditProviderModal(provider);
+        } else if (act === 'archive-provider') {
+            const liveCount = state.bookings.filter(b => b.provider_id === id && !['cancelled', 'completed'].includes(b.status)).length;
+            const msg = liveCount > 0
+                ? `${provider.name} still has ${liveCount} live booking${liveCount > 1 ? 's' : ''}. Archive anyway?\n\nExisting bookings keep working; new ones can't be created against this provider.`
+                : `Archive ${provider.name}? It won't appear in dropdowns. You can restore it later.`;
+            if (!confirm(msg)) return;
+            await api(`/api/training/providers/${id}`, { method: 'PATCH', body: JSON.stringify({ is_active: 0 }) });
+            toast(`${provider.name} archived`, 'success');
+            loadAll();
+        } else if (act === 'restore-provider') {
+            await api(`/api/training/providers/${id}`, { method: 'PATCH', body: JSON.stringify({ is_active: 1 }) });
+            toast(`${provider.name} restored`, 'success');
+            loadAll();
+        }
+    } catch (err) { toast(err.message, 'error'); }
+});
+
+function openEditProviderModal(provider) {
+    openModal(`
+        <div class="modal-header">
+            <div class="modal-title">Edit provider</div>
+            <button class="modal-close" onclick="closeModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
-    `).join('');
+        <div class="modal-body">
+            <div class="form-row"><label>Name</label><input type="text" id="ep-name" value="${escapeHtml(provider.name)}" /></div>
+            <div class="form-row"><label>Short name</label><input type="text" id="ep-short" value="${escapeHtml(provider.short_name || '')}" placeholder="e.g. Bosch" /></div>
+            <div class="form-row"><label>Portal URL</label><input type="url" id="ep-url" value="${escapeHtml(provider.portal_url || '')}" placeholder="https://…" /></div>
+            <div class="form-row"><label>Notes</label><textarea id="ep-notes">${escapeHtml(provider.notes || '')}</textarea></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn ghost" onclick="closeModal()">Cancel</button>
+            <div class="spacer"></div>
+            <button class="btn primary" id="ep-submit">Save changes</button>
+        </div>
+    `);
+    $('#ep-submit').addEventListener('click', async () => {
+        const payload = {
+            name: $('#ep-name').value.trim(),
+            short_name: $('#ep-short').value.trim() || null,
+            portal_url: $('#ep-url').value.trim() || null,
+            notes: $('#ep-notes').value.trim() || null
+        };
+        if (!payload.name) { toast('Name required', 'error'); return; }
+        try {
+            await api(`/api/training/providers/${provider.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+            toast('Provider updated', 'success');
+            closeModal();
+            loadAll();
+        } catch (err) { toast(err.message, 'error'); }
+    });
 }
 
 $('#addProviderBtn').addEventListener('click', () => {
