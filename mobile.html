@@ -1394,6 +1394,155 @@ body {
     letter-spacing: 0.04em;
     pointer-events: none;
 }
+
+/* ─── TRAINING CONFIRMATION OVERLAY ─────────────────────────
+   Bottom-sheet shown after the employee reaches the action
+   screen when the training module has a pending booking
+   awaiting their availability confirmation. z-index 100 sits
+   above the offsite sheet (90). */
+.training-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 100;
+    display: grid;
+    place-items: end center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+.training-overlay.show { opacity: 1; visibility: visible; }
+.training-card {
+    background: #fff;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: 28px 24px max(28px, env(safe-area-inset-bottom, 28px));
+    width: 100%;
+    max-width: 480px;
+    transform: translateY(20px);
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+.training-overlay.show .training-card { transform: translateY(0); }
+.training-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--green-bg);
+    color: var(--green);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+.training-icon svg { width: 28px; height: 28px; }
+.training-icon.warn { background: var(--amber-bg); color: var(--amber); }
+.training-icon.sent { background: var(--amber-bg); color: var(--amber); }
+.training-sub {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    background: var(--bg-muted);
+    padding: 3px 10px;
+    border-radius: 999px;
+}
+.training-title {
+    font-size: 19px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--text);
+    line-height: 1.3;
+}
+.training-counter {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-top: -6px;
+}
+.training-course {
+    width: 100%;
+    background: var(--bg-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.training-course-title { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.3; }
+.training-course-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+.training-course-row svg { width: 16px; height: 16px; color: var(--text-tertiary); flex-shrink: 0; }
+.training-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 8px; }
+.training-btn {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--font-ui);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.04s ease, opacity 0.12s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+.training-btn:active { transform: scale(0.98); }
+.training-btn.primary { background: var(--green); color: #fff; }
+.training-btn.secondary { background: var(--bg-muted); color: var(--text-secondary); border: 1px solid var(--border); }
+.training-reason-list { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 2px; }
+.training-reason {
+    width: 100%;
+    padding: 15px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: #fff;
+    text-align: left;
+    font-family: var(--font-ui);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+.training-reason:active { background: var(--bg-muted); }
+.training-reason svg { width: 18px; height: 18px; color: var(--text-tertiary); }
+.training-cancel {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 4px;
+}
+.training-done-meta { font-size: 13px; color: var(--text-tertiary); text-align: center; line-height: 1.45; }
+
 </style>
 </head>
 <body>
@@ -1814,6 +1963,12 @@ body {
     </div>
 </div>
 
+
+<!-- ─── TRAINING CONFIRMATION OVERLAY ───────────── -->
+<div class="training-overlay" id="trainingOverlay" aria-hidden="true">
+    <div class="training-card" id="trainingCard"></div>
+</div>
+
 <!-- ─── TOAST CONTAINER ───────────────────────── -->
 <div class="toast-container" id="toastContainer"></div>
 
@@ -2182,6 +2337,8 @@ function enterActionScreen(employee) {
     $('locatingScreen').classList.add('hidden');
     $('actionScreen').classList.remove('hidden');
     renderActionScreen();
+    // Surface any pending training booking confirmations for this employee.
+    loadAndShowTrainingForEmployee(employee);
     workTimeTimer = setInterval(updateWorkTimeDisplay, 1000);
 
     // Start continuous GPS while the action screen is visible. This keeps
@@ -2240,6 +2397,7 @@ function exitActionScreen() {
     hideOffsiteOverlay();
     hideSubmitConfirm();
     hideDeleteJobConfirm();
+    clearTrainingQueue();
 }
 
 function renderActionScreen() {
@@ -3224,6 +3382,202 @@ async function init() {
     updateConnectionStatus();
     await boot();
 }
+
+
+// ════════════════════════════════════════════════════════════════════════
+// TRAINING PROMPTS
+// ════════════════════════════════════════════════════════════════════════
+// After login + GPS, fetch any pending training booking prompts for this
+// employee and present them as a bottom-sheet. Employee taps "I'm available"
+// or "Report a conflict" → posts back to the training worker.
+
+const TRAINING_WORKER_URL = 'https://training.ske-d03.workers.dev';
+
+const training = { queue: [], idx: 0, activeFor: null };
+
+async function loadAndShowTrainingForEmployee(emp) {
+    if (!emp) return;
+    try {
+        const r = await fetch(`${TRAINING_WORKER_URL}/api/training/kiosk/pending?employee_id=${encodeURIComponent(emp.id)}`);
+        if (!r.ok) return;
+        const data = await r.json();
+        const prompts = Array.isArray(data.prompts) ? data.prompts : [];
+        if (!prompts.length) return;
+        if (!state.currentEmployee || state.currentEmployee.id !== emp.id) return;
+        training.queue = prompts;
+        training.idx = 0;
+        training.activeFor = emp.id;
+        renderTrainingConfirm();
+    } catch (e) {
+        console.error('Failed to load training prompts:', e);
+    }
+}
+
+function renderTrainingConfirm() {
+    if (!state.currentEmployee || state.currentEmployee.id !== training.activeFor) {
+        clearTrainingQueue();
+        return;
+    }
+    if (training.idx >= training.queue.length) { hideTrainingOverlay(); return; }
+    const p = training.queue[training.idx];
+    const sameDay = p.start_date === p.end_date;
+    const dateStr = sameDay ? formatTrainingDate(p.start_date)
+        : `${formatTrainingDate(p.start_date)} → ${formatTrainingDate(p.end_date)}`;
+    const counter = training.queue.length > 1
+        ? `<div class="training-counter">${training.idx + 1} of ${training.queue.length}</div>` : '';
+
+    showTrainingOverlay(`
+        <div class="training-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        </div>
+        <div class="training-sub">Confirm availability</div>
+        <div class="training-title">Training planned for you</div>
+        ${counter}
+        <div class="training-course">
+            <div class="training-course-title">${escapeTrainingHtml(p.course_name)}</div>
+            <div class="training-course-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                ${dateStr}
+            </div>
+            ${p.location ? `<div class="training-course-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                ${escapeTrainingHtml(p.location)}
+            </div>` : ''}
+            ${p.accommodation_required ? `<div class="training-course-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 17h20"/><path d="M2 12h20"/><path d="M4 17V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9"/></svg>
+                Overnight stay (${p.accommodation_nights || 1} night${(p.accommodation_nights || 1) > 1 ? 's' : ''})
+            </div>` : ''}
+        </div>
+        <div class="training-actions">
+            <button class="training-btn primary" data-train-act="available">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><polyline points="20 6 9 17 4 12"/></svg>
+                I'm available
+            </button>
+            <button class="training-btn secondary" data-train-act="conflict">Report a conflict</button>
+        </div>
+    `);
+}
+
+function renderTrainingConflict() {
+    showTrainingOverlay(`
+        <div class="training-icon warn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="training-sub">What's the issue?</div>
+        <div class="training-title">Report a conflict</div>
+        <div class="training-reason-list">
+            <button class="training-reason" data-train-reason="Already booked off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="9" y1="14" x2="15" y2="14"/></svg>Already booked off</button>
+            <button class="training-reason" data-train-reason="Family commitment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Family commitment</button>
+            <button class="training-reason" data-train-reason="Medical appointment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v3"/><path d="M16 2v3"/><path d="M2 17h12V7a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3z"/></svg>Medical appointment</button>
+            <button class="training-reason" data-train-reason="Not enough notice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Not enough notice</button>
+            <button class="training-reason" data-train-reason="Other"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>Other (Sean will follow up)</button>
+        </div>
+        <button class="training-cancel" data-train-act="back">Back</button>
+    `);
+}
+
+function renderTrainingThanks(reason) {
+    showTrainingOverlay(`
+        <div class="training-icon sent">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </div>
+        <div class="training-sub">Sent to Sean</div>
+        <div class="training-title">Got it — Sean's been notified</div>
+        <div class="training-done-meta">Reason: <strong style="color:var(--text)">${escapeTrainingHtml(reason)}</strong><br>He'll come back with alternative dates</div>
+        <button class="training-btn secondary" style="max-width:240px;" data-train-act="next">Done</button>
+    `);
+}
+
+function renderTrainingConfirmed() {
+    showTrainingOverlay(`
+        <div class="training-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="training-sub">Confirmed</div>
+        <div class="training-title">Thanks, you're booked in</div>
+        <div class="training-done-meta">Sean will book it on the portal<br>and add it to your roster</div>
+        <button class="training-btn secondary" style="max-width:240px;" data-train-act="next">Done</button>
+    `);
+}
+
+function showTrainingOverlay(html) {
+    const card = $('trainingCard');
+    const overlay = $('trainingOverlay');
+    if (!card || !overlay) return;
+    card.innerHTML = html;
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden', 'false');
+    if (typeof actionReturnTimer !== 'undefined' && actionReturnTimer) clearTimeout(actionReturnTimer);
+}
+
+function hideTrainingOverlay() {
+    const overlay = $('trainingOverlay');
+    if (!overlay) return;
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+}
+
+function clearTrainingQueue() {
+    hideTrainingOverlay();
+    training.queue = [];
+    training.activeFor = null;
+    training.idx = 0;
+}
+
+document.addEventListener('click', async (e) => {
+    const overlay = $('trainingOverlay');
+    if (!overlay || !overlay.classList.contains('show')) return;
+
+    const reasonBtn = e.target.closest('.training-reason[data-train-reason]');
+    if (reasonBtn) {
+        const reason = reasonBtn.dataset.trainReason;
+        await sendTrainingResponse('conflict', reason);
+        renderTrainingThanks(reason);
+        return;
+    }
+
+    const actBtn = e.target.closest('[data-train-act]');
+    if (!actBtn) return;
+    const act = actBtn.dataset.trainAct;
+    if (act === 'available') {
+        await sendTrainingResponse('available', null);
+        renderTrainingConfirmed();
+    } else if (act === 'conflict') {
+        renderTrainingConflict();
+    } else if (act === 'back') {
+        renderTrainingConfirm();
+    } else if (act === 'next') {
+        training.idx++;
+        if (training.idx < training.queue.length) renderTrainingConfirm();
+        else clearTrainingQueue();
+    }
+});
+
+async function sendTrainingResponse(response, conflictReason) {
+    const p = training.queue[training.idx];
+    if (!p) return;
+    try {
+        await fetch(`${TRAINING_WORKER_URL}/api/training/kiosk/respond`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt_id: p.prompt_id, response, conflict_reason: conflictReason })
+        });
+    } catch (e) {
+        console.error('Failed to send training response:', e);
+    }
+}
+
+function escapeTrainingHtml(s) {
+    if (s == null) return '';
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function formatTrainingDate(s) {
+    if (!s) return '—';
+    const d = new Date(s);
+    return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
