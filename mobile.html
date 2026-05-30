@@ -765,6 +765,118 @@ body {
 .offsite-form-submit:disabled { opacity: 0.4; }
 
 /* ────────────────────────────────────────────── */
+/* LATE CLOCK-OUT — reason chips + time wheel       */
+/* Reuses the offsite-overlay shell. These styles   */
+/* cover the configurable reason list and the       */
+/* scroll-snap time picker shown when a driver       */
+/* picks "Forgot to clock out".                      */
+/* ────────────────────────────────────────────── */
+.late-reason {
+    padding: 16px;
+    background: var(--bg-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    transition: background 0.12s ease;
+}
+.late-reason:active { background: var(--border); }
+.late-reason .chev {
+    width: 18px; height: 18px;
+    color: var(--text-tertiary);
+    flex: 0 0 auto;
+}
+.late-reason .tag {
+    font-size: 10px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--amber);
+    background: var(--amber-bg);
+    padding: 3px 7px;
+    border-radius: 6px;
+}
+
+.late-time-stage { display: none; }
+.late-time-stage.active { display: block; }
+
+.time-wheel {
+    position: relative;
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
+    height: 176px;
+    margin: 6px 0 2px;
+}
+.time-wheel-col {
+    height: 176px;
+    width: 70px;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    text-align: center;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.time-wheel-col::-webkit-scrollbar { display: none; }
+/* 66px = (176 - 44) / 2 so the first and last items can reach centre */
+.time-wheel-col::before,
+.time-wheel-col::after { content: ''; display: block; height: 66px; }
+.time-wheel-item {
+    height: 44px;
+    line-height: 44px;
+    scroll-snap-align: center;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+    font-family: var(--font-mono);
+    transition: color 0.12s ease, transform 0.12s ease;
+}
+.time-wheel-item.selected {
+    color: var(--text);
+    transform: scale(1.08);
+}
+.time-wheel-colon {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+    align-self: center;
+}
+.time-wheel-highlight {
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    top: 50%;
+    width: 156px;
+    height: 44px;
+    border-top: 1.5px solid var(--border-strong);
+    border-bottom: 1.5px solid var(--border-strong);
+    border-radius: 10px;
+    pointer-events: none;
+}
+.late-time-readout {
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--text-tertiary);
+    margin-top: 8px;
+    font-variant-numeric: tabular-nums;
+}
+.late-time-readout strong { color: var(--text); font-weight: 600; }
+.late-time-readout.invalid strong { color: var(--red); }
+
+/* ────────────────────────────────────────────── */
 /* TIMESHEETS — secondary button on action screen */
 /* ────────────────────────────────────────────── */
 .action-btn.secondary {
@@ -1945,6 +2057,50 @@ body {
     </div>
 </div>
 
+<!-- ─── LATE CLOCK-OUT OVERLAY ─────────────────── -->
+<!-- Shown when a recovery driver clocks out after their scheduled finish.
+     Stage 1 asks for a reason (configurable in the dashboard). If the chosen
+     reason "corrects the time" (e.g. "Forgot to clock out") we advance to
+     stage 2 — a scroll wheel to set the real finish time. -->
+<div class="offsite-overlay" id="lateOverlay" aria-hidden="true">
+    <div class="offsite-card">
+        <!-- Stage 1: reason picker -->
+        <div id="latePicker">
+            <div class="offsite-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>
+                </svg>
+            </div>
+            <div class="offsite-title">Clocking out late</div>
+            <div class="offsite-sub" id="lateSub">It's past your scheduled finish. Pick a reason so it can be reviewed.</div>
+            <div class="offsite-options" id="lateReasonOptions"><!-- rendered from LATE_CLOCKOUT_REASONS --></div>
+            <button class="offsite-option cancel" id="lateCancel" type="button">Cancel</button>
+        </div>
+
+        <!-- Stage 2: time correction wheel (only for "corrects time" reasons) -->
+        <div class="late-time-stage" id="lateTimeStage">
+            <div class="offsite-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>
+                </svg>
+            </div>
+            <div class="offsite-title">When did you actually finish?</div>
+            <div class="offsite-sub">Scroll to set your real clock-out time. We'll record that instead of now.</div>
+            <div class="time-wheel" id="timeWheel">
+                <div class="time-wheel-col" id="wheelHours" data-unit="hours"></div>
+                <div class="time-wheel-colon">:</div>
+                <div class="time-wheel-col" id="wheelMins" data-unit="mins"></div>
+                <div class="time-wheel-highlight"></div>
+            </div>
+            <div class="late-time-readout" id="lateTimeReadout">Finished at <strong>—</strong></div>
+            <div class="offsite-form-row">
+                <button class="offsite-form-back" id="lateTimeBack" type="button">Back</button>
+                <button class="offsite-form-submit" id="lateTimeConfirm" type="button">Confirm clock-out</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ─── RECORDING OVERLAY ─────────────────────── -->
 <div class="recording-overlay" id="recordingOverlay" aria-hidden="true">
     <div class="recording-content">
@@ -1990,6 +2146,25 @@ let KS_LAT = 55.44993422440035;
 let KS_LNG = -4.270202285452328;
 let GEOFENCE_RADIUS_M = 200;
 
+// Late clock-out — recovery drivers frequently forget to clock out at night.
+// When they clock out AFTER their scheduled finish (plus a small grace) we ask
+// why. The reasons are configurable in the TimeKeeper dashboard and fetched
+// from /public/settings on boot; these are the baked-in fallbacks used if the
+// fetch fails. `correctsTime: true` means picking that reason opens a time
+// wheel so the driver can set the real finish time — the recorded clock-out is
+// then stored at that corrected time and flagged as driver-adjusted.
+let LATE_CLOCKOUT_REASONS = [
+    { label: 'AA Contract',         correctsTime: false },
+    { label: 'Extra Overtime',      correctsTime: false },
+    { label: 'Forgot to Clock Out', correctsTime: true  },
+];
+// K&S Saturday hours are 08:00–13:00 site-wide. Matches SATURDAY_FINISH_MIN in
+// worker.js — Saturday "late" is judged against 13:00, not the weekday finish.
+const SATURDAY_FINISH_MIN = 13 * 60;
+// Grace bumper (minutes) before a clock-out counts as late, so a driver
+// finishing a few minutes over isn't nagged. Mirror in worker if changed.
+const LATE_GRACE_MIN = 5;
+
 // GPS lookup constraints. enableHighAccuracy uses GPS hardware where
 // available (vs cell-tower triangulation). timeout caps how long we wait
 // before giving up. maximumAge lets us reuse a recent fix from a prior
@@ -1999,7 +2174,7 @@ let GEOFENCE_RADIUS_M = 200;
 const GEO_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 };
 
 // Build version — bumped on each deploy. Visible bottom-right corner.
-const BUILD_VERSION = '2026-05-13-mobile-v13-buildstamp';
+const BUILD_VERSION = '2026-05-29-mobile-v14-late-clockout';
 
 // ════════════════════════════════════════════════════════════════════════
 // STATE
@@ -2015,6 +2190,8 @@ const state = {
     // doesn't see "Locating…" before every action.
     lastLocation: null,         // { lat, lng, accuracy, capturedAt: epochMs }
     pendingClockType: null,     // the action waiting for offsite-reason answer
+    pendingLate: null,          // { finishMin, finishLabel, nowMin } captured when a late clock-out is detected
+    lateReason: null,           // reason chosen on the late overlay (string)
     watchId: null,              // navigator.geolocation.watchPosition id; null when not watching
     // Timesheet state (sheet + jobs model)
     timesheets: [],             // cached array; each sheet has .jobs[] embedded
@@ -2452,6 +2629,33 @@ function updateWorkTimeDisplay() {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+// LATE CLOCK-OUT DETECTION
+// ════════════════════════════════════════════════════════════════════════
+// Scheduled finish as minutes-after-midnight (wall clock) for TODAY, or null
+// if it can't be determined. Saturday uses the site-wide 13:00 finish; Sunday
+// has no schedule; weekdays use the employee's finishTime (its UTC hour/minute
+// fields encode the wall-clock finish, matching the worker's convention).
+function scheduledFinishMin(emp, when = new Date()) {
+    const dow = when.getDay();
+    if (dow === 6) return SATURDAY_FINISH_MIN;   // Saturday
+    if (dow === 0) return null;                  // Sunday
+    if (!emp.finishTime) return null;
+    const f = new Date(emp.finishTime);
+    return f.getUTCHours() * 60 + f.getUTCMinutes();
+}
+
+// Returns finish context when `when` is past the scheduled finish + grace,
+// otherwise null. Used to decide whether to prompt for a late-clock-out reason.
+function lateClockOutContext(emp, when = new Date()) {
+    const finishMin = scheduledFinishMin(emp, when);
+    if (finishMin == null) return null;
+    const nowMin = when.getHours() * 60 + when.getMinutes();
+    if (nowMin <= finishMin + LATE_GRACE_MIN) return null;
+    const finishLabel = `${String(Math.floor(finishMin / 60)).padStart(2, '0')}:${String(finishMin % 60).padStart(2, '0')}`;
+    return { finishMin, finishLabel, nowMin };
+}
+
+// ════════════════════════════════════════════════════════════════════════
 // CLOCKING ACTION (with geofence + offsite reason)
 // ════════════════════════════════════════════════════════════════════════
 async function onActionClick(type) {
@@ -2486,11 +2690,23 @@ async function onActionClick(type) {
         return;
     }
 
+    // Late clock-out — recovery drivers often forget to clock out at night.
+    // If they're clocking out past their scheduled finish, ask why before
+    // recording it (and let them correct the time if they simply forgot).
+    if (type === 'Clock Out') {
+        const lateCtx = lateClockOutContext(emp);
+        if (lateCtx) {
+            state.pendingLate = lateCtx;
+            showLateOverlay(lateCtx);
+            return;
+        }
+    }
+
     // Submit immediately — no offsite reason needed
     await submitClocking(type, null, null);
 }
 
-async function submitClocking(type, offsiteReason, offsiteNote) {
+async function submitClocking(type, offsiteReason, offsiteNote, extra = {}) {
     const emp = state.currentEmployee;
     if (!emp) return;
     if (!state.lastLocation) {
@@ -2513,6 +2729,9 @@ async function submitClocking(type, offsiteReason, offsiteNote) {
                 longitude: state.lastLocation.lng,
                 offsiteReason,
                 offsiteNote,
+                // Late clock-out extras (lateReason, timestamp, originalTimestamp,
+                // timeAdjusted) — only present when clocking out after finish.
+                ...extra,
             }),
         });
         if (!r.ok) {
@@ -2525,8 +2744,11 @@ async function submitClocking(type, offsiteReason, offsiteNote) {
 
         // Update the action screen status behind the overlay
         renderActionScreen();
-        // Dismiss the offsite overlay if it was showing
+        // Dismiss any reason overlays that were showing
         hideOffsiteOverlay();
+        hideLateOverlay();
+        state.pendingLate = null;
+        state.lateReason = null;
         // Transition overlay to success state — plays sound, holds, then exits
         showSuccessOverlay(type, data.entry.timestamp);
 
@@ -2580,6 +2802,147 @@ function backToOffsitePicker() {
     $('offsiteCalloutForm').classList.remove('active');
     $('offsiteOtherForm').classList.remove('active');
     $('offsitePicker').style.display = '';
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// LATE CLOCK-OUT OVERLAY
+// ════════════════════════════════════════════════════════════════════════
+const WHEEL_ITEM_H = 44; // must match .time-wheel-item height in CSS
+
+// Opens stage 1 (reason picker) for a late clock-out. Reasons come from the
+// configurable list fetched at boot, falling back to the baked-in defaults.
+function showLateOverlay(ctx) {
+    // Reset to picker stage
+    $('latePicker').style.display = '';
+    $('lateTimeStage').classList.remove('active');
+
+    $('lateSub').innerHTML =
+        `Your scheduled finish was <strong>${ctx.finishLabel}</strong>. Pick a reason so it can be reviewed.`;
+
+    // Render the configurable reason buttons
+    const optsEl = $('lateReasonOptions');
+    optsEl.innerHTML = LATE_CLOCKOUT_REASONS.map((r, i) => `
+        <button class="late-reason" data-late-idx="${i}" type="button">
+            <span>${escapeHtml(r.label)}</span>
+            ${r.correctsTime
+                ? `<span class="tag">set time</span>`
+                : `<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`}
+        </button>
+    `).join('');
+    optsEl.querySelectorAll('[data-late-idx]').forEach(btn => {
+        btn.addEventListener('click', () => onLateReasonPick(Number(btn.dataset.lateIdx)));
+    });
+
+    const ov = $('lateOverlay');
+    ov.classList.add('show');
+    ov.setAttribute('aria-hidden', 'false');
+}
+
+function hideLateOverlay() {
+    const ov = $('lateOverlay');
+    ov.classList.remove('show');
+    ov.setAttribute('aria-hidden', 'true');
+}
+
+// Driver picked a reason. If it doesn't correct the time (AA Contract, Extra
+// Overtime) we record the clock-out at the current time straight away. If it
+// does (Forgot to clock out) we advance to the time wheel.
+function onLateReasonPick(idx) {
+    const reason = LATE_CLOCKOUT_REASONS[idx];
+    if (!reason) return;
+    state.lateReason = reason.label;
+
+    if (!reason.correctsTime) {
+        // Clock out now, attach the reason. Worker emails the late-clockout list.
+        submitClocking('Clock Out', null, null, { lateReason: reason.label });
+        return;
+    }
+
+    // Advance to the time wheel, defaulted to the scheduled finish time.
+    $('latePicker').style.display = 'none';
+    $('lateTimeStage').classList.add('active');
+    buildTimeWheel(state.pendingLate ? state.pendingLate.finishMin : null);
+}
+
+// Builds the two scroll columns and centres them on the default time.
+function buildTimeWheel(defaultMin) {
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    // Default: scheduled finish if we have it and it's not after now, else now.
+    let startMin = (defaultMin != null && defaultMin <= nowMin) ? defaultMin : nowMin;
+    const dh = Math.floor(startMin / 60);
+    const dm = startMin % 60;
+
+    const hoursCol = $('wheelHours');
+    const minsCol = $('wheelMins');
+    hoursCol.innerHTML = '';
+    minsCol.innerHTML = '';
+    for (let h = 0; h < 24; h++) {
+        const it = document.createElement('div');
+        it.className = 'time-wheel-item';
+        it.textContent = String(h).padStart(2, '0');
+        hoursCol.appendChild(it);
+    }
+    for (let m = 0; m < 60; m++) {
+        const it = document.createElement('div');
+        it.className = 'time-wheel-item';
+        it.textContent = String(m).padStart(2, '0');
+        minsCol.appendChild(it);
+    }
+
+    // Centre on the default after layout settles
+    requestAnimationFrame(() => {
+        hoursCol.scrollTop = dh * WHEEL_ITEM_H;
+        minsCol.scrollTop = dm * WHEEL_ITEM_H;
+        highlightWheel(hoursCol, dh);
+        highlightWheel(minsCol, dm);
+        updateLateReadout();
+    });
+}
+
+function wheelValue(colEl) {
+    return Math.max(0, Math.round(colEl.scrollTop / WHEEL_ITEM_H));
+}
+
+function highlightWheel(colEl, idx) {
+    colEl.querySelectorAll('.time-wheel-item.selected').forEach(el => el.classList.remove('selected'));
+    const items = colEl.children;
+    if (items[idx]) items[idx].classList.add('selected');
+}
+
+// Reads both columns, updates the readout, and flags the time invalid if it's
+// in the future (a corrected finish can't be later than the moment now).
+function updateLateReadout() {
+    const h = wheelValue($('wheelHours'));
+    const m = wheelValue($('wheelMins'));
+    const label = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    const now = new Date();
+    const future = (h * 60 + m) > (now.getHours() * 60 + now.getMinutes());
+    const readout = $('lateTimeReadout');
+    readout.innerHTML = future
+        ? `<strong>${label}</strong> — that's in the future`
+        : `Finished at <strong>${label}</strong>`;
+    readout.classList.toggle('invalid', future);
+    $('lateTimeConfirm').disabled = future;
+    return { h, m, future };
+}
+
+// Confirms the corrected finish time and records the clock-out at that instant,
+// flagged as driver-adjusted. originalTimestamp is the real button-press time.
+function confirmLateTime() {
+    const { h, m, future } = updateLateReadout();
+    if (future) { showToast("That time is in the future — set your actual finish time.", 'error'); return; }
+
+    const corrected = new Date();
+    corrected.setHours(h, m, 0, 0);
+    const original = new Date();
+
+    submitClocking('Clock Out', null, null, {
+        lateReason: state.lateReason || 'Forgot to Clock Out',
+        timestamp: corrected.toISOString().replace(/\.\d+Z$/, 'Z'),
+        originalTimestamp: original.toISOString().replace(/\.\d+Z$/, 'Z'),
+        timeAdjusted: true,
+    });
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -3214,6 +3577,13 @@ async function fetchGeofenceConfig() {
             GEOFENCE_RADIUS_M = g.radius;
             console.log(`Geofence updated: ${g.lat}, ${g.lng} (${g.radius}m)`);
         }
+        // Configurable late clock-out reasons (label + correctsTime flag).
+        if (Array.isArray(data.lateClockoutReasons) && data.lateClockoutReasons.length) {
+            const cleaned = data.lateClockoutReasons
+                .filter(r => r && typeof r.label === 'string' && r.label.trim())
+                .map(r => ({ label: r.label.trim(), correctsTime: !!r.correctsTime }));
+            if (cleaned.length) LATE_CLOCKOUT_REASONS = cleaned;
+        }
     } catch (err) {
         console.warn('Could not fetch geofence config, using defaults:', err.message);
     }
@@ -3313,6 +3683,27 @@ function bindEvents() {
         const type = state.pendingClockType || 'Clock In';
         state.pendingClockType = null;
         await submitClocking(type, 'other', note);
+    });
+
+    // ─── Late clock-out overlay ───────────────────────
+    $('lateCancel').addEventListener('click', () => {
+        hideLateOverlay();
+        state.pendingLate = null;
+        state.lateReason = null;
+    });
+    $('lateTimeBack').addEventListener('click', () => {
+        $('lateTimeStage').classList.remove('active');
+        $('latePicker').style.display = '';
+        state.lateReason = null;
+    });
+    $('lateTimeConfirm').addEventListener('click', confirmLateTime);
+    // Update the readout + centred-item highlight as each wheel column scrolls.
+    ['wheelHours', 'wheelMins'].forEach(id => {
+        const col = $(id);
+        col.addEventListener('scroll', () => {
+            highlightWheel(col, wheelValue(col));
+            updateLateReadout();
+        }, { passive: true });
     });
 
     // Boot retry
