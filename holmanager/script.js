@@ -510,6 +510,7 @@ async function changeYear() {
     // Update current year
     currentYear = newYear;
     var _cyd = document.getElementById('current-year-display'); if (_cyd) _cyd.textContent = `Current: ${currentYear}`;
+    updateTopbarYear(true);
 
     // Jump both calendars to the selected year so admins book into the right one
     currentDate = new Date(currentYear, 0, 1);
@@ -597,6 +598,7 @@ async function init() {
         updatePendingBadge(); // Add badge update
         updateAdminStatusIndicator();
         updateTopbarDate();
+        updateTopbarYear();
         showTab('employee');
         
         document.getElementById('employee-loading').classList.add('hidden');
@@ -737,6 +739,21 @@ function updateTopbarDate() {
     if (!el) return;
     const fmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     el.textContent = fmt.format(new Date());
+}
+
+// Render the selected reporting year in the topbar. Pass flash=true to briefly
+// highlight the pill (used when the user switches year).
+function updateTopbarYear(flash = false) {
+    const el = document.getElementById('topbar-year');
+    if (!el) return;
+    el.textContent = currentYear;
+    if (flash) {
+        el.classList.remove('year-flash');
+        // Force reflow so the animation restarts even on rapid changes
+        void el.offsetWidth;
+        el.classList.add('year-flash');
+        setTimeout(() => el.classList.remove('year-flash'), 900);
+    }
 }
 
 

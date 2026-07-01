@@ -13,6 +13,32 @@
     <link href="style.css?v=20260504f" rel="stylesheet"/>
     <!-- EmailJS SDK for email notifications -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <style>
+        /* Topbar "Reporting year" indicator — theme-neutral pill (works on light or dark) */
+        .topbar-meta { display: flex; align-items: center; gap: 22px; }
+        .meta-item--year { text-align: right; }
+        .meta-value--year {
+            display: inline-block;
+            font-family: 'Fraunces', Georgia, serif;
+            font-size: 1.55rem;
+            line-height: 1.1;
+            font-weight: 600;
+            padding: 3px 15px;
+            border-radius: 999px;
+            background: rgba(128, 128, 128, 0.12);
+            border: 1px solid rgba(128, 128, 128, 0.30);
+            letter-spacing: 0.3px;
+            transition: background 0.25s ease, border-color 0.25s ease;
+        }
+        /* Brief highlight flash when the year changes */
+        .meta-value--year.year-flash {
+            background: rgba(255, 193, 7, 0.28);
+            border-color: rgba(255, 193, 7, 0.65);
+        }
+        @media (max-width: 640px) {
+            .meta-value--year { font-size: 1.3rem; }
+        }
+    </style>
 </head>
 
 <body>
@@ -102,6 +128,10 @@
                     <p class="page-subtitle" id="page-subtitle">Submit and manage holiday requests</p>
                 </div>
                 <div class="topbar-meta">
+                    <div class="meta-item meta-item--year">
+                        <span class="meta-label">Reporting year</span>
+                        <span class="meta-value meta-value--year" id="topbar-year">—</span>
+                    </div>
                     <div class="meta-item">
                         <span class="meta-label">Today</span>
                         <span class="meta-value" id="topbar-today"></span>
