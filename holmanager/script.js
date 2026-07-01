@@ -45,12 +45,18 @@ function persistAttViewState() {
 }
 
 // Single source of truth for "used days" — computed from actual approved requests
-// that deduct from holiday allowance. NEVER read `employee.usedDays` directly for
-// display; that field can drift out of sync after edits/deletions/un-approvals.
-// Pass either an employeeId or a pre-filtered list of approved requests.
+// that deduct from holiday allowance, SCOPED TO THE SELECTED YEAR. NEVER read
+// `employee.usedDays` directly for display; that field can drift out of sync after
+// edits/deletions/un-approvals.
+//
+// The D1 backend stores all years in one table, so `holidayRequests` contains every
+// year's bookings. A request is attributed to the year of its start date (same
+// convention as getAttendanceStats), so each new year starts with a fresh allowance.
 function calculateUsedDaysFromRequests(employeeId) {
     const approved = holidayRequests.filter(
-        r => r.employeeId === employeeId && r.status === 'approved'
+        r => r.employeeId === employeeId &&
+             r.status === 'approved' &&
+             new Date(r.startDate).getFullYear() === currentYear
     );
     return approved.reduce((sum, req) => {
         return sum + ((req.deductFromHoliday || req.requestType === 'holiday') ? (req.days || 0) : 0);
@@ -504,7 +510,11 @@ async function changeYear() {
     // Update current year
     currentYear = newYear;
     var _cyd = document.getElementById('current-year-display'); if (_cyd) _cyd.textContent = `Current: ${currentYear}`;
-    
+
+    // Jump both calendars to the selected year so admins book into the right one
+    currentDate = new Date(currentYear, 0, 1);
+    blockCalendarDate = new Date(currentYear, 0, 1);
+
     // Reset data
     employees = [];
     holidayRequests = [];
