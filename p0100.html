@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P0100 Job Card — Ducato MCA · SN 10.007.23</title>
+<style>
+  :root{
+    --navy:#1d3a6e; --blue:#2f6fd6; --blue-l:#eaf1fb;
+    --amber:#d97706; --amber-l:#fdf0d8;
+    --green:#2e8b57; --green-l:#e4f3ea;
+    --red:#c0392b; --red-l:#fae5e2;
+    --teal:#0f766e;
+    --ink:#1a2333; --grey:#6b7280; --line:#d4dae4; --bg:#f2f4f8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Helvetica Neue",Arial,Helvetica,sans-serif;color:var(--ink);background:var(--bg);font-size:15px;line-height:1.45}
+
+  header.doc{background:var(--navy);color:#fff;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+  header.doc .brand{display:flex;align-items:center;gap:12px}
+  header.doc img.logo{height:34px;width:auto}
+  header.doc h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.2px}
+  header.doc .sub{font-size:12.5px;opacity:.85;margin-top:3px}
+  header.doc .sn{text-align:right;font-size:13px}
+  header.doc .sn b{display:block;font-size:16px}
+
+  .toolbar{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line);
+    padding:10px 22px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .toolbar .status{font-size:12.5px;color:var(--grey);margin-left:auto}
+  button{font:inherit;font-weight:600;font-size:14px;border:0;border-radius:7px;padding:9px 16px;cursor:pointer}
+  .btn-primary{background:var(--blue);color:#fff}
+  .btn-primary:hover{background:#265dc0}
+  .btn-quiet{background:#eef1f6;color:var(--ink)}
+  .btn-quiet:hover{background:#e2e7ef}
+  .btn-danger{background:#fff;color:var(--red);border:1px solid var(--red)}
+  .btn-danger:hover{background:var(--red-l)}
+  button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #9cc0f5;outline-offset:1px}
+
+  main{max-width:900px;margin:0 auto;padding:20px 16px 60px}
+  section.card{background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:18px;overflow:hidden}
+  section.card>h2{margin:0;padding:11px 16px;font-size:14.5px;letter-spacing:.4px;color:#fff;background:var(--navy)}
+  section.card.c-blue>h2{background:var(--blue)}
+  section.card.c-amber>h2{background:var(--amber)}
+  section.card.c-red>h2{background:var(--red)}
+  section.card.c-teal>h2{background:var(--teal)}
+  .card-body{padding:16px}
+  .hint{font-size:12.5px;color:var(--grey);margin:2px 0 12px}
+
+  .grid{display:grid;gap:12px 18px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{font-size:12.5px;font-weight:700;color:var(--navy)}
+  .field input[type=text],.field input[type=number],.field input[type=date],.field textarea{
+    font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:#fbfcfe;width:100%}
+  .field textarea{min-height:64px;resize:vertical}
+
+  .checks{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+  .check{display:flex;align-items:center;gap:8px;font-size:14px}
+  .check input{width:19px;height:19px;accent-color:var(--blue)}
+
+  .badge{display:inline-block;font-size:12.5px;font-weight:700;border-radius:999px;padding:4px 12px;margin-top:6px}
+  .badge.pass{background:var(--green-l);color:var(--green)}
+  .badge.fail{background:var(--red-l);color:var(--red)}
+  .badge.warn{background:var(--amber-l);color:var(--amber)}
+  .badge.idle{background:#eef1f6;color:var(--grey)}
+
+  .strip{border-left:4px solid var(--amber);background:var(--amber-l);padding:10px 14px;border-radius:0 8px 8px 0;font-size:13.5px;margin:0 0 16px}
+  .strip b{color:var(--amber)}
+
+  table.claims{width:100%;border-collapse:collapse;font-size:14px}
+  table.claims th,table.claims td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  table.claims th{font-size:12px;letter-spacing:.4px;color:var(--grey);text-transform:uppercase}
+  table.claims td.t{white-space:nowrap}
+
+  .sig-grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .sig .line{border-bottom:1.5px solid var(--ink);height:44px}
+  .sig .cap{font-size:12px;color:var(--grey);margin-top:4px}
+
+  .cycle{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));counter-reset:step}
+  .cycle div{background:var(--blue-l);border:1px solid #c9d9f2;border-radius:8px;padding:9px 11px;font-size:12.5px;counter-increment:step}
+  .cycle div::before{content:counter(step);display:inline-block;background:var(--blue);color:#fff;font-weight:700;
+    width:20px;height:20px;border-radius:50%;text-align:center;line-height:20px;margin-right:7px;font-size:11px}
+  .cycle div.wait{background:var(--amber-l);border-color:#efd9ac}
+  .cycle div.wait::before{background:var(--amber)}
+
+  footer.doc{max-width:900px;margin:0 auto;padding:0 16px 30px;font-size:11.5px;color:var(--grey)}
+
+  @media print{
+    body{background:#fff;font-size:11.5px}
+    .toolbar,.no-print{display:none !important}
+    header.doc{padding:12px 0;background:#fff !important;color:var(--navy);border-bottom:3px solid var(--navy);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    header.doc .sub,header.doc .sn{color:var(--navy)}
+    main{max-width:none;padding:8px 0}
+    section.card{border:1px solid #999;border-radius:6px;margin-bottom:10px;break-inside:avoid}
+    section.card>h2{-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:11.5px;padding:6px 10px}
+    .card-body{padding:10px}
+    .field input,.field textarea{border:0;border-bottom:1px solid #888;border-radius:0;background:#fff;padding:2px 2px}
+    .cycle{display:none}
+    .badge{border:1px solid currentColor}
+  }
+</style>
+</head>
+<body>
+
+<header class="doc">
+  <div class="brand">
+    <img class="logo" src="/images/logo.png" alt="Kerr &amp; Smith" onerror="this.style.display='none'">
+    <div>
+      <h1>P0100 · Ducato MCA 2.2 JTD E6D — Job Card</h1>
+      <div class="sub">Engine control failure light + DTC P0100 · Kerr &amp; Smith Cumnock · Warranty evidence record</div>
+    </div>
+  </div>
+  <div class="sn"><b>SN 10.007.23</b>Issued 26/05/2025</div>
+</header>
+
+<div class="toolbar">
+  <button type="button" class="btn-primary" onclick="window.print()">Print / Save as PDF</button>
+  <button type="button" class="btn-quiet" id="btnExport">Download backup (.json)</button>
+  <button type="button" class="btn-quiet" id="btnImport">Load backup</button>
+  <input type="file" id="fileImport" accept="application/json" hidden>
+  <button type="button" class="btn-danger" id="btnClear">Clear form</button>
+  <span class="status" id="saveStatus">Changes save automatically on this device</span>
+</div>
+
+<main>
+
+  <section class="card">
+    <h2>VEHICLE / JOB</h2>
+    <div class="card-body">
+      <div class="grid">
+        <div class="field"><label for="reg">Reg / VIN</label><input type="text" id="reg" data-save></div>
+        <div class="field"><label for="job">Job number</label><input type="text" id="job" data-save></div>
+        <div class="field"><label for="variant">Variant (HP / gearbox / duty / MY)</label><input type="text" id="variant" data-save placeholder="e.g. 140HP MT C637 van, Heavy Duty MY21"></div>
+        <div class="field"><label for="tech">Technician</label><input type="text" id="tech" data-save></div>
+        <div class="field"><label for="date">Date</label><input type="date" id="date" data-save></div>
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <div class="field"><label for="swBefore">SW number/version before flash</label><input type="text" id="swBefore" data-save></div>
+        <div class="field"><label for="swAfter">SW number/version after flash</label><input type="text" id="swAfter" data-save></div>
+      </div>
+      <div class="checks" style="margin-top:14px">
+        <label class="check"><input type="checkbox" id="scanPre" data-save> Pre-flash scan report saved</label>
+        <label class="check"><input type="checkbox" id="scanPost" data-save> Post-flash scan report saved</label>
+      </div>
+    </div>
+  </section>
+
+  <section class="card c-blue">
+    <h2>STEP 2 — BASELINE VALUES (wiTECH2)</h2>
+    <div class="card-body">
+      <p class="hint">Read from the ECM data list before the road test. The drift value here is the reference the road test result is compared against.</p>
+      <div class="grid">
+        <div class="field"><label for="idleCorr">Idle airflow correction</label><input type="number" step="any" id="idleCorr" data-save></div>
+        <div class="field"><label for="corr1">Airflow correction 1</label><input type="number" step="any" id="corr1" data-save></div>
+        <div class="field"><label for="corr2">Airflow correction 2</label><input type="number" step="any" id="corr2" data-save></div>
+        <div class="field"><label for="corr3">Airflow correction 3</label><input type="number" step="any" id="corr3" data-save></div>
+        <div class="field"><label for="corr4">Airflow correction 4</label><input type="number" step="any" id="corr4" data-save></div>
+        <div class="field"><label for="baseDrift">Airflow rate sensor DRIFT VALUE (reference)</label><input type="number" step="any" id="baseDrift" data-save></div>
+        <div class="field"><label for="learnEvents">Total HFM drift learning events</label><input type="number" step="1" id="learnEvents" data-save></div>
+        <div class="field"><label for="cumMass">Cumulative mass through HFM (kg)</label><input type="number" step="any" id="cumMass" data-save></div>
+        <div class="field"><label for="totMass">Total cumulative mass through HFM (kg)</label><input type="number" step="any" id="totMass" data-save></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card c-amber">
+    <h2>STEP 3 — INTAKE SYSTEM CHECK</h2>
+    <div class="card-body">
+      <div class="checks">
+        <label class="check"><input type="checkbox" id="smokeTest" data-save> Smoke test performed</label>
+        <label class="check"><input type="checkbox" id="leakFound" data-save> Leak found</label>
+        <label class="check"><input type="checkbox" id="driftReset3" data-save> Drift compensation reset done (after repair)</label>
+      </div>
+      <div class="field" style="margin-top:12px">
+        <label for="intakeNotes">Repair carried out / notes</label>
+        <textarea id="intakeNotes" data-save placeholder="Pipes, intercooler, clamps, fittings checked — describe any repair"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <section class="card c-blue">
+    <h2>STEPS 4–5 — ROAD TEST DRIFT CHECK</h2>
+    <div class="card-body">
+      <p class="hint">Pass = drift value <b>above 0.9 and below 1.1</b>, AND changed from the baseline reference. Identical to baseline = learning didn't complete — repeat the cycle.</p>
+      <div class="cycle no-print" aria-label="Road test cycle reminder">
+        <div>2500 rpm in 3rd/4th/5th, lift fully off, coast to 1500 rpm</div>
+        <div class="wait">Stop safe · key OFF · 15 min — ignition stays off</div>
+        <div>Repeat the coast-down</div>
+        <div class="wait">Key OFF · second 15 min wait</div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="field">
+          <label for="rt1">Road test 1 — drift value</label>
+          <input type="number" step="any" id="rt1" data-save>
+          <span class="badge idle" id="rt1Badge">Awaiting value</span>
+        </div>
+        <div class="field">
+          <label for="rt2">Road test 2 (if required) — drift value</label>
+          <input type="number" step="any" id="rt2" data-save>
+          <span class="badge idle" id="rt2Badge">Awaiting value</span>
+        </div>
+        <div class="field">
+          <label for="learnAfter">Learning events counter after road test</label>
+          <input type="number" step="1" id="learnAfter" data-save>
+          <span class="badge idle" id="learnBadge">Awaiting value</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card c-red">
+    <h2>STEP 6 — MANIFOLD REPLACEMENT (only if drift check failed)</h2>
+    <div class="card-body">
+      <div class="checks">
+        <label class="check"><input type="checkbox" id="manifoldFitted" data-save> Intake manifold PN 46353419 fitted</label>
+        <label class="check"><input type="checkbox" id="headCleaned" data-save> Cylinder head cleaned (TUNAP or equivalent)</label>
+        <label class="check"><input type="checkbox" id="driftReset6" data-save> Drift compensation reset done</label>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="field">
+          <label for="finalDrift">Final road test — drift value</label>
+          <input type="number" step="any" id="finalDrift" data-save>
+          <span class="badge idle" id="finalBadge">Awaiting value</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card c-amber">
+    <h2>TIMING BELT — NOT COVERED BY SN 10.007.23</h2>
+    <div class="card-body">
+      <p class="strip"><b>Written authority required.</b> Verbal advice from Stellantis technical manager only — raise a DID ticket referencing SN 10.007.23 and obtain an op code before starting, or the PRA line will be rejected.</p>
+      <div class="grid">
+        <div class="field"><label for="didTicket">DID ticket number</label><input type="text" id="didTicket" data-save></div>
+        <div class="field"><label for="beltOpCode">Authorised op code</label><input type="text" id="beltOpCode" data-save></div>
+        <div class="field"><label for="beltAuthBy">Authorised by</label><input type="text" id="beltAuthBy" data-save></div>
+      </div>
+      <div class="checks" style="margin-top:12px">
+        <label class="check"><input type="checkbox" id="beltReplaced" data-save> Timing belt replaced</label>
+      </div>
+    </div>
+  </section>
+
+  <section class="card c-teal">
+    <h2>CLAIM (SN 10.007.23 · Component 1 · Fault RA)</h2>
+    <div class="card-body">
+      <table class="claims">
+        <thead><tr><th>Op</th><th>Covers</th><th>Time</th><th>Claimed</th></tr></thead>
+        <tbody>
+          <tr><td>1072112</td><td>Checks only</td><td class="t">0.30</td><td><input type="checkbox" id="c12" data-save></td></tr>
+          <tr><td>1072113</td><td>Checks + hardware repair (Step 3)</td><td class="t">1.10</td><td><input type="checkbox" id="c13" data-save></td></tr>
+          <tr><td>1072114</td><td>Checks + manifold replacement (Step 6)</td><td class="t">13.10</td><td><input type="checkbox" id="c14" data-save></td></tr>
+          <tr><td>1072115</td><td>Road test (Steps 4 &amp; final check)</td><td class="t">1.00</td><td><input type="checkbox" id="c15" data-save></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>SIGN-OFF</h2>
+    <div class="card-body">
+      <div class="grid" style="margin-bottom:16px">
+        <div class="field"><label for="sigTech">Technician name</label><input type="text" id="sigTech" data-save></div>
+        <div class="field"><label for="sigQC">Workshop control / QC name</label><input type="text" id="sigQC" data-save></div>
+        <div class="field"><label for="sigDate">Sign-off date</label><input type="date" id="sigDate" data-save></div>
+      </div>
+      <div class="sig-grid">
+        <div class="sig"><div class="line"></div><div class="cap">Technician signature (sign printed copy)</div></div>
+        <div class="sig"><div class="line"></div><div class="cap">Workshop control / QC signature</div></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="doc">
+  Process per Stellantis Service News 10.007.23 (26/05/2025) · Ducato MCA 2.2 JTD E6D Final · Print and retain with pre/post-flash scan reports as PRA evidence.
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var KEY = "p0100-jobcard-v1";
+  var fields = Array.prototype.slice.call(document.querySelectorAll("[data-save]"));
+  var statusEl = document.getElementById("saveStatus");
+  var saveTimer = null;
+
+  function collect() {
+    var data = {};
+    fields.forEach(function (el) {
+      data[el.id] = el.type === "checkbox" ? el.checked : el.value;
+    });
+    return data;
+  }
+
+  function apply(data) {
+    fields.forEach(function (el) {
+      if (!(el.id in data)) return;
+      if (el.type === "checkbox") { el.checked = !!data[el.id]; }
+      else { el.value = data[el.id]; }
+    });
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(collect()));
+      var t = new Date();
+      statusEl.textContent = "Saved on this device at " +
+        ("0" + t.getHours()).slice(-2) + ":" + ("0" + t.getMinutes()).slice(-2) + ":" + ("0" + t.getSeconds()).slice(-2);
+    } catch (e) {
+      statusEl.textContent = "Autosave unavailable — use Download backup";
+    }
+  }
+
+  function scheduleSave() {
+    if (saveTimer) { clearTimeout(saveTimer); }
+    saveTimer = setTimeout(save, 400);
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) { apply(JSON.parse(raw)); }
+    } catch (e) { /* corrupted store - start clean */ }
+  }
+
+  // ---- drift pass/fail logic ----
+  function num(id) {
+    var v = document.getElementById(id).value;
+    if (v === "" || v === null) { return null; }
+    var n = parseFloat(v);
+    return isNaN(n) ? null : n;
+  }
+
+  function setBadge(id, cls, text) {
+    var el = document.getElementById(id);
+    el.className = "badge " + cls;
+    el.textContent = text;
+  }
+
+  function judgeDrift(value, baseline) {
+    if (value === null) { return { cls: "idle", text: "Awaiting value" }; }
+    if (baseline !== null && value === baseline) {
+      return { cls: "warn", text: "Unchanged from baseline — learning incomplete, repeat road test" };
+    }
+    if (value > 0.9 && value < 1.1) { return { cls: "pass", text: "PASS — within 0.9–1.1" }; }
+    return { cls: "fail", text: "FAIL — out of limits (manifold path, Step 6)" };
+  }
+
+  function evaluate() {
+    var base = num("baseDrift");
+
+    var r1 = judgeDrift(num("rt1"), base);
+    setBadge("rt1Badge", r1.cls, r1.text);
+
+    var r2 = judgeDrift(num("rt2"), base);
+    setBadge("rt2Badge", r2.cls, r2.text);
+
+    var fin = judgeDrift(num("finalDrift"), base);
+    setBadge("finalBadge", fin.cls, fin.text);
+
+    var before = num("learnEvents");
+    var after = num("learnAfter");
+    if (after === null) {
+      setBadge("learnBadge", "idle", "Awaiting value");
+    } else if (before === null) {
+      setBadge("learnBadge", "idle", "Enter baseline learning events to compare");
+    } else if (after > before) {
+      setBadge("learnBadge", "pass", "Counter increased — a learning event completed");
+    } else {
+      setBadge("learnBadge", "warn", "Counter unchanged — cycle may not have saved");
+    }
+  }
+
+  // ---- toolbar ----
+  document.getElementById("btnExport").addEventListener("click", function () {
+    var data = collect();
+    var reg = (data.reg || "vehicle").replace(/[^A-Za-z0-9_-]+/g, "-");
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "p0100-jobcard-" + reg + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  });
+
+  document.getElementById("btnImport").addEventListener("click", function () {
+    document.getElementById("fileImport").click();
+  });
+
+  document.getElementById("fileImport").addEventListener("change", function (ev) {
+    var file = ev.target.files && ev.target.files[0];
+    if (!file) { return; }
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        apply(JSON.parse(reader.result));
+        evaluate();
+        save();
+      } catch (e) {
+        statusEl.textContent = "That file couldn't be read — choose a backup made by this form";
+      }
+      ev.target.value = "";
+    };
+    reader.readAsText(file);
+  });
+
+  document.getElementById("btnClear").addEventListener("click", function () {
+    if (!window.confirm("Clear every field on this form? This can't be undone.")) { return; }
+    fields.forEach(function (el) {
+      if (el.type === "checkbox") { el.checked = false; } else { el.value = ""; }
+    });
+    try { localStorage.removeItem(KEY); } catch (e) { /* no-op */ }
+    evaluate();
+    statusEl.textContent = "Form cleared";
+  });
+
+  // ---- wire up ----
+  fields.forEach(function (el) {
+    el.addEventListener("input", function () { scheduleSave(); evaluate(); });
+    el.addEventListener("change", function () { scheduleSave(); evaluate(); });
+  });
+
+  load();
+  evaluate();
+})();
+</script>
+</body>
+</html>
