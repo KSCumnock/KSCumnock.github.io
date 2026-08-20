@@ -1801,6 +1801,10 @@ function loadEmployeeRequests() {
                     </div>
                     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px; margin-left: 15px;">
                         <span class="status-badge status-${request.status}">${request.status}</span>
+                        ${requestType === 'sick' && request.status === 'approved' && !request.deductFromHoliday ?
+                            `<button class="btn-toil btn-small" onclick="openConvertSickModal(${request.id})">Mark as paid</button>` : ''}
+                        ${requestType === 'sick' && request.status === 'approved' && request.deductFromHoliday ?
+                            `<button class="btn-ghost btn-small" onclick="revertSickToUnpaid(${request.id})">Revert to unpaid</button>` : ''}
                         ${request.status === 'pending' || request.status === 'approved' ? 
                             `<button class="btn-cancel btn-small" onclick="cancelHolidayRequest(${request.id})">Cancel</button>` : ''}
                     </div>
@@ -1869,6 +1873,307 @@ async function cancelHolidayRequest(requestId) {
         updatePendingBadge();
         loading.error(`Couldn't cancel — ${err.message || 'save failed'}`, {
             actions: [{ label: 'Retry', primary: true, onClick: () => cancelHolidayRequest(requestId) }]
+        });
+    }
+}
+
+// ==================== CONVERT SICK LEAVE TO PAID (HOLIDAY ALLOWANCE) ====================
+// Lets an admin mark some or all days of an already-recorded (unpaid) sick leave
+// request as paid, by deducting them from the employee's holiday allowance instead.
+// The request stays classified as "sick" (so attendance/Bradford-factor reporting is
+// unaffected) — only `deductFromHoliday` and the day count change. If the admin only
+// selects some of the days, the request is split: the selected days become a new
+// paid request, and the remainder stays behind on the original unpaid sick request.
+
+let convertSickState = null; // { requestId, dates: string[], selected: Set<string> }
+
+// Build the list of individual dates covered by a request, in the same
+// working-day terms used everywhere else (calculateDays / block bookings).
+function getRequestDates(request) {
+    if (request.isBlockBooking && request.selectedDates) {
+        return [...request.selectedDates].sort();
+    }
+    const employee = employees.find(emp => emp.id === request.employeeId);
+    const includeSaturdayDeduction = employee ? employee.includeSaturdayDeduction : false;
+    const dates = [];
+    const current = new Date(request.startDate);
+    const end = new Date(request.endDate);
+    while (current <= end) {
+        const dayOfWeek = current.getDay();
+        if (dayOfWeek !== 0 && (includeSaturdayDeduction || dayOfWeek !== 6)) {
+            dates.push(formatDateForComparison(current));
+        }
+        current.setDate(current.getDate() + 1);
+    }
+    return dates;
+}
+
+function openConvertSickModal(requestId) {
+    const request = holidayRequests.find(req => req.id === requestId);
+    if (!request) return;
+    if (request.requestType !== 'sick' || request.status !== 'approved') return;
+
+    const dates = getRequestDates(request);
+    if (dates.length === 0) {
+        toast.warning('No working days found on this request.', { title: "Can't convert" });
+        return;
+    }
+
+    convertSickState = {
+        requestId,
+        dates,
+        selected: new Set(dates) // default: all days selected
+    };
+
+    document.getElementById('convert-sick-employee-name').textContent = request.employeeName;
+    const rangeText = request.startDate === request.endDate ? request.startDate : `${request.startDate} to ${request.endDate}`;
+    document.getElementById('convert-sick-range').textContent = rangeText;
+    document.getElementById('convert-sick-note').value = '';
+
+    renderConvertSickDatesList();
+    updateConvertSickAllowanceNote();
+
+    const modal = document.getElementById('convert-sick-modal');
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+}
+
+function closeConvertSickModal() {
+    const modal = document.getElementById('convert-sick-modal');
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+    convertSickState = null;
+}
+
+function renderConvertSickDatesList() {
+    if (!convertSickState) return;
+    const container = document.getElementById('convert-sick-dates-list');
+    container.innerHTML = convertSickState.dates.map(dateStr => {
+        const formatted = new Date(dateStr).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+        const checked = convertSickState.selected.has(dateStr) ? 'checked' : '';
+        return `
+            <label class="checkbox-label" style="padding: 6px 8px; border-radius: 6px; background: #f8f9fa;">
+                <input type="checkbox" ${checked} onchange="toggleConvertSickDate('${dateStr}')">
+                <span class="checkbox-custom"></span>
+                ${formatted}
+            </label>
+        `;
+    }).join('');
+}
+
+function toggleConvertSickDate(dateStr) {
+    if (!convertSickState) return;
+    if (convertSickState.selected.has(dateStr)) {
+        convertSickState.selected.delete(dateStr);
+    } else {
+        convertSickState.selected.add(dateStr);
+    }
+    updateConvertSickAllowanceNote();
+}
+
+function updateConvertSickAllowanceNote() {
+    if (!convertSickState) return;
+    const request = holidayRequests.find(req => req.id === convertSickState.requestId);
+    const employee = employees.find(emp => emp.id === request.employeeId);
+    const note = document.getElementById('convert-sick-allowance-note');
+    const confirmBtn = document.getElementById('convert-sick-confirm-btn');
+    const count = convertSickState.selected.size;
+
+    if (!employee) {
+        note.innerHTML = '';
+        return;
+    }
+
+    const remaining = (employee.totalAllowance || 0) - calculateUsedDaysFromRequests(employee.id);
+
+    if (count === 0) {
+        note.style.background = '#f8f9fa';
+        note.style.color = '#6c757d';
+        note.textContent = 'Select at least one day to convert.';
+        confirmBtn.disabled = true;
+        return;
+    }
+
+    if (count > remaining) {
+        note.style.background = '#f8d7da';
+        note.style.color = '#721c24';
+        note.textContent = `${employee.name} only has ${remaining} day${remaining === 1 ? '' : 's'} of holiday allowance left — can't convert ${count} day${count === 1 ? '' : 's'}.`;
+        confirmBtn.disabled = true;
+        return;
+    }
+
+    note.style.background = '#d4edda';
+    note.style.color = '#155724';
+    note.textContent = `${count} of ${convertSickState.dates.length} day${convertSickState.dates.length === 1 ? '' : 's'} selected · ${employee.name} will have ${remaining - count} day${(remaining - count) === 1 ? '' : 's'} of holiday allowance left afterwards.`;
+    confirmBtn.disabled = false;
+}
+
+async function confirmConvertSick() {
+    if (!convertSickState) return;
+    const { requestId, dates, selected } = convertSickState;
+    const selectedDates = dates.filter(d => selected.has(d));
+    if (selectedDates.length === 0) return;
+
+    const request = holidayRequests.find(req => req.id === requestId);
+    if (!request) return;
+
+    const employee = employees.find(emp => emp.id === request.employeeId);
+    const remaining = employee ? (employee.totalAllowance || 0) - calculateUsedDaysFromRequests(employee.id) : 0;
+    if (selectedDates.length > remaining) {
+        toast.warning('Not enough holiday allowance remaining for that many days.', { title: "Can't convert" });
+        return;
+    }
+
+    const authoriser = promptAuthoriser(`mark ${selectedDates.length} day(s) of ${request.employeeName}'s sick leave as paid`);
+    if (!authoriser) return;
+
+    const note = document.getElementById('convert-sick-note').value.trim();
+    const today = new Date().toISOString().split('T')[0];
+    const isFullConversion = selectedDates.length === dates.length;
+
+    // ----- Snapshot for rollback -----
+    const snapshot = {
+        request: { ...request },
+        employee: employee ? { ...employee } : null,
+        holidayRequestsLength: holidayRequests.length
+    };
+
+    let newPaidRequest = null;
+
+    // ----- Apply optimistically -----
+    if (isFullConversion) {
+        // Simple case: no split needed, just flip the flag on the existing request.
+        request.deductFromHoliday = true;
+        request.convertedBy = authoriser;
+        request.convertedDate = today;
+        if (note) request.convertedNote = note;
+    } else {
+        // Partial case: split the selected days off into a new paid request, and
+        // shrink the original unpaid sick request down to the remaining days.
+        const remainingDates = dates.filter(d => !selected.has(d));
+
+        newPaidRequest = {
+            ...request,
+            id: nextRequestId++,
+            isBlockBooking: true,
+            selectedDates: selectedDates,
+            startDate: selectedDates[0],
+            endDate: selectedDates[selectedDates.length - 1],
+            days: selectedDates.length,
+            isHalfDay: false,
+            halfDayPeriod: null,
+            deductFromHoliday: true,
+            convertedBy: authoriser,
+            convertedDate: today,
+            convertedFromRequestId: request.id
+        };
+        if (note) newPaidRequest.convertedNote = note;
+
+        request.isBlockBooking = true;
+        request.selectedDates = remainingDates;
+        request.startDate = remainingDates[0];
+        request.endDate = remainingDates[remainingDates.length - 1];
+        request.days = remainingDates.length;
+
+        holidayRequests.push(newPaidRequest);
+    }
+
+    if (employee) employee.usedDays += selectedDates.length;
+
+    closeConvertSickModal();
+
+    if (currentEmployee && currentEmployee.id === request.employeeId) {
+        loadEmployeeRequests();
+    }
+    refreshAdminViews();
+    renderCalendar();
+    refreshEmployeeAllowanceDisplay();
+    updatePendingBadge();
+
+    const loading = toast.loading(`Updating ${request.employeeName}'s sick leave…`);
+
+    try {
+        if (employee) await saveEmployees();
+        await saveHolidayRequests();
+        if (employee) sendEmailNotification(employee, newPaidRequest || request, 'converted_paid')
+            .catch(err => console.error('Convert email failed:', err));
+        loading.success(`${selectedDates.length} day${selectedDates.length === 1 ? '' : 's'} marked as paid`);
+    } catch (err) {
+        // ----- Rollback -----
+        Object.assign(request, snapshot.request);
+        if (newPaidRequest) {
+            holidayRequests = holidayRequests.filter(r => r !== newPaidRequest);
+        }
+        if (snapshot.employee && employee) Object.assign(employee, snapshot.employee);
+        if (currentEmployee && currentEmployee.id === request.employeeId) {
+            loadEmployeeRequests();
+        }
+        refreshAdminViews();
+        renderCalendar();
+        refreshEmployeeAllowanceDisplay();
+        updatePendingBadge();
+        loading.error(`Couldn't update — ${err.message || 'save failed'}`, {
+            actions: [{ label: 'Retry', primary: true, onClick: () => openConvertSickModal(requestId) }]
+        });
+    }
+}
+
+// Reverses a conversion — puts a paid sick record back to unpaid. Only offered on
+// a request that isn't split (deductFromHoliday flips back with no day-splitting),
+// mirroring the "full conversion" path above.
+async function revertSickToUnpaid(requestId) {
+    const request = holidayRequests.find(req => req.id === requestId);
+    if (!request) return;
+    if (request.requestType !== 'sick' || !request.deductFromHoliday) return;
+
+    const ok = await confirmDialog({
+        title: 'Revert to unpaid sick leave?',
+        message: `${request.employeeName}'s ${request.days} day(s) will go back to being unpaid sick leave, and will be returned to their holiday allowance.`,
+        confirmLabel: 'Revert',
+        cancelLabel: 'Keep as paid',
+        danger: true
+    });
+    if (!ok) return;
+
+    const authoriser = promptAuthoriser(`revert ${request.employeeName}'s sick leave back to unpaid`);
+    if (!authoriser) return;
+
+    const employee = employees.find(emp => emp.id === request.employeeId);
+
+    const snapshot = { request: { ...request }, employee: employee ? { ...employee } : null };
+
+    if (employee) employee.usedDays -= request.days;
+    request.deductFromHoliday = false;
+    request.convertedBy = authoriser;
+    request.convertedDate = new Date().toISOString().split('T')[0];
+    delete request.convertedNote;
+
+    if (currentEmployee && currentEmployee.id === request.employeeId) {
+        loadEmployeeRequests();
+    }
+    refreshAdminViews();
+    renderCalendar();
+    refreshEmployeeAllowanceDisplay();
+    updatePendingBadge();
+
+    const loading = toast.loading(`Updating ${request.employeeName}'s sick leave…`);
+
+    try {
+        if (employee) await saveEmployees();
+        await saveHolidayRequests();
+        loading.success('Reverted to unpaid sick leave');
+    } catch (err) {
+        Object.assign(request, snapshot.request);
+        if (snapshot.employee && employee) Object.assign(employee, snapshot.employee);
+        if (currentEmployee && currentEmployee.id === request.employeeId) {
+            loadEmployeeRequests();
+        }
+        refreshAdminViews();
+        renderCalendar();
+        refreshEmployeeAllowanceDisplay();
+        updatePendingBadge();
+        loading.error(`Couldn't revert — ${err.message || 'save failed'}`, {
+            actions: [{ label: 'Retry', primary: true, onClick: () => revertSickToUnpaid(requestId) }]
         });
     }
 }
@@ -2680,6 +2985,9 @@ async function sendEmailNotification(employee, request, notificationType) {
             } else if (notificationType === 'cancelled') {
                 statusText = 'CANCELLED';
                 statusColor = '#ffc107';
+            } else if (notificationType === 'converted_paid') {
+                statusText = 'MARKED AS PAID (HOLIDAY)';
+                statusColor = '#f0ad4e';
             }
             
             emailParams = {
@@ -3350,16 +3658,27 @@ function loadAllRequests() {
 
 // Build an audit stamp HTML block for a request (used in admin All Requests & employee history)
 function buildAuditStamp(request) {
+    let stamp = '';
     if (request.status === 'approved' && request.approvedBy) {
-        return `<p style="margin-top: 8px; padding: 6px 10px; background: #d4edda; border-left: 3px solid #28a745; color: #155724; font-size: 13px;">✅ <strong>Authorised by ${request.approvedBy}</strong>${request.approvedDate ? ` on ${request.approvedDate}` : ''}</p>`;
+        stamp += `<p style="margin-top: 8px; padding: 6px 10px; background: #d4edda; border-left: 3px solid #28a745; color: #155724; font-size: 13px;">✅ <strong>Authorised by ${request.approvedBy}</strong>${request.approvedDate ? ` on ${request.approvedDate}` : ''}</p>`;
     }
     if (request.status === 'rejected' && request.rejectedBy) {
-        return `<p style="margin-top: 8px; padding: 6px 10px; background: #f8d7da; border-left: 3px solid #dc3545; color: #721c24; font-size: 13px;">❌ <strong>Rejected by ${request.rejectedBy}</strong>${request.rejectedDate ? ` on ${request.rejectedDate}` : ''}</p>`;
+        stamp += `<p style="margin-top: 8px; padding: 6px 10px; background: #f8d7da; border-left: 3px solid #dc3545; color: #721c24; font-size: 13px;">❌ <strong>Rejected by ${request.rejectedBy}</strong>${request.rejectedDate ? ` on ${request.rejectedDate}` : ''}</p>`;
     }
     if (request.status === 'cancelled' && request.cancelledBy) {
-        return `<p style="margin-top: 8px; padding: 6px 10px; background: #e2e3e5; border-left: 3px solid #6c757d; color: #383d41; font-size: 13px;">🚫 <strong>Cancelled by ${request.cancelledBy}</strong>${request.cancelledDate ? ` on ${request.cancelledDate}` : ''}</p>`;
+        stamp += `<p style="margin-top: 8px; padding: 6px 10px; background: #e2e3e5; border-left: 3px solid #6c757d; color: #383d41; font-size: 13px;">🚫 <strong>Cancelled by ${request.cancelledBy}</strong>${request.cancelledDate ? ` on ${request.cancelledDate}` : ''}</p>`;
     }
-    return '';
+    // Conversion audit trail — a sick record that had some/all of its days moved onto
+    // (or back off) the holiday allowance. Shown alongside the status stamp above,
+    // since converting doesn't change the request's approved/rejected/cancelled status.
+    if (request.convertedBy) {
+        const label = request.deductFromHoliday ? 'Marked as paid (holiday allowance)' : 'Reverted to unpaid sick leave';
+        stamp += `<p style="margin-top: 8px; padding: 6px 10px; background: #fff3cd; border-left: 3px solid #f0ad4e; color: #856404; font-size: 13px;">💷 <strong>${label} by ${request.convertedBy}</strong>${request.convertedDate ? ` on ${request.convertedDate}` : ''}${request.convertedNote ? ` — "${request.convertedNote}"` : ''}</p>`;
+    }
+    if (request.convertedFromRequestId) {
+        stamp += `<p style="margin-top: 8px; padding: 6px 10px; background: #f8f9fa; border-left: 3px solid #adb5bd; color: #495057; font-size: 13px;">↳ Split off request #${request.convertedFromRequestId}</p>`;
+    }
+    return stamp;
 }
 
 // ==================== BULK HOLIDAYS FUNCTIONS ====================

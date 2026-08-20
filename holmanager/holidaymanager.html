@@ -867,8 +867,41 @@
         </div>
     </div>
 
+    <!-- Convert Sick Leave to Paid (via holiday allowance) -->
+    <div id="convert-sick-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 560px;">
+            <div class="modal-header">
+                <h3>💷 Mark sick leave as paid</h3>
+                <button class="close-btn" onclick="closeConvertSickModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--neutral-500); margin-bottom: 16px; font-size: 14px;">
+                    Choose which day(s) of <strong id="convert-sick-employee-name"></strong>'s sick leave
+                    (<span id="convert-sick-range"></span>) should be paid for by deducting them from their
+                    holiday allowance instead. Days left unticked stay recorded as unpaid sick leave.
+                </p>
 
- <script src="script.js?v=20260701a"></script>
+                <div id="convert-sick-dates-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; padding: 4px 2px;"></div>
+
+                <div id="convert-sick-allowance-note" style="margin-top: 14px; padding: 10px 12px; border-radius: 6px; font-size: 13px;"></div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="convert-sick-note">Note (optional, shown in audit history)</label>
+                    <input type="text" id="convert-sick-note" placeholder="e.g., Agreed with employee to cover as paid leave">
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" onclick="confirmConvertSick()" class="btn-toil" id="convert-sick-confirm-btn">
+                        Convert selected day(s) to paid
+                    </button>
+                    <button type="button" onclick="closeConvertSickModal()" class="btn-ghost">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+ <script src="script.js?v=20260820a"></script>
 
 </body>
 </html>
