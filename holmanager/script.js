@@ -666,7 +666,7 @@ function updatePendingBadge() {
 
 // Page metadata for the new sidebar layout
 const PAGE_META = {
-    employee:  { eyebrow: 'Kerr & Smith Cumnock', title: 'Employees',  subtitle: 'Submit and manage holiday, sick and bereavement requests' },
+    employee:  { eyebrow: 'Kerr & Smith Cumnock', title: 'Employees',  subtitle: 'Submit and manage holiday, sick, bereavement, training and college days' },
     calendar:  { eyebrow: 'Kerr & Smith Cumnock', title: 'Calendar',   subtitle: "Team availability with Scotland public &amp; East Ayrshire school holidays" },
     analytics: { eyebrow: 'Kerr & Smith Cumnock', title: 'Analytics',  subtitle: 'Insights into holiday patterns, coverage and forecasts' },
     admin:     { eyebrow: 'Kerr & Smith Cumnock', title: 'Admin Panel', subtitle: 'Approve requests, manage employees and generate reports' }
@@ -934,7 +934,10 @@ function populateEmployeeCards() {
             const daysUntil = Math.ceil((new Date(nextLeave.startDate) - new Date(today)) / (1000 * 60 * 60 * 24));
             const leaveType = nextLeave.requestType || 'holiday';
             const typeText = leaveType === 'holiday' ? 'Holiday' :
-                           leaveType === 'sick' ? 'Sick leave' : 'Bereavement';
+                           leaveType === 'sick' ? 'Sick leave' :
+                           leaveType === 'bereavement' ? 'Bereavement' :
+                           leaveType === 'training' ? 'Training' :
+                           leaveType === 'college' ? 'College' : 'Leave';
             
             if (daysUntil === 0) {
                 nextLeaveText = `${typeText} starts today`;
@@ -1036,7 +1039,9 @@ function updateRequestTypeOptions() {
         if (reasonRequired) reasonRequired.style.display = 'inline';
         if (reasonOptional) reasonOptional.style.display = 'none';
     } else {
-        reasonTextarea.placeholder = 'Family vacation, medical appointment, etc.';
+        reasonTextarea.placeholder = (requestType === 'training') ? 'Course / training details (optional)' :
+            (requestType === 'college') ? 'College / course details (optional)' :
+            'Family vacation, medical appointment, etc.';
         if (reasonRequired) reasonRequired.style.display = 'none';
         if (reasonOptional) reasonOptional.style.display = 'inline';
     }
@@ -1549,11 +1554,13 @@ async function submitHolidayRequest(event) {
             return;
         }
         
-        // Sick leave auto-approves — require authoriser for audit trail
-        let sickAuthoriser = null;
-        if (requestType === 'sick') {
-            sickAuthoriser = promptAuthoriser(`record this sick leave for ${currentEmployee.name}`);
-            if (!sickAuthoriser) return;
+        // Sick, training and college are attendance records rather than requests, so auto-approve them.
+        const autoApproveType = ['sick', 'training', 'college'].includes(requestType);
+        let attendanceAuthoriser = null;
+        if (autoApproveType) {
+            const actionLabel = requestType === 'sick' ? 'record this sick leave' : `record this ${requestType} day`;
+            attendanceAuthoriser = promptAuthoriser(`${actionLabel} for ${currentEmployee.name}`);
+            if (!attendanceAuthoriser) return;
         }
 
         // Create multiple requests for each group
@@ -1575,7 +1582,7 @@ async function submitHolidayRequest(event) {
             
             // Auto-approve sick leave requests (employee is already off sick)
             // Holiday and bereavement requests still require approval
-            const initialStatus = requestType === 'sick' ? 'approved' : 'pending';
+            const initialStatus = ['sick', 'training', 'college'].includes(requestType) ? 'approved' : 'pending';
             
             const newRequest = {
                 id: nextRequestId++,
@@ -1596,8 +1603,8 @@ async function submitHolidayRequest(event) {
             };
 
             // Stamp authoriser for sick leave (auto-approved)
-            if (requestType === 'sick' && sickAuthoriser) {
-                newRequest.approvedBy = sickAuthoriser;
+            if (['sick', 'training', 'college'].includes(requestType) && attendanceAuthoriser) {
+                newRequest.approvedBy = attendanceAuthoriser;
                 newRequest.approvedDate = new Date().toISOString().split('T')[0];
             }
 
@@ -1615,11 +1622,13 @@ async function submitHolidayRequest(event) {
                 .catch(err => console.error('Email notification failed:', err));
         }
         
-        const typeText = requestType === 'holiday' ? 'Holiday' : 
-                        requestType === 'sick' ? 'Sick Leave' : 'Bereavement Leave';
+        const typeText = requestType === 'holiday' ? 'Holiday' :
+                        requestType === 'sick' ? 'Sick Leave' :
+                        requestType === 'bereavement' ? 'Bereavement Leave' :
+                        requestType === 'training' ? 'Training' : 'College';
         
         // Different message for sick leave (auto-approved)
-        if (requestType === 'sick') {
+        if (['sick', 'training', 'college'].includes(requestType)) {
             toast.success(`${typeText} recorded · ${groups.length} request${groups.length !== 1 ? 's' : ''} created. Admins notified.`, { title: 'Auto-approved', duration: 6000 });
         } else {
             toast.success(`${typeText} block booking submitted · ${groups.length} request${groups.length !== 1 ? 's' : ''} pending approval.`, { title: 'Submitted', duration: 5000 });
@@ -1658,15 +1667,14 @@ async function submitHolidayRequest(event) {
             return;
         }
         
-        // Auto-approve sick leave requests (employee is already off sick)
-        // Holiday and bereavement requests still require approval
-        const initialStatus = requestType === 'sick' ? 'approved' : 'pending';
+        // Sick, training and college are attendance records, so auto-approve them.
+        const initialStatus = ['sick', 'training', 'college'].includes(requestType) ? 'approved' : 'pending';
 
-        // Sick leave auto-approves — require authoriser for audit trail
-        let sickAuthoriserSingle = null;
-        if (requestType === 'sick') {
-            sickAuthoriserSingle = promptAuthoriser(`record this sick leave for ${currentEmployee.name}`);
-            if (!sickAuthoriserSingle) return;
+        let attendanceAuthoriserSingle = null;
+        if (['sick', 'training', 'college'].includes(requestType)) {
+            const actionLabel = requestType === 'sick' ? 'record this sick leave' : `record this ${requestType} day`;
+            attendanceAuthoriserSingle = promptAuthoriser(`${actionLabel} for ${currentEmployee.name}`);
+            if (!attendanceAuthoriserSingle) return;
         }
 
         const newRequest = {
@@ -1686,8 +1694,8 @@ async function submitHolidayRequest(event) {
         };
 
         // Stamp authoriser for sick leave (auto-approved)
-        if (requestType === 'sick' && sickAuthoriserSingle) {
-            newRequest.approvedBy = sickAuthoriserSingle;
+        if (['sick', 'training', 'college'].includes(requestType) && attendanceAuthoriserSingle) {
+            newRequest.approvedBy = attendanceAuthoriserSingle;
             newRequest.approvedDate = new Date().toISOString().split('T')[0];
         }
         
@@ -1700,11 +1708,13 @@ async function submitHolidayRequest(event) {
         sendEmailNotification(currentEmployee, newRequest, 'new_request')
             .catch(err => console.error('Email notification failed:', err));
         
-        const typeText = requestType === 'holiday' ? 'Holiday' : 
-                        requestType === 'sick' ? 'Sick Leave' : 'Bereavement Leave';
+        const typeText = requestType === 'holiday' ? 'Holiday' :
+                        requestType === 'sick' ? 'Sick Leave' :
+                        requestType === 'bereavement' ? 'Bereavement Leave' :
+                        requestType === 'training' ? 'Training' : 'College';
         
         // Different message for sick leave (auto-approved)
-        if (requestType === 'sick') {
+        if (['sick', 'training', 'college'].includes(requestType)) {
             toast.success(`${typeText} recorded · admins notified.`, { title: 'Auto-approved', duration: 5000 });
         } else {
             toast.success(`${typeText} submitted · pending approval.`, { title: 'Submitted' });
@@ -1769,8 +1779,10 @@ function loadEmployeeRequests() {
         }
         
         const requestType = request.requestType || 'holiday';
-        const typeText = requestType === 'holiday' ? 'Holiday' : 
-                        requestType === 'sick' ? 'Sick Leave' : 'Bereavement Leave';
+        const typeText = requestType === 'holiday' ? 'Holiday' :
+                        requestType === 'sick' ? 'Sick Leave' :
+                        requestType === 'bereavement' ? 'Bereavement Leave' :
+                        requestType === 'training' ? 'Training' : 'College';
         
         const deductText = request.deductFromHoliday ? ' (deducted from holiday allowance)' : '';
         
@@ -2413,8 +2425,10 @@ function showRequestPopover(element, dateStr, requests, holidays = []) {
         }
         
         const requestType = request.requestType || 'holiday';
-        const typeText = requestType === 'holiday' ? 'Holiday' : 
-                        requestType === 'sick' ? 'Sick Leave' : 'Bereavement Leave';
+        const typeText = requestType === 'holiday' ? 'Holiday' :
+                        requestType === 'sick' ? 'Sick Leave' :
+                        requestType === 'bereavement' ? 'Bereavement Leave' :
+                        requestType === 'training' ? 'Training' : 'College';
         
         content += `
             <div class="popover-employee">
@@ -2722,8 +2736,10 @@ function loadPendingRequests() {
         }
         
         const requestType = request.requestType || 'holiday';
-        const typeText = requestType === 'holiday' ? 'Holiday' : 
-                        requestType === 'sick' ? 'Sick Leave' : 'Bereavement Leave';
+        const typeText = requestType === 'holiday' ? 'Holiday' :
+                        requestType === 'sick' ? 'Sick Leave' :
+                        requestType === 'bereavement' ? 'Bereavement Leave' :
+                        requestType === 'training' ? 'Training' : 'College';
         
         // Add block booking details if applicable
         let blockBookingDetails = '';
@@ -3618,8 +3634,10 @@ function loadAllRequests() {
         }
         
         const requestType = request.requestType || 'holiday';
-        const typeText = requestType === 'holiday' ? 'Holiday' : 
-                        requestType === 'sick' ? 'Sick Leave' : 'Bereavement Leave';
+        const typeText = requestType === 'holiday' ? 'Holiday' :
+                        requestType === 'sick' ? 'Sick Leave' :
+                        requestType === 'bereavement' ? 'Bereavement Leave' :
+                        requestType === 'training' ? 'Training' : 'College';
         
         // Add block booking details if applicable
         let blockBookingDetails = '';
