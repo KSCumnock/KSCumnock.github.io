@@ -761,6 +761,10 @@ main {
 .status-pill[data-state="leave-sick"] .pill-dot { background: var(--purple); }
 .status-pill[data-state="leave-bereavement"] { background: #e2e8f0; border-color: #cbd5e1; color: #334155; }
 .status-pill[data-state="leave-bereavement"] .pill-dot { background: #64748b; }
+.status-pill[data-state="leave-training"] { background: #dbeafe; border-color: #93c5fd; color: #1e3a8a; }
+.status-pill[data-state="leave-training"] .pill-dot { background: #2563eb; }
+.status-pill[data-state="leave-college"] { background: #f3e8ff; border-color: #d8b4fe; color: #581c87; }
+.status-pill[data-state="leave-college"] .pill-dot { background: #9333ea; }
 
 /* Post-clockout & half-day states. Colour grouped by semantics:
    half-day variants borrow the blue from leave-holiday because that's
@@ -1021,6 +1025,8 @@ main {
 .seg-leave-holiday { background: repeating-linear-gradient(45deg, var(--blue-soft), var(--blue-soft) 4px, #fff 4px, #fff 8px); border: 1px solid #bfdbfe; }
 .seg-leave-sick    { background: repeating-linear-gradient(45deg, var(--purple-soft), var(--purple-soft) 4px, #fff 4px, #fff 8px); border: 1px solid var(--purple-border); }
 .seg-leave-bereavement { background: repeating-linear-gradient(45deg, #e2e8f0, #e2e8f0 4px, #fff 4px, #fff 8px); border: 1px solid #cbd5e1; }
+.seg-leave-training { background: repeating-linear-gradient(45deg, #dbeafe, #dbeafe 4px, #fff 4px, #fff 8px); border: 1px solid #93c5fd; }
+.seg-leave-college { background: repeating-linear-gradient(45deg, #f3e8ff, #f3e8ff 4px, #fff 4px, #fff 8px); border: 1px solid #d8b4fe; }
 .seg-live { background: linear-gradient(90deg, var(--green) 0%, var(--green) 70%, rgba(22, 163, 74, 0.6) 100%); }
 .seg-live::after {
     content: '';
@@ -4244,6 +4250,8 @@ function describeLeave(r) {
     const t = (r.requestType || (r.deductFromHoliday ? 'holiday' : 'holiday'));
     if (t === 'sick') return { label: 'Off sick', bucket: 'leave-sick', short: 'Sick' };
     if (t === 'bereavement') return { label: 'Bereavement', bucket: 'leave-bereavement', short: 'Bereavement' };
+    if (t === 'training') return { label: 'Training', bucket: 'leave-training', short: 'Training' };
+    if (t === 'college') return { label: 'College', bucket: 'leave-college', short: 'College' };
     return { label: 'On holiday', bucket: 'leave-holiday', short: 'Holiday' };
 }
 
@@ -4332,6 +4340,8 @@ const STATUS_LABELS = {
     'leave-holiday':     'On holiday',
     'leave-sick':        'Off sick',
     'leave-bereavement': 'Bereavement',
+    'leave-training':    'Training',
+    'leave-college':     'College',
     // Post-clockout states — when the last clocking today is a Clock Out
     // AND it carries an early_reason from the kiosk picker, we surface
     // that reason instead of the generic "Clocked out". Lets the admin
@@ -4714,7 +4724,7 @@ function computeDayStats(entries, dateStr, isToday = false) {
 function computePeriodStats(empDays, dateRange, todayStr, tkEmp) {
     let totalWorked = 0, totalBreak = 0;
     let workingDays = 0, presentDays = 0, sickDays = 0, absentDays = 0;
-    let holidayDays = 0, bereavementDays = 0;
+    let holidayDays = 0, bereavementDays = 0, trainingDays = 0, collegeDays = 0;
     let clockInTimes = [];
     let dailyHours = [];
     let dailyStats = {};
@@ -4750,7 +4760,9 @@ function computePeriodStats(empDays, dateRange, todayStr, tkEmp) {
                 if (stats.leaveType === 'leave-holiday')      holidayDays++;
                 else if (stats.leaveType === 'leave-sick')    sickDays++;
                 else if (stats.leaveType === 'leave-bereavement') bereavementDays++;
-                else                                          absentDays++;
+                else if (stats.leaveType === 'leave-training') trainingDays++;
+                else if (stats.leaveType === 'leave-college')  collegeDays++;
+                else                                           absentDays++;
             }
         } else {
             if (stats.clockIn) {
@@ -4785,7 +4797,7 @@ function computePeriodStats(empDays, dateRange, todayStr, tkEmp) {
     // marked retrospectively by an admin and act as the audit trail.
     // Adjust by removing holidayDays + bereavementDays from the working
     // days count when computing the ratio.
-    const adjustedWorkingDays = Math.max(0, workingDays - holidayDays - bereavementDays);
+    const adjustedWorkingDays = Math.max(0, workingDays - holidayDays - bereavementDays - trainingDays - collegeDays);
     const attendancePct = adjustedWorkingDays > 0
         ? Math.round((presentDays / adjustedWorkingDays) * 100)
         : 0;
@@ -4793,7 +4805,7 @@ function computePeriodStats(empDays, dateRange, todayStr, tkEmp) {
     return {
         totalWorked, totalBreak,
         workingDays, presentDays, sickDays, absentDays,
-        holidayDays, bereavementDays,
+        holidayDays, bereavementDays, trainingDays, collegeDays,
         adjustedWorkingDays,
         avgClockIn, latestClockIn, earliestClockIn,
         avgDailyMs, avgBreakMs, attendancePct,
@@ -5757,8 +5769,15 @@ function exportCSV(filterEmpId = null) {
             const lbl = fullDateLabel(dateStr);
 
             let status = 'OK';
+            const leaveOnDay = entries.length === 0 && !stats.isWeekend ? leaveForEmpOnDate(emp, dateStr) : null;
             if (stats.isSick) status = 'SICK';
-            else if (entries.length === 0) {
+            else if (leaveOnDay) {
+                const leaveType = (leaveOnDay.requestType || 'holiday').toUpperCase();
+                status = leaveType === 'TRAINING' ? 'TRAINING' :
+                         leaveType === 'COLLEGE' ? 'COLLEGE' :
+                         leaveType === 'BEREAVEMENT' ? 'BEREAVEMENT' :
+                         leaveType === 'SICK' ? 'SICK' : 'HOLIDAY';
+            } else if (entries.length === 0) {
                 if (stats.isWeekend) status = 'WEEKEND';
                 else if (dateStr === todayStr) status = 'PENDING';
                 else status = 'ABSENT';
