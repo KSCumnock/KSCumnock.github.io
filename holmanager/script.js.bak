@@ -484,10 +484,10 @@ async function saveHolidayRequests() {
             `Update holiday requests data for ${currentYear}`
         );
         holidayRequestsSha = result.content.sha;
-        console.log(`Holiday requests saved successfully for ${currentYear}`);
+        console.log(`Holiday requests saved successfully to GitHub for ${currentYear}`);
     } catch (error) {
         console.error('Error saving holiday requests:', error);
-        toast.error('Failed to save holiday request data. Please try again.', { title: 'Save failed' });
+        toast.error('Failed to save holiday request data to GitHub. Please try again.', { title: 'Save failed' });
         throw error;
     }
 }
@@ -1496,22 +1496,6 @@ function getDateRange(startDate, endDate) {
         current.setDate(current.getDate() + 1);
     }
     return dates;
-}
-
-function isAttendanceExceptionType(requestType) {
-    return requestType === 'training' || requestType === 'college';
-}
-
-function isAutoApprovedType(requestType) {
-    return requestType === 'sick' || isAttendanceExceptionType(requestType);
-}
-
-function getRequestTypeLabel(requestType) {
-    return requestType === 'holiday' ? 'Holiday' :
-           requestType === 'sick' ? 'Sick Leave' :
-           requestType === 'bereavement' ? 'Bereavement Leave' :
-           requestType === 'training' ? 'Training' :
-           requestType === 'college' ? 'College' : 'Leave';
 }
 
 async function submitHolidayRequest(event) {
